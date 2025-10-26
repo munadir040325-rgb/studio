@@ -8,6 +8,8 @@ import { Fragment } from 'react';
 // Fungsi untuk mengubah segmen path menjadi judul yang mudah dibaca
 const formatSegment = (segment: string) => {
   if (!segment) return 'Home';
+  // Handle 'sppd' specifically to format it as 'SPPD'
+  if (segment.toLowerCase() === 'sppd') return 'SPPD';
   return segment
     .split('-')
     .map(word => word.charAt(0).toUpperCase() + word.slice(1))
@@ -18,11 +20,26 @@ export function Breadcrumbs() {
   const pathname = usePathname();
   const segments = pathname.split('/').filter(Boolean);
 
-  // Custom logic for SPPD routes
-  if (segments[0] === 'sppd' && segments.length > 0) {
-    const isSubPath = segments.length > 1;
-    const currentSegment = isSubPath ? `${formatSegment(segments[0])}/${formatSegment(segments[1])}` : formatSegment(segments[0]);
-    const href = `/${segments.join('/')}`;
+  // Handle case for root or dashboard
+  if (segments.length === 0 || segments[0] === 'dashboard') {
+    return (
+        <nav aria-label="Breadcrumb" className="hidden flex-1 md:flex">
+            <ol className="flex items-center space-x-1 text-sm text-muted-foreground">
+                <li>
+                    <span className="font-medium text-foreground">Home</span>
+                </li>
+            </ol>
+        </nav>
+    );
+  }
+
+  // Custom logic for SPPD routes like /sppd/new
+  if (segments[0] === 'sppd' && segments.length > 1) {
+    const parentSegment = formatSegment(segments[0]);
+    const childSegment = formatSegment(segments[1]);
+    
+    // Custom label for 'new'
+    const displayChildSegment = segments[1] === 'new' ? 'Buat Baru' : childSegment;
 
     return (
         <nav aria-label="Breadcrumb" className="hidden flex-1 md:flex">
@@ -34,13 +51,11 @@ export function Breadcrumbs() {
                 </li>
                 <li className="flex items-center">
                     <ChevronRight className="h-4 w-4" />
-                    <Link
-                        href={href}
+                    <span
                         className="ml-1 font-medium text-foreground"
-                        aria-current="page"
                     >
-                        {currentSegment}
-                    </Link>
+                        {parentSegment}/{displayChildSegment}
+                    </span>
                 </li>
             </ol>
         </nav>
@@ -52,14 +67,14 @@ export function Breadcrumbs() {
       <ol className="flex items-center space-x-1 text-sm text-muted-foreground">
         <li>
           <Link href="/dashboard" className="hover:text-foreground">
-            {formatSegment('')}
+            Home
           </Link>
         </li>
         {segments.map((segment, index) => {
           const href = `/${segments.slice(0, index + 1).join('/')}`;
           const isLast = index === segments.length - 1;
 
-          // Jangan render breadcrumb untuk 'new', 'edit', dll.
+          // Jangan render breadcrumb untuk 'new', 'edit', dll. di luar konteks SPPD
           if (['new', 'edit'].includes(segment)) {
             return null;
           }
