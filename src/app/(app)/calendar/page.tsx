@@ -9,7 +9,7 @@ import { Popover, PopoverContent, PopoverTrigger } from '@/components/ui/popover
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger } from '@/components/ui/dialog';
 import { Calendar as CalendarIcon, ExternalLink, FilePlus, PlusCircle, RefreshCw, Search } from 'lucide-react';
 import { Calendar } from '@/components/ui/calendar';
-import { format, parseISO } from 'date-fns';
+import { format, parseISO, isSameDay } from 'date-fns';
 import { id } from 'date-fns/locale';
 import { cn } from '@/lib/utils';
 import Link from 'next/link';
@@ -24,25 +24,40 @@ const toYYYYMMDD = (date: Date): string => {
 
 const getDatePartFromISO = (isoString: string | null | undefined): string | null => {
     if (!isoString) return null;
-    // Handles both '2024-10-27T10:00:00+07:00' and '2024-10-27'
     return isoString.substring(0, 10);
 };
 
 // Helper to format date/time string from Google into a readable Indonesian format
-const formatEventDateTime = (dateTimeString: string | null | undefined) => {
-    if (!dateTimeString) {
-      return ''; // Return empty string if input is null or undefined to prevent crash
+const formatEventDisplay = (startStr: string | null | undefined, endStr: string | null | undefined, location: string | null | undefined, isAllDay: boolean | undefined) => {
+    if (!startStr) return '';
+
+    const startDate = parseISO(startStr);
+    const endDate = endStr ? parseISO(endStr) : startDate;
+
+    if (isNaN(startDate.getTime()) || isNaN(endDate.getTime())) {
+        return '';
     }
-    const date = parseISO(dateTimeString);
-    if (isNaN(date.getTime())) {
-      return ''; // Return empty string if parsing fails
+
+    let dateDisplay;
+
+    if (isAllDay) {
+        const adjustedEndDate = new Date(endDate.getTime() - 1); // Google's end date for all-day is exclusive
+        if (isSameDay(startDate, adjustedEndDate)) {
+            dateDisplay = format(startDate, 'EEEE, dd MMMM yyyy', { locale: id });
+        } else {
+            dateDisplay = `${format(startDate, 'dd MMM', { locale: id })} - ${format(adjustedEndDate, 'dd MMM yyyy', { locale: id })}`;
+        }
+    } else {
+        if (isSameDay(startDate, endDate)) {
+            dateDisplay = `${format(startDate, 'EEEE, dd MMMM yyyy, HH:mm', { locale: id })} - ${format(endDate, 'HH:mm', { locale: id })}`;
+        } else {
+            dateDisplay = `${format(startDate, 'dd MMM, HH:mm', { locale: id })} - ${format(endDate, 'dd MMM yyyy, HH:mm', { locale: id })}`;
+        }
     }
-    // If the string only contains a date (all-day event), just format the date part
-    if (dateTimeString.length === 10) {
-        return format(date, 'EEEE, dd MMMM yyyy', { locale: id });
-    }
-    // Otherwise, it's a timed event
-    return format(date, 'EEEE, dd MMMM yyyy, HH:mm', { locale: id });
+
+    const locationDisplay = location ? ` - ${location}` : '';
+
+    return `${dateDisplay}${locationDisplay}`;
 };
 
 
@@ -92,16 +107,25 @@ export default function CalendarPage() {
   }, [filterDate, fetchEvents]);
 
   const filteredBySearchEvents = useMemo(() => {
-    if (!searchTerm) {
+    if (!searchTerm && !filterDate) {
         return events;
     }
+    const filterDateStr = filterDate ? toYYYYMMDD(filterDate) : null;
+    
     return events.filter(event => {
-        const summaryMatch = event.summary?.toLowerCase().includes(searchTerm.toLowerCase());
-        const descriptionMatch = event.description?.toLowerCase().includes(searchTerm.toLowerCase());
-        const locationMatch = event.location?.toLowerCase().includes(searchTerm.toLowerCase());
-        return summaryMatch || descriptionMatch || locationMatch;
+        const eventDateStr = getDatePartFromISO(event.start);
+        
+        const dateMatch = !filterDateStr || eventDateStr === filterDateStr;
+
+        const term = searchTerm.toLowerCase();
+        const searchMatch = !term ||
+            event.summary?.toLowerCase().includes(term) ||
+            event.description?.toLowerCase().includes(term) ||
+            event.location?.toLowerCase().includes(term);
+
+        return dateMatch && searchMatch;
     });
-  }, [events, searchTerm]);
+  }, [events, searchTerm, filterDate]);
 
   const handleRefresh = () => {
     fetchEvents(filterDate);
@@ -197,14 +221,14 @@ export default function CalendarPage() {
             {filteredBySearchEvents.map(event => event.id && (
                 <Card key={event.id} className="flex flex-col">
                     <CardHeader className="flex-grow pb-4">
-                        <CardTitle className="text-base truncate">{event.summary}</CardTitle>
-                        {event.start && (
-                           <p className="text-sm text-muted-foreground">{formatEventDateTime(event.start.dateTime || event.start.date)}</p>
-                        )}
+                        <CardTitle className="text-base">{event.summary}</CardTitle>
+                        <p className="text-sm text-muted-foreground">{formatEventDisplay(event.start, event.end, event.location, event.isAllDay)}</p>
                     </CardHeader>
-                    <CardContent className="flex-grow py-0">
-                        <p className="text-sm text-muted-foreground line-clamp-3">{event.description || 'Tidak ada deskripsi.'}</p>
-                    </CardContent>
+                    {event.description && (
+                      <CardContent className="flex-grow py-0">
+                          <p className="text-sm text-muted-foreground line-clamp-3">{event.description}</p>
+                      </CardContent>
+                    )}
                     <CardFooter className="flex flex-wrap justify-end gap-2 pt-4">
                         {event.htmlLink && (
                           <Button variant="ghost" size="sm" asChild>
@@ -215,7 +239,7 @@ export default function CalendarPage() {
                           </Button>
                         )}
                         <Button asChild size="sm">
-                          <Link href={`/sppd/new?title=${encodeURIComponent(event.summary || '')}&startDate=${getDatePartFromISO(event.start?.dateTime || event.start?.date) || ''}`}>
+                          <Link href={`/sppd/new?title=${encodeURIComponent(event.summary || '')}&startDate=${getDatePartFromISO(event.start) || ''}`}>
                               <FilePlus className='mr-2 h-4 w-4' />
                               Buat SPPD
                           </Link>

@@ -55,11 +55,17 @@ export async function GET(req: NextRequest) {
     const end = searchParams.get("end");     // "YYYY-MM-DD" (opsional)
     const calendarId = "kecamatan.gandrungmangu2020@gmail.com";
 
-    if (!start) {
-      return NextResponse.json({ error: "Missing start query parameter" }, { status: 400 });
-    }
+    // Jika tidak ada tanggal filter, ambil rentang default (misal, 1 tahun)
+    const today = new Date();
+    const defaultStart = new Date(today);
+    defaultStart.setFullYear(today.getFullYear() - 1);
+    const defaultEnd = new Date(today);
+    defaultEnd.setFullYear(today.getFullYear() + 1);
 
-    const { timeMin, timeMax } = buildRangeISO(start, end ?? start, "Asia/Jakarta");
+    const startDate = start || `${defaultStart.getFullYear()}-${String(defaultStart.getMonth() + 1).padStart(2, '0')}-${String(defaultStart.getDate()).padStart(2, '0')}`;
+
+
+    const { timeMin, timeMax } = buildRangeISO(startDate, end ?? startDate, "Asia/Jakarta");
 
     // Auth service account
     const jwt = new google.auth.JWT({
@@ -72,8 +78,8 @@ export async function GET(req: NextRequest) {
 
     const res = await calendar.events.list({
       calendarId,
-      timeMin,
-      timeMax,
+      timeMin: start ? timeMin : undefined, // Hanya filter jika 'start' disediakan
+      timeMax: start ? timeMax : undefined,
       singleEvents: true,
       orderBy: "startTime",
       maxResults: 2500,
