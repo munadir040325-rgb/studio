@@ -98,7 +98,7 @@ export default function AppLayout({
                     </SidebarMenuItem>
                     <SidebarMenuItem>
                         <SidebarMenuButton asChild tooltip="SPJ">
-                            <Link href="#">
+                            <Link href="/spj">
                                 <FileCheck2 />
                                 <span>SPJ</span>
                             </Link>
