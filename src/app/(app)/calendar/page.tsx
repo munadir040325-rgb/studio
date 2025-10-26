@@ -60,8 +60,8 @@ export default function CalendarPage() {
   const renderWeeklyView = () => (
      <div className="grid grid-cols-7 border-t">
         {weekDays.map(day => (
-            <div key={day.toISOString()} className="flex flex-col border-r p-2 h-96 overflow-y-auto">
-                <span className="font-semibold text-center">{format(day, 'EEE dd')}</span>
+            <div key={day.toISOString()} className="flex flex-col border-r p-2 h-[40rem] overflow-y-auto">
+                <span className="font-semibold text-center sticky top-0 bg-card py-1">{format(day, 'EEE dd')}</span>
                  <div className="mt-2 space-y-2">
                     {getEventsForDay(day).map(event => (
                         <div key={event.id} className={`p-2 rounded-lg text-white ${event.color}`}>
@@ -76,8 +76,8 @@ export default function CalendarPage() {
   );
 
   const renderDailyView = () => (
-    <div className="border-t p-4">
-        <h3 className="text-lg font-semibold mb-4">{format(date, 'EEEE, dd MMMM yyyy')}</h3>
+    <div className="border-t p-4 h-[40rem] overflow-y-auto">
+        <h3 className="text-lg font-semibold mb-4 sticky top-0 bg-card py-2">{format(date, 'EEEE, dd MMMM yyyy')}</h3>
         <div className="space-y-4">
             {getEventsForDay(date).map(event => (
                 <div key={event.id} className={`p-4 rounded-lg text-white ${event.color}`}>
@@ -107,7 +107,7 @@ export default function CalendarPage() {
 
       <Card>
         <CardHeader>
-          <div className="flex items-center justify-between">
+          <div className="flex flex-col items-start gap-4 md:flex-row md:items-center md:justify-between">
              <div className="flex items-center gap-4">
                 <h2 className="text-xl font-bold">{format(date, view === 'monthly' ? 'MMMM yyyy' : 'dd MMMM yyyy')}</h2>
                 <div className="flex items-center gap-1">
@@ -115,13 +115,13 @@ export default function CalendarPage() {
                     <Button variant="outline" size="icon" onClick={handleNext}><ChevronRight className="h-4 w-4" /></Button>
                 </div>
              </div>
-             <div className="flex items-center gap-2">
+             <div className="flex flex-col items-start gap-2 md:flex-row md:items-center">
                 <Popover>
                     <PopoverTrigger asChild>
                         <Button
                         variant={'outline'}
                         className={cn(
-                            'w-[200px] justify-start text-left font-normal',
+                            'w-[240px] justify-start text-left font-normal',
                             !date && 'text-muted-foreground'
                         )}
                         >
@@ -139,7 +139,7 @@ export default function CalendarPage() {
                     </PopoverContent>
                 </Popover>
                 <Select value={view} onValueChange={(v) => setView(v as ViewMode)}>
-                    <SelectTrigger className="w-[120px]">
+                    <SelectTrigger className="w-full md:w-[120px]">
                         <SelectValue placeholder="View" />
                     </SelectTrigger>
                     <SelectContent>
@@ -165,10 +165,13 @@ export default function CalendarPage() {
                     const dailyEvents = getEventsForDay(date);
                     return <div className="relative h-full w-full">
                         <span className="absolute top-1 right-1">{date.getDate()}</span>
-                        <div className="mt-6 space-y-0.5 p-1">
-                             {dailyEvents.slice(0, 2).map(event => (
-                                <div key={event.id} className={`h-1.5 w-full rounded-full ${event.color}`} />
+                        <div className="mt-6 space-y-0.5 p-1 overflow-hidden">
+                             {dailyEvents.slice(0, 3).map(event => (
+                                <div key={event.id} className={`h-1.5 w-full rounded-full ${event.color}`} title={event.title} />
                             ))}
+                            {dailyEvents.length > 3 && (
+                                <div className="text-xs text-muted-foreground mt-1">+ {dailyEvents.length - 3} more</div>
+                            )}
                         </div>
                     </div>
                 }
@@ -180,7 +183,7 @@ export default function CalendarPage() {
                   head_row: "flex border-b",
                   head_cell: "w-full text-muted-foreground rounded-md font-normal text-[0.8rem] justify-center",
                   row: "flex w-full mt-2",
-                  cell: "h-24 w-full text-center text-sm p-1 relative [&:has([aria-selected])]:bg-accent first:[&:has([aria-selected])]:rounded-l-md last:[&:has([aria-selected])]:rounded-r-md focus-within:relative focus-within:z-20 border",
+                  cell: "h-28 w-full text-center text-sm p-1 relative [&:has([aria-selected])]:bg-accent first:[&:has([aria-selected])]:rounded-l-md last:[&:has([aria-selected])]:rounded-r-md focus-within:relative focus-within:z-20 border",
                   day: "h-full w-full p-0 font-normal aria-selected:opacity-100",
                   day_selected: "bg-accent text-accent-foreground hover:bg-accent hover:text-accent-foreground focus:bg-accent focus:text-accent-foreground"
               }}
