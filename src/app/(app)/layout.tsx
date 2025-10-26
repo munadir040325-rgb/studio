@@ -16,6 +16,7 @@ import {
   Users,
   Settings,
   FolderKanban,
+  CalendarDays,
 } from 'lucide-react';
 import { AppHeader } from '@/components/app-header';
 import Link from 'next/link';
@@ -68,6 +69,17 @@ export default function AppLayout({
                 <Link href="/sppd">
                   <FileText />
                   <span>SPPD</span>
+                </Link>
+              </SidebarMenuButton>
+            </SidebarMenuItem>
+            <SidebarMenuItem>
+              <SidebarMenuButton
+                asChild
+                tooltip="Calendar"
+              >
+                <Link href="/calendar">
+                  <CalendarDays />
+                  <span>Calendar</span>
                 </Link>
               </SidebarMenuButton>
             </SidebarMenuItem>
