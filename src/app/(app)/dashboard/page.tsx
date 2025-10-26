@@ -19,7 +19,7 @@ import {
   YAxis,
   Tooltip,
 } from 'recharts';
-import { ChartTooltipContent } from '@/components/ui/chart';
+import { ChartContainer, ChartTooltip, ChartTooltipContent } from '@/components/ui/chart';
 import { useEffect, useState } from 'react';
 
 
@@ -29,6 +29,12 @@ const statusConfig = {
   'ON-GOING': { icon: Plane, color: 'bg-green-500' },
   COMPLETED: { icon: Briefcase, color: 'bg-gray-500' },
   CANCELED: { icon: FileText, color: 'bg-red-500' },
+};
+
+const chartConfig = {
+  total: {
+    label: 'Total SPPD',
+  },
 };
 
 export default function DashboardPage() {
@@ -98,8 +104,8 @@ export default function DashboardPage() {
             <CardTitle>SPPD Overview</CardTitle>
           </CardHeader>
           <CardContent className="pl-2">
-            <ResponsiveContainer width="100%" height={300}>
-              <BarChart data={chartData}>
+            <ChartContainer config={chartConfig} className="min-h-[300px] w-full">
+              <BarChart accessibilityLayer data={chartData}>
                 <XAxis
                   dataKey="month"
                   stroke="#888888"
@@ -114,13 +120,13 @@ export default function DashboardPage() {
                   axisLine={false}
                   tickFormatter={(value) => `${value}`}
                 />
-                 <Tooltip
+                 <ChartTooltip
                   cursor={{ fill: 'hsl(var(--accent) / 0.2)' }}
                   content={<ChartTooltipContent />}
                 />
                 <Bar dataKey="total" fill="hsl(var(--primary))" radius={[4, 4, 0, 0]} />
               </BarChart>
-            </ResponsiveContainer>
+            </ChartContainer>
           </CardContent>
         </Card>
 
