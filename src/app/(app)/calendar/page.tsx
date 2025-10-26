@@ -248,7 +248,7 @@ export default function CalendarPage() {
                 Tambah Kegiatan
                 </Button>
             </DialogTrigger>
-            <DialogContent className="sm:max-w-2xl">
+            <DialogContent className="sm:max-w-2xl max-h-[90vh] overflow-y-auto no-scrollbar">
                 <DialogHeader>
                 <DialogTitle>Tambah Kegiatan Baru</DialogTitle>
                 </DialogHeader>
@@ -378,3 +378,5 @@ export default function CalendarPage() {
     </div>
   );
 }
+
+    
