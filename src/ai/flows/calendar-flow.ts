@@ -9,6 +9,7 @@
 import { ai } from '@/ai/genkit';
 import { z } from 'zod';
 import { google } from 'googleapis';
+import { addYears, subYears } from 'date-fns';
 
 const calendarId = 'kecamatan.gandrungmangu2020@gmail.com';
 
@@ -67,25 +68,27 @@ export const listCalendarEventsFlow = ai.defineFlow(
   async () => {
     const auth = await getGoogleAuth();
     if (!auth) {
-        // This case is for when environment variables are not set.
-        // The frontend will receive an empty array.
         console.warn("Google Calendar credentials are not configured. Returning empty list.");
         return [];
     }
     const calendar = google.calendar({ version: 'v3', auth });
 
     try {
+        const now = new Date();
+        const timeMin = subYears(now, 1).toISOString();
+        const timeMax = addYears(now, 1).toISOString();
+
         const response = await calendar.events.list({
             calendarId: calendarId,
-            timeMin: new Date().toISOString(),
-            maxResults: 20,
+            timeMin: timeMin,
+            timeMax: timeMax,
+            maxResults: 250, // Increased maxResults to get more events
             singleEvents: true,
             orderBy: 'startTime',
         });
         return (response.data.items || []) as CalendarEvent[];
     } catch (e: any) {
         console.error("Failed to list calendar events:", e.message);
-        // Throw the error so the frontend can catch it and display a useful message
         throw new Error(`Gagal mengambil data dari Google Calendar: ${e.message}`);
     }
   }
@@ -100,7 +103,7 @@ export const createCalendarEventFlow = ai.defineFlow(
   async (input) => {
     const auth = await getGoogleAuth();
     if (!auth) {
-        throw new Error("Tidak dapat membuat kegiatan: Kredensial Google Calendar belum diatur di variabel lingkungan.");
+        throw new Error("Tidak dapat membuat kegiatan: Kredensial Google Calendar belum diatur.");
     }
     const calendar = google.calendar({ version: 'v3', auth });
 
@@ -129,7 +132,6 @@ export const createCalendarEventFlow = ai.defineFlow(
 
 export async function listCalendarEvents(): Promise<CalendarEvent[]> {
     if (!areCredentialsConfigured()) {
-      // Return a specific error message if credentials are not configured
       throw new Error("Kredensial Google Kalender belum dikonfigurasi di file .env Anda.");
     }
     return listCalendarEventsFlow();
