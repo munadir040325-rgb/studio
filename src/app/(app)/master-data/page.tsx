@@ -1,3 +1,5 @@
+'use client';
+
 import { PageHeader } from '@/components/page-header';
 import { Button } from '@/components/ui/button';
 import { PlusCircle } from 'lucide-react';
@@ -6,6 +8,8 @@ import { EmployeeTable } from './components/employee-table';
 import { employees } from '@/lib/data';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import Image from 'next/image';
+import { useSearchParams } from 'next/navigation';
+import { useEffect, useState } from 'react';
 
 const signatures = [
     { id: 1, name: 'Kepala Dinas', holder: 'Dr. H. Iwan Setiawan, M.Si.', imageUrl: 'https://picsum.photos/seed/sig1/200/100', imageHint: 'signature script' },
@@ -13,6 +17,16 @@ const signatures = [
 ]
 
 export default function MasterDataPage() {
+  const searchParams = useSearchParams();
+  const tab = searchParams.get('tab');
+  const [activeTab, setActiveTab] = useState(tab || 'employees');
+
+  useEffect(() => {
+    if (tab) {
+      setActiveTab(tab);
+    }
+  }, [tab]);
+
   return (
     <div className="flex flex-col gap-6">
       <PageHeader
@@ -25,11 +39,11 @@ export default function MasterDataPage() {
         </Button>
       </PageHeader>
 
-      <Tabs defaultValue="employees">
+      <Tabs value={activeTab} onValueChange={setActiveTab}>
         <TabsList className="grid w-full grid-cols-3 md:w-[400px]">
-          <TabsTrigger value="employees">Employees</TabsTrigger>
-          <TabsTrigger value="signatures">Signatures</TabsTrigger>
-          <TabsTrigger value="letterheads">Letterheads</TabsTrigger>
+          <TabsTrigger value="employees">Pegawai</TabsTrigger>
+          <TabsTrigger value="signatures">Tanda Tangan</TabsTrigger>
+          <TabsTrigger value="letterheads">Kop Surat</TabsTrigger>
         </TabsList>
         <TabsContent value="employees" className="mt-4">
           <EmployeeTable data={employees} />

@@ -8,15 +8,17 @@ import {
   SidebarMenuButton,
   SidebarFooter,
   SidebarInset,
+  SidebarMenuSub,
+  SidebarMenuSubButton,
+  SidebarMenuSubItem,
 } from '@/components/ui/sidebar';
 import {
   LayoutDashboard,
   FileText,
-  BarChart3,
   Users,
   Settings,
-  FolderKanban,
   CalendarDays,
+  ChevronDown,
 } from 'lucide-react';
 import { AppHeader } from '@/components/app-header';
 import Link from 'next/link';
@@ -64,46 +66,61 @@ export default function AppLayout({
             <SidebarMenuItem>
               <SidebarMenuButton
                 asChild
-                tooltip="SPPD"
-              >
-                <Link href="/sppd">
-                  <FileText />
-                  <span>SPPD</span>
-                </Link>
-              </SidebarMenuButton>
-            </SidebarMenuItem>
-            <SidebarMenuItem>
-              <SidebarMenuButton
-                asChild
                 tooltip="Calendar"
               >
                 <Link href="/calendar">
                   <CalendarDays />
-                  <span>Calendar</span>
+                  <span>Kalender</span>
                 </Link>
               </SidebarMenuButton>
             </SidebarMenuItem>
-            <SidebarMenuItem>
-              <SidebarMenuButton
-                asChild
-                tooltip="Reports"
-              >
-                <Link href="/reports">
-                  <BarChart3 />
-                  <span>Reports</span>
-                </Link>
+             <SidebarMenuItem>
+              <SidebarMenuButton tooltip="SPPD">
+                <FileText />
+                <span>SPPD</span>
+                <ChevronDown className="ml-auto size-4" />
               </SidebarMenuButton>
+              <SidebarMenuSub>
+                <SidebarMenuSubItem>
+                  <SidebarMenuSubButton asChild>
+                    <Link href="/sppd">Kelola</Link>
+                  </SidebarMenuSubButton>
+                </SidebarMenuSubItem>
+                <SidebarMenuSubItem>
+                  <SidebarMenuSubButton asChild>
+                    <Link href="#">SPJ</Link>
+                  </SidebarMenuSubButton>
+                </SidebarMenuSubItem>
+                 <SidebarMenuSubItem>
+                  <SidebarMenuSubButton asChild>
+                    <Link href="/reports">Rekap</Link>
+                  </SidebarMenuSubButton>
+                </SidebarMenuSubItem>
+              </SidebarMenuSub>
             </SidebarMenuItem>
             <SidebarMenuItem>
-              <SidebarMenuButton
-                asChild
-                tooltip="Master Data"
-              >
-                <Link href="/master-data">
-                  <Users />
-                  <span>Master Data</span>
-                </Link>
+              <SidebarMenuButton tooltip="Master Data">
+                <Users />
+                <span>Master</span>
+                 <ChevronDown className="ml-auto size-4" />
               </SidebarMenuButton>
+               <SidebarMenuSub>
+                <SidebarMenuSubItem>
+                  <SidebarMenuSubButton asChild>
+                    <Link href="/master-data">Pegawai</Link>
+                  </SidebarMenuSubButton>
+                </SidebarMenuSubItem>
+                <SidebarMenuSubItem>
+                  <SidebarMenuSubButton asChild>
+                    <Link href="/master-data?tab=signatures">Tanda Tangan</Link>
+                  </SidebarMenuSubButton>
+                </SidebarMenuSubItem>
+                 <SidebarMenuSubItem>
+                  <SidebarMenuSubButton asChild>
+                    <Link href="/master-data?tab=letterheads">Kop Surat</Link>
+                  </SidebarMenuSubButton>
+                </SidebarMenuSubItem>
+              </SidebarMenuSub>
             </SidebarMenuItem>
           </SidebarMenu>
         </SidebarContent>
