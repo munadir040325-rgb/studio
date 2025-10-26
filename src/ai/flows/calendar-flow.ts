@@ -1,15 +1,14 @@
+
 'use server';
 /**
  * @fileOverview Flow for interacting with Google Calendar.
  *
- * - listCalendarEvents - Fetches events from a specified Google Calendar.
  * - createCalendarEvent - Creates a new event in a specified Google Calendar.
  */
 
 import { ai } from '@/ai/genkit';
 import { z } from 'zod';
 import { google } from 'googleapis';
-import { addYears, subYears } from 'date-fns';
 
 const calendarId = 'kecamatan.gandrungmangu2020@gmail.com';
 
@@ -20,10 +19,12 @@ const calendarEventSchema = z.object({
   start: z.object({
     dateTime: z.string().optional().nullable(),
     timeZone: z.string().optional().nullable(),
+    date: z.string().optional().nullable(),
   }).optional().nullable(),
   end: z.object({
     dateTime: z.string().optional().nullable(),
     timeZone: z.string().optional().nullable(),
+    date: z.string().optional().nullable(),
   }).optional().nullable(),
   location: z.string().optional().nullable(),
   htmlLink: z.string().optional().nullable(),
@@ -59,40 +60,6 @@ async function getGoogleAuth() {
   return auth;
 }
 
-export const listCalendarEventsFlow = ai.defineFlow(
-  {
-    name: 'listCalendarEventsFlow',
-    inputSchema: z.void(),
-    outputSchema: z.array(calendarEventSchema),
-  },
-  async () => {
-    const auth = await getGoogleAuth();
-    if (!auth) {
-        console.warn("Google Calendar credentials are not configured. Returning empty list.");
-        return [];
-    }
-    const calendar = google.calendar({ version: 'v3', auth });
-
-    try {
-        const now = new Date();
-        const timeMin = subYears(now, 1).toISOString();
-        const timeMax = addYears(now, 1).toISOString();
-
-        const response = await calendar.events.list({
-            calendarId: calendarId,
-            timeMin: timeMin,
-            timeMax: timeMax,
-            maxResults: 250, // Increased maxResults to get more events
-            singleEvents: true,
-            orderBy: 'startTime',
-        });
-        return (response.data.items || []) as CalendarEvent[];
-    } catch (e: any) {
-        console.error("Failed to list calendar events:", e.message);
-        throw new Error(`Gagal mengambil data dari Google Calendar: ${e.message}`);
-    }
-  }
-);
 
 export const createCalendarEventFlow = ai.defineFlow(
   {
@@ -130,13 +97,10 @@ export const createCalendarEventFlow = ai.defineFlow(
   }
 );
 
-export async function listCalendarEvents(): Promise<CalendarEvent[]> {
+
+export async function createCalendarEvent(input: CreateEventInput): Promise<CalendarEvent> {
     if (!areCredentialsConfigured()) {
       throw new Error("Kredensial Google Kalender belum dikonfigurasi di file .env Anda.");
     }
-    return listCalendarEventsFlow();
-}
-
-export async function createCalendarEvent(input: CreateEventInput): Promise<CalendarEvent> {
     return createCalendarEventFlow(input);
 }
