@@ -71,10 +71,20 @@ export function EventForm({ onSuccess }: EventFormProps) {
       onSuccess();
     } catch (error: any) {
       console.error('Failed to create event:', error);
+      let errorMessage = 'Terjadi kesalahan saat menambahkan kegiatan.';
+      if (error?.message) {
+        if (error.message.includes("writer access")) {
+          errorMessage = "Gagal: Pastikan service account memiliki izin 'Membuat perubahan pada acara' di setelan berbagi kalender.";
+        } else if (error.message.includes("enabled")) {
+          errorMessage = "Gagal: Google Calendar API mungkin belum diaktifkan untuk proyek Anda."
+        } else {
+          errorMessage = error.message;
+        }
+      }
       toast({
         variant: 'destructive',
         title: 'Gagal Membuat Kegiatan',
-        description: error.message || 'Terjadi kesalahan saat menambahkan kegiatan.',
+        description: errorMessage,
       });
     } finally {
         setIsSubmitting(false);
@@ -147,6 +157,7 @@ export function EventForm({ onSuccess }: EventFormProps) {
                         selected={field.value}
                         onSelect={(date) => handleDateChange(field, date)}
                         locale={id}
+                        initialFocus
                     />
                     <div className="p-2 border-t">
                         <Input 
@@ -192,6 +203,7 @@ export function EventForm({ onSuccess }: EventFormProps) {
                         selected={field.value}
                         onSelect={(date) => handleDateChange(field, date)}
                         locale={id}
+                        initialFocus
                     />
                     <div className="p-2 border-t">
                         <Input 
