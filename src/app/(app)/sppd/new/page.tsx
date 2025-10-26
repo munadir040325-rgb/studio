@@ -29,17 +29,29 @@ import { Calendar as CalendarIcon, Save } from 'lucide-react';
 import { cn } from '@/lib/utils';
 import { format } from 'date-fns';
 import { employees } from '@/lib/data';
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
 import Link from 'next/link';
-
-const calendarEvents = [
-    { id: 1, title: 'Rakornas KemenPUPR', date: '2024-09-10' },
-    { id: 2, title: 'Bimtek Siskeudes', date: '2024-09-15' },
-    { id: 3, title: 'Meeting Pembahasan DAK', date: '2024-09-20' },
-];
+import { useSearchParams } from 'next/navigation';
 
 export default function NewSppdPage() {
+  const searchParams = useSearchParams();
+  const [activity, setActivity] = useState('');
   const [dateRange, setDateRange] = useState<{ from?: Date; to?: Date }>({});
+
+  useEffect(() => {
+    const title = searchParams.get('title');
+    const startDate = searchParams.get('startDate');
+    
+    if (title) {
+      setActivity(decodeURIComponent(title));
+    }
+
+    if (startDate) {
+        const start = new Date(startDate);
+        // Set 'from' and 'to' to the same date initially
+        setDateRange({ from: start, to: start });
+    }
+  }, [searchParams]);
 
   return (
     <div className="flex flex-col gap-6">
@@ -68,7 +80,12 @@ export default function NewSppdPage() {
             <CardContent className="grid gap-6">
               <div className="grid gap-2">
                 <Label htmlFor="activity">Activity</Label>
-                <Input id="activity" placeholder="e.g., Rapat Koordinasi Nasional" />
+                <Input 
+                  id="activity" 
+                  placeholder="e.g., Rapat Koordinasi Nasional"
+                  value={activity}
+                  onChange={(e) => setActivity(e.target.value)}
+                />
               </div>
               <div className="grid gap-2">
                 <Label htmlFor="sppd-number">SPPD Number</Label>
@@ -148,27 +165,6 @@ export default function NewSppdPage() {
                 <Label htmlFor="srikandi-number">Srikandi Number (Optional)</Label>
                 <Input id="srikandi-number" placeholder="Enter Srikandi number" />
               </div>
-            </CardContent>
-          </Card>
-          <Card>
-            <CardHeader>
-                <CardTitle>From Google Calendar</CardTitle>
-                <CardDescription>Or create from an existing calendar event.</CardDescription>
-            </CardHeader>
-            <CardContent>
-                <ul className="space-y-2">
-                    {calendarEvents.map(event => (
-                        <li key={event.id}>
-                            <Button variant="outline" className="w-full justify-start">
-                                <CalendarIcon className="mr-2 h-4 w-4" />
-                                <div className="flex-1 text-left">
-                                    <p className="font-semibold">{event.title}</p>
-                                    <p className="text-sm text-muted-foreground">{event.date}</p>
-                                </div>
-                            </Button>
-                        </li>
-                    ))}
-                </ul>
             </CardContent>
           </Card>
         </div>
