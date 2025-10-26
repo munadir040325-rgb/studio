@@ -145,16 +145,18 @@ export default function DashboardPage() {
           <CardContent>
             <div className="space-y-4">
               {recentSppds.map((sppd) => (
-                <div key={sppd.id} className="flex items-start gap-4">
-                  <div className="flex h-10 w-10 items-center justify-center rounded-lg bg-muted">
-                    {sppd.executors[0].position.includes('Kepala') ? <Briefcase className="h-5 w-5" /> : <Plane className="h-5 w-5" />}
-                  </div>
-                  <div className="flex-1">
-                    <p className="font-medium truncate">{sppd.activity}</p>
-                    <p className="text-sm text-muted-foreground">{sppd.destination}</p>
+                <div key={sppd.id} className="flex items-center justify-between gap-4">
+                  <div className="flex items-start gap-4">
+                    <div className="flex h-10 w-10 items-center justify-center rounded-lg bg-muted flex-shrink-0">
+                      {sppd.executors[0].position.includes('Kepala') ? <Briefcase className="h-5 w-5" /> : <Plane className="h-5 w-5" />}
+                    </div>
+                    <div className="flex-1">
+                      <p className="font-medium">{sppd.activity}</p>
+                      <p className="text-sm text-muted-foreground">{sppd.destination}</p>
+                    </div>
                   </div>
                   <Badge variant={sppd.status === 'COMPLETED' ? 'secondary' : 'default'}
-                    className={`text-xs ${
+                    className={`text-xs shrink-0 ${
                       sppd.status === 'APPROVED' ? 'bg-primary' :
                       sppd.status === 'ON-GOING' ? 'bg-accent text-accent-foreground' :
                       sppd.status === 'DRAFT' ? 'bg-yellow-400 text-yellow-900' :
