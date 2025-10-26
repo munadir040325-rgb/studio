@@ -2,6 +2,9 @@
 
 import { PageHeader } from '@/components/page-header';
 import { Card, CardContent } from '@/components/ui/card';
+import { Button } from '@/components/ui/button';
+import { PlusCircle } from 'lucide-react';
+import Link from 'next/link';
 
 export default function CalendarPage() {
   const calendarId = "kecamatan.gandrungmangu2020@gmail.com";
@@ -12,7 +15,14 @@ export default function CalendarPage() {
       <PageHeader
         title="Calendar"
         description={`Displaying events from ${calendarId}`}
-      />
+      >
+        <Button asChild>
+          <Link href="/sppd/new">
+            <PlusCircle className="mr-2 h-4 w-4" />
+            Buat SPPD Baru
+          </Link>
+        </Button>
+      </PageHeader>
 
       <Card>
         <CardContent className="p-0">
