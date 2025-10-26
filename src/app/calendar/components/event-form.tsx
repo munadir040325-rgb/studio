@@ -24,8 +24,7 @@ import { format } from 'date-fns';
 import { id } from 'date-fns/locale';
 import { createCalendarEvent } from '@/ai/flows/calendar-flow';
 import { useToast } from '@/hooks/use-toast';
-import { useState, useRef, useEffect, useCallback } from 'react';
-import { gapi } from 'gapi-script';
+import { useState, useRef } from 'react';
 
 
 const formSchema = z.object({
@@ -40,7 +39,8 @@ const formSchema = z.object({
   endDateTime: z.date({
     required_error: 'Tanggal & waktu selesai harus diisi.',
   }),
-  attachment: z.any().optional(),
+  // attachment will be a File object from the input
+  attachment: z.instanceof(File).optional(),
 });
 
 
@@ -49,116 +49,10 @@ type EventFormProps = {
 };
 
 
-// --- Client-side Google Drive Upload Logic ---
-const CLIENT_ID = process.env.NEXT_PUBLIC_GOOGLE_CLIENT_ID || '';
-const API_KEY = process.env.NEXT_PUBLIC_GOOGLE_API_KEY || '';
-const DRIVE_FOLDER_ID = '1ozMzvJUBgy9h0bq4HXXxN0aPkPW4duCH';
-const SCOPES = 'https://www.googleapis.com/auth/drive.file';
-
-let tokenClient: google.accounts.oauth2.TokenClient | null = null;
-
-
 export function EventForm({ onSuccess }: EventFormProps) {
   const { toast } = useToast();
   const [isSubmitting, setIsSubmitting] = useState(false);
   const fileInputRef = useRef<HTMLInputElement>(null);
-  const [attachmentFile, setAttachmentFile] = useState<File | null>(null);
-
-  const [gapiLoaded, setGapiLoaded] = useState(false);
-
-  // Load GAPI and GIS scripts
-  useEffect(() => {
-    const script = document.createElement('script');
-    script.src = 'https://apis.google.com/js/api.js';
-    script.onload = () => gapi.load('client', () => setGapiLoaded(true));
-    document.body.appendChild(script);
-
-    const gisScript = document.createElement('script');
-    gisScript.src = 'https://accounts.google.com/gsi/client';
-    gisScript.async = true;
-    gisScript.defer = true;
-    document.body.appendChild(gisScript);
-
-    return () => {
-      document.body.removeChild(script);
-      document.body.removeChild(gisScript);
-    };
-  }, []);
-
-  // Initialize GAPI client and Token Client once scripts are loaded
-  useEffect(() => {
-    if (!gapiLoaded) return;
-    
-    async function initializeGapiClient() {
-        await gapi.client.init({
-            apiKey: API_KEY,
-            discoveryDocs: ['https://www.googleapis.com/discovery/v1/apis/drive/v3/rest'],
-        });
-    }
-
-    initializeGapiClient();
-
-    if (window.google?.accounts?.oauth2) {
-        tokenClient = window.google.accounts.oauth2.initTokenClient({
-            client_id: CLIENT_ID,
-            scope: SCOPES,
-            callback: '', // Callback will be handled by the promise flow
-        });
-    }
-  }, [gapiLoaded]);
-
-
-  const uploadFileToDrive = useCallback(async (file: File): Promise<string> => {
-    return new Promise((resolve, reject) => {
-        if (!tokenClient) {
-            return reject(new Error('Google Auth client not initialized.'));
-        }
-
-        const callback = async (resp: google.accounts.oauth2.TokenResponse) => {
-            if (resp.error) {
-                return reject(new Error('Gagal mendapatkan izin Google Drive.'));
-            }
-
-            try {
-                const metadata = {
-                    name: file.name,
-                    parents: [DRIVE_FOLDER_ID],
-                };
-
-                const form = new FormData();
-                form.append('metadata', new Blob([JSON.stringify(metadata)], { type: 'application/json' }));
-                form.append('file', file);
-                
-                const response = await fetch('https://www.googleapis.com/upload/drive/v3/files?uploadType=multipart', {
-                    method: 'POST',
-                    headers: new Headers({ 'Authorization': 'Bearer ' + gapi.client.getToken().access_token }),
-                    body: form,
-                });
-                
-                const data = await response.json();
-
-                if (data.error) {
-                    return reject(new Error(data.error.message));
-                }
-
-                if (!data.webViewLink) {
-                    return reject(new Error('Gagal mendapatkan link file setelah upload.'));
-                }
-                
-                resolve(data.webViewLink);
-
-            } catch (error: any) {
-                reject(new Error(`Error saat upload file: ${error.message}`));
-            }
-        };
-
-        // Request an access token.
-        tokenClient.callback = callback;
-        tokenClient.requestAccessToken({ prompt: 'consent' });
-    });
-  }, []);
-
-
 
   const form = useForm<z.infer<typeof formSchema>>({
     resolver: zodResolver(formSchema),
@@ -169,20 +63,33 @@ export function EventForm({ onSuccess }: EventFormProps) {
     },
   });
 
+  // Helper function to convert file to base64
+  const fileToBase64 = (file: File): Promise<string> => {
+    return new Promise((resolve, reject) => {
+        const reader = new FileReader();
+        reader.readAsDataURL(file);
+        reader.onload = () => {
+            // result is "data:mime/type;base64,the-real-base-64-string"
+            // we just want "the-real-base-64-string"
+            const base64String = (reader.result as string).split(',')[1];
+            resolve(base64String);
+        };
+        reader.onerror = error => reject(error);
+    });
+  }
+
   async function onSubmit(values: z.infer<typeof formSchema>) {
     setIsSubmitting(true);
     try {
-      let uploadedFileUrl: string | undefined;
-
-      if (attachmentFile) {
-          if (!gapiLoaded || !tokenClient) {
-              throw new Error("Layanan Google belum siap. Mohon tunggu sejenak dan coba lagi.");
-          }
-          toast({
-            title: 'Proses Upload...',
-            description: 'Sedang mengunggah file ke Google Drive. Mohon tunggu...',
-          });
-          uploadedFileUrl = await uploadFileToDrive(attachmentFile);
+      
+      let attachmentPayload;
+      if (values.attachment) {
+          const base64Data = await fileToBase64(values.attachment);
+          attachmentPayload = {
+              filename: values.attachment.name,
+              mimetype: values.attachment.type,
+              data: base64Data,
+          };
       }
 
       await createCalendarEvent({
@@ -191,7 +98,7 @@ export function EventForm({ onSuccess }: EventFormProps) {
         location: values.location,
         startDateTime: values.startDateTime.toISOString(),
         endDateTime: values.endDateTime.toISOString(),
-        fileUrl: uploadedFileUrl,
+        attachment: attachmentPayload,
       });
 
       toast({
@@ -233,19 +140,7 @@ export function EventForm({ onSuccess }: EventFormProps) {
     field.onChange(newDate);
   };
 
-  const handleFileChange = (event: React.ChangeEvent<HTMLInputElement>) => {
-    const file = event.target.files?.[0];
-    if (file) {
-      setAttachmentFile(file);
-    }
-  };
-
-  const removeFile = () => {
-    setAttachmentFile(null);
-    if(fileInputRef.current) {
-        fileInputRef.current.value = '';
-    }
-  }
+  const attachmentFile = form.watch('attachment');
 
   return (
     <Form {...form}>
@@ -391,37 +286,46 @@ export function EventForm({ onSuccess }: EventFormProps) {
                 )}
              />
         </div>
-        <div className="space-y-4 rounded-md border p-4">
-            <h3 className="font-medium text-base">Lampiran Undangan/Surat Tugas</h3>
-            <div>
-                {attachmentFile ? (
-                    <div className='flex items-center justify-between gap-2 text-sm p-2 bg-muted rounded-md'>
-                        <span className='truncate'>{attachmentFile.name}</span>
-                        <Button type="button" variant="ghost" size="icon" className='h-6 w-6' onClick={removeFile}>
-                            <X className='h-4 w-4'/>
-                        </Button>
-                    </div>
-                ) : (
+
+        <FormField
+          control={form.control}
+          name="attachment"
+          render={({ field: { onChange, value, ...rest } }) => (
+            <FormItem>
+              <FormLabel>Lampiran Undangan/Surat Tugas</FormLabel>
+              {attachmentFile ? (
+                <div className='flex items-center justify-between gap-2 text-sm p-2 bg-muted rounded-md'>
+                    <span className='truncate'>{attachmentFile.name}</span>
+                    <Button type="button" variant="ghost" size="icon" className='h-6 w-6' onClick={() => {
+                        onChange(undefined);
+                        if (fileInputRef.current) fileInputRef.current.value = '';
+                    }}>
+                        <X className='h-4 w-4'/>
+                    </Button>
+                </div>
+              ) : (
+                <FormControl>
                     <Button type='button' variant="outline" onClick={() => fileInputRef.current?.click()}>
                         <Paperclip className="mr-2 h-4 w-4" />
                         Pilih Undangan/Surat Tugas
                     </Button>
-                )}
-                <Input type="file" ref={fileInputRef} onChange={handleFileChange} className="hidden"/>
-                <FormDescription className="mt-2">
-                    File akan diunggah ke Google Drive terpusat setelah Anda memberikan izin.
+                </FormControl>
+              )}
+              <Input
+                type="file"
+                ref={fileInputRef}
+                onChange={(e) => onChange(e.target.files ? e.target.files[0] : undefined)}
+                className="hidden"
+                {...rest}
+              />
+               <FormDescription>
+                    File akan diunggah ke Google Drive terpusat.
                 </FormDescription>
-            </div>
-             <FormField
-                control={form.control}
-                name="attachment"
-                render={() => (
-                    <FormItem>
-                       <FormMessage />
-                    </FormItem>
-                )}
-             />
-        </div>
+              <FormMessage />
+            </FormItem>
+          )}
+        />
+
 
         <div className="flex justify-end">
             <Button type="submit" disabled={isSubmitting}>
