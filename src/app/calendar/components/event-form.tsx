@@ -295,31 +295,39 @@ export function EventForm({ onSuccess }: EventFormProps) {
               <FormLabel>Lampiran Undangan/Surat Tugas</FormLabel>
               {attachmentFile ? (
                 <div className='flex items-center justify-between gap-2 text-sm p-2 bg-muted rounded-md'>
-                    <span className='truncate'>{attachmentFile.name}</span>
-                    <Button type="button" variant="ghost" size="icon" className='h-6 w-6' onClick={() => {
+                    <div className="flex items-center gap-2 overflow-hidden">
+                        <Paperclip className="h-4 w-4 flex-shrink-0" />
+                        <span className='truncate'>{attachmentFile.name}</span>
+                    </div>
+                    <Button type="button" variant="ghost" size="icon" className='h-6 w-6 flex-shrink-0' onClick={() => {
                         onChange(undefined);
                         if (fileInputRef.current) fileInputRef.current.value = '';
                     }}>
                         <X className='h-4 w-4'/>
+                        <span className="sr-only">Hapus file</span>
                     </Button>
                 </div>
               ) : (
                 <FormControl>
                     <Button type='button' variant="outline" onClick={() => fileInputRef.current?.click()}>
                         <Paperclip className="mr-2 h-4 w-4" />
-                        Pilih Undangan/Surat Tugas
+                        Pilih Lampiran
                     </Button>
                 </FormControl>
               )}
               <Input
                 type="file"
                 ref={fileInputRef}
-                onChange={(e) => onChange(e.target.files ? e.target.files[0] : undefined)}
+                onChange={(e) => {
+                  const file = e.target.files?.[0];
+                  onChange(file);
+                }}
                 className="hidden"
+                accept=".pdf,.doc,.docx,.xls,.xlsx,.ppt,.pptx,image/*"
                 {...rest}
               />
                <FormDescription>
-                    File akan diunggah ke Google Drive terpusat.
+                    File akan diunggah ke Google Drive terpusat. Ukuran maks 10MB.
                 </FormDescription>
               <FormMessage />
             </FormItem>
