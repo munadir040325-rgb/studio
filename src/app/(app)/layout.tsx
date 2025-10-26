@@ -1,3 +1,5 @@
+'use client';
+
 import {
   SidebarProvider,
   Sidebar,
@@ -8,8 +10,6 @@ import {
   SidebarMenuButton,
   SidebarFooter,
   SidebarInset,
-  SidebarGroup,
-  SidebarGroupLabel,
 } from '@/components/ui/sidebar';
 import {
   LayoutDashboard,
@@ -78,44 +78,51 @@ export default function AppLayout({
                 </Link>
               </SidebarMenuButton>
             </SidebarMenuItem>
-          </SidebarMenu>
-          <SidebarGroup>
-            <SidebarGroupLabel className='pl-2'>
-                <FileText />
-                <span>SPPD</span>
-            </SidebarGroupLabel>
-            <SidebarMenu>
-                 <SidebarMenuItem>
-                    <SidebarMenuButton asChild tooltip="Kelola">
-                        <Link href="/sppd">
-                            <FolderKanban />
-                            <span>Kelola</span>
-                        </Link>
-                    </SidebarMenuButton>
-                </SidebarMenuItem>
-                <SidebarMenuItem>
-                    <SidebarMenuButton asChild tooltip="SPJ">
-                        <Link href="#">
-                            <FileCheck2 />
-                            <span>SPJ</span>
-                        </Link>
-                    </SidebarMenuButton>
-                </SidebarMenuItem>
-                <SidebarMenuItem>
-                    <SidebarMenuButton asChild tooltip="Rekap">
-                        <Link href="/reports">
-                            <PieChart />
-                            <span>Rekap</span>
-                        </Link>
-                    </SidebarMenuButton>
-                </SidebarMenuItem>
-            </SidebarMenu>
-          </SidebarGroup>
-           <SidebarGroup>
-                <SidebarGroupLabel className='pl-2'>
+            
+            {/* SPPD Section */}
+            <SidebarMenuItem>
+              <div className='flex w-full items-center gap-2 overflow-hidden rounded-md p-2 text-left text-sm text-muted-foreground'>
+                  <FileText />
+                  <span>SPPD</span>
+              </div>
+            </SidebarMenuItem>
+            <div className="pl-6">
+                <SidebarMenu>
+                    <SidebarMenuItem>
+                        <SidebarMenuButton asChild tooltip="Kelola">
+                            <Link href="/sppd">
+                                <FolderKanban />
+                                <span>Kelola</span>
+                            </Link>
+                        </SidebarMenuButton>
+                    </SidebarMenuItem>
+                    <SidebarMenuItem>
+                        <SidebarMenuButton asChild tooltip="SPJ">
+                            <Link href="#">
+                                <FileCheck2 />
+                                <span>SPJ</span>
+                            </Link>
+                        </SidebarMenuButton>
+                    </SidebarMenuItem>
+                    <SidebarMenuItem>
+                        <SidebarMenuButton asChild tooltip="Rekap">
+                            <Link href="/reports">
+                                <PieChart />
+                                <span>Rekap</span>
+                            </Link>
+                        </SidebarMenuButton>
+                    </SidebarMenuItem>
+                </SidebarMenu>
+            </div>
+
+            {/* Master Section */}
+            <SidebarMenuItem>
+               <div className='flex w-full items-center gap-2 overflow-hidden rounded-md p-2 text-left text-sm text-muted-foreground'>
                     <Users />
                     <span>Master</span>
-                </SidebarGroupLabel>
+                </div>
+            </SidebarMenuItem>
+            <div className="pl-6">
                  <SidebarMenu>
                     <SidebarMenuItem>
                         <SidebarMenuButton asChild tooltip="Pegawai">
@@ -142,7 +149,8 @@ export default function AppLayout({
                         </SidebarMenuButton>
                     </SidebarMenuItem>
                  </SidebarMenu>
-           </SidebarGroup>
+            </div>
+          </SidebarMenu>
         </SidebarContent>
         <SidebarFooter>
           <SidebarMenu>
