@@ -16,6 +16,11 @@ import { EventForm } from './components/event-form';
 import { listCalendarEvents, type CalendarEvent } from '@/ai/flows/calendar-flow';
 import { Alert, AlertDescription, AlertTitle } from '@/components/ui/alert';
 
+// Helper function to format a Date object or an ISO string to 'yyyy-MM-dd'
+const toISODateString = (date: Date | string) => {
+    return new Date(date).toISOString().split('T')[0];
+}
+
 export default function CalendarPage() {
   const [events, setEvents] = useState<CalendarEvent[]>([]);
   const [isLoading, setIsLoading] = useState(true);
@@ -53,13 +58,8 @@ export default function CalendarPage() {
   const filteredEvents = events.filter(event => {
     if (!event.start?.dateTime) return false;
     
-    const eventDate = new Date(event.start.dateTime);
-
-    const matchesDate = !filterDate || (
-      eventDate.getUTCFullYear() === filterDate.getUTCFullYear() &&
-      eventDate.getUTCMonth() === filterDate.getUTCMonth() &&
-      eventDate.getUTCDate() === filterDate.getUTCDate()
-    );
+    // Compare dates as 'YYYY-MM-DD' strings to ignore timezone issues
+    const matchesDate = !filterDate || (toISODateString(event.start.dateTime) === toISODateString(filterDate));
 
     const summaryMatch = event.summary?.toLowerCase().includes(searchTerm.toLowerCase());
     const descriptionMatch = event.description?.toLowerCase().includes(searchTerm.toLowerCase());
