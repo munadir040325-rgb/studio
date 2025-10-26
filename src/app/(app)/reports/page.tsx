@@ -24,17 +24,17 @@ export default function ReportsPage() {
   return (
     <div className="flex flex-col gap-6">
       <PageHeader
-        title="SPPD Recap Reports"
-        description="Download SPPD data in various formats based on selected criteria."
+        title="Laporan Rekap SPPD"
+        description="Unduh data SPPD dalam berbagai format berdasarkan kriteria yang dipilih."
       />
 
       <Card>
         <CardHeader>
-          <CardTitle>Filtering Options</CardTitle>
+          <CardTitle>Opsi Filter</CardTitle>
         </CardHeader>
         <CardContent className="grid gap-6 sm:grid-cols-2 lg:grid-cols-3">
           <div className="grid gap-2">
-            <Label>Execution Date Range</Label>
+            <Label>Rentang Tanggal Pelaksanaan</Label>
             <Popover>
               <PopoverTrigger asChild>
                 <Button
@@ -55,7 +55,7 @@ export default function ReportsPage() {
                       format(executionDate.from, 'LLL dd, y')
                     )
                   ) : (
-                    <span>Pick a date range</span>
+                    <span>Pilih rentang tanggal</span>
                   )}
                 </Button>
               </PopoverTrigger>
@@ -71,7 +71,7 @@ export default function ReportsPage() {
           </div>
 
           <div className="grid gap-2">
-            <Label>SPJ Date Range</Label>
+            <Label>Rentang Tanggal SPJ</Label>
             <Popover>
               <PopoverTrigger asChild>
                 <Button
@@ -92,7 +92,7 @@ export default function ReportsPage() {
                       format(spjDate.from, 'LLL dd, y')
                     )
                   ) : (
-                    <span>Pick a date range</span>
+                    <span>Pilih rentang tanggal</span>
                   )}
                 </Button>
               </PopoverTrigger>
@@ -108,18 +108,18 @@ export default function ReportsPage() {
           </div>
 
           <div className="grid gap-2">
-            <Label htmlFor="executor-name">Executor Name</Label>
-            <Input id="executor-name" placeholder="Enter employee name" />
+            <Label htmlFor="executor-name">Nama Pelaksana</Label>
+            <Input id="executor-name" placeholder="Masukkan nama pegawai" />
           </div>
 
           <div className="flex items-end gap-2 sm:col-span-2 lg:col-span-3">
              <Button className="bg-accent hover:bg-accent/90 text-accent-foreground">
                 <FileDown className="mr-2 h-4 w-4" />
-                Download Excel
+                Unduh Excel
             </Button>
             <Button variant="outline">
                 <FileDown className="mr-2 h-4 w-4" />
-                Download PDF
+                Unduh PDF
             </Button>
           </div>
         </CardContent>

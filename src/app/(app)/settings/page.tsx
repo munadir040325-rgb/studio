@@ -12,14 +12,14 @@ export default function SettingsPage() {
   return (
     <div className="flex flex-col gap-6">
       <PageHeader
-        title="Settings"
-        description="Manage application settings and integrations."
+        title="Pengaturan"
+        description="Kelola pengaturan aplikasi dan integrasi layanan."
       />
       <Card>
         <CardHeader>
-          <CardTitle>Integrations</CardTitle>
+          <CardTitle>Integrasi</CardTitle>
           <CardDescription>
-            Connect your Google account to sync data with Sheets and Calendar.
+            Hubungkan akun Google Anda untuk menyinkronkan data dengan Sheets dan Kalender.
           </CardDescription>
         </CardHeader>
         <CardContent className="space-y-6">
@@ -41,7 +41,7 @@ export default function SettingsPage() {
               <div>
                 <h3 className="font-semibold">Google Sheets</h3>
                 <p className="text-sm text-muted-foreground">
-                  Import and export SPPD data seamlessly.
+                  Impor dan ekspor data SPPD dengan mudah.
                 </p>
               </div>
             </div>
@@ -50,19 +50,19 @@ export default function SettingsPage() {
                 <>
                   <Badge variant="secondary" className="bg-green-100 text-green-800">
                     <CheckCircle className="mr-1 h-3 w-3" />
-                    Connected
+                    Terhubung
                   </Badge>
-                  <Button variant="outline">Disconnect</Button>
+                  <Button variant="outline">Putuskan</Button>
                 </>
               ) : (
                 <>
                   <Badge variant="destructive">
                     <XCircle className="mr-1 h-3 w-3" />
-                    Not Connected
+                    Tidak Terhubung
                   </Badge>
                   <Button>
                     <Link className="mr-1 h-4 w-4" />
-                    Connect
+                    Hubungkan
                   </Button>
                 </>
               )}
@@ -86,7 +86,7 @@ export default function SettingsPage() {
               <div>
                 <h3 className="font-semibold">Google Calendar</h3>
                 <p className="text-sm text-muted-foreground">
-                  Sync SPPD schedules to your calendar automatically.
+                  Sinkronkan jadwal SPPD ke kalender Anda secara otomatis.
                 </p>
               </div>
             </div>
@@ -95,19 +95,19 @@ export default function SettingsPage() {
                 <>
                   <Badge variant="secondary" className="bg-green-100 text-green-800">
                     <CheckCircle className="mr-1 h-3 w-3" />
-                    Connected
+                    Terhubung
                   </Badge>
-                  <Button variant="outline">Disconnect</Button>
+                  <Button variant="outline">Putuskan</Button>
                 </>
               ) : (
                 <>
                   <Badge variant="destructive">
                     <XCircle className="mr-1 h-3 w-3" />
-                    Not Connected
+                    Tidak Terhubung
                   </Badge>
                   <Button>
                     <Link className="mr-1 h-4 w-4" />
-                    Connect
+                    Hubungkan
                   </Button>
                 </>
               )}

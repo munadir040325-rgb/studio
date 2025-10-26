@@ -17,13 +17,13 @@ export default function SppdPage() {
   return (
     <div className="flex flex-col gap-6">
       <PageHeader
-        title="SPPD Management"
-        description="Manage all official travel warrants (SPPD) in one place."
+        title="Kelola SPPD"
+        description="Kelola semua surat perintah perjalanan dinas (SPPD) di satu tempat."
       >
         <Button asChild>
           <Link href="/sppd/new">
             <PlusCircle className="mr-2 h-4 w-4" />
-            New SPPD
+            SPPD Baru
           </Link>
         </Button>
       </PageHeader>
@@ -32,14 +32,14 @@ export default function SppdPage() {
         <div className="flex items-center gap-2">
           <div className="relative flex-1">
             <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
-            <Input placeholder="Search by activity or destination..." className="pl-10" />
+            <Input placeholder="Cari berdasarkan kegiatan atau tujuan..." className="pl-10" />
           </div>
           <Select>
             <SelectTrigger className="w-[180px]">
-              <SelectValue placeholder="Filter by status" />
+              <SelectValue placeholder="Filter berdasarkan status" />
             </SelectTrigger>
             <SelectContent>
-              <SelectItem value="all">All Statuses</SelectItem>
+              <SelectItem value="all">Semua Status</SelectItem>
               <SelectItem value="DRAFT">Draft</SelectItem>
               <SelectItem value="APPROVED">Approved</SelectItem>
               <SelectItem value="ON-GOING">On-Going</SelectItem>

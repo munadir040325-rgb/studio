@@ -30,12 +30,12 @@ export default function MasterDataPage() {
   return (
     <div className="flex flex-col gap-6">
       <PageHeader
-        title="Master Data"
-        description="Manage employees, signatures, and letterheads for document generation."
+        title="Data Master"
+        description="Kelola data pegawai, tanda tangan, dan kop surat untuk pembuatan dokumen."
       >
         <Button>
           <PlusCircle className="mr-2 h-4 w-4" />
-          Add New
+          Tambah Baru
         </Button>
       </PageHeader>
 
@@ -68,8 +68,8 @@ export default function MasterDataPage() {
         <TabsContent value="letterheads" className="mt-4">
             <Card>
                 <CardHeader>
-                    <CardTitle>Default Letterhead</CardTitle>
-                    <CardDescription>This will be used on all official documents.</CardDescription>
+                    <CardTitle>Kop Surat Standar</CardTitle>
+                    <CardDescription>Kop surat ini akan digunakan di semua dokumen resmi.</CardDescription>
                 </CardHeader>
                 <CardContent>
                     <div className="border rounded-lg p-8 text-center bg-background">
