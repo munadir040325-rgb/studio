@@ -8,9 +8,8 @@ import {
   SidebarMenuButton,
   SidebarFooter,
   SidebarInset,
-  SidebarMenuSub,
-  SidebarMenuSubButton,
-  SidebarMenuSubItem,
+  SidebarGroup,
+  SidebarGroupLabel,
 } from '@/components/ui/sidebar';
 import {
   LayoutDashboard,
@@ -18,7 +17,12 @@ import {
   Users,
   Settings,
   CalendarDays,
-  ChevronDown,
+  FolderKanban,
+  FileCheck2,
+  PieChart,
+  User,
+  Fingerprint,
+  Newspaper,
 } from 'lucide-react';
 import { AppHeader } from '@/components/app-header';
 import Link from 'next/link';
@@ -74,55 +78,71 @@ export default function AppLayout({
                 </Link>
               </SidebarMenuButton>
             </SidebarMenuItem>
-             <SidebarMenuItem>
-              <SidebarMenuButton tooltip="SPPD">
+          </SidebarMenu>
+          <SidebarGroup>
+            <SidebarGroupLabel className='pl-2'>
                 <FileText />
                 <span>SPPD</span>
-                <ChevronDown className="ml-auto size-4" />
-              </SidebarMenuButton>
-              <SidebarMenuSub>
-                <SidebarMenuSubItem>
-                  <SidebarMenuSubButton asChild>
-                    <Link href="/sppd">Kelola</Link>
-                  </SidebarMenuSubButton>
-                </SidebarMenuSubItem>
-                <SidebarMenuSubItem>
-                  <SidebarMenuSubButton asChild>
-                    <Link href="#">SPJ</Link>
-                  </SidebarMenuSubButton>
-                </SidebarMenuSubItem>
-                 <SidebarMenuSubItem>
-                  <SidebarMenuSubButton asChild>
-                    <Link href="/reports">Rekap</Link>
-                  </SidebarMenuSubButton>
-                </SidebarMenuSubItem>
-              </SidebarMenuSub>
-            </SidebarMenuItem>
-            <SidebarMenuItem>
-              <SidebarMenuButton tooltip="Master Data">
-                <Users />
-                <span>Master</span>
-                 <ChevronDown className="ml-auto size-4" />
-              </SidebarMenuButton>
-               <SidebarMenuSub>
-                <SidebarMenuSubItem>
-                  <SidebarMenuSubButton asChild>
-                    <Link href="/master-data">Pegawai</Link>
-                  </SidebarMenuSubButton>
-                </SidebarMenuSubItem>
-                <SidebarMenuSubItem>
-                  <SidebarMenuSubButton asChild>
-                    <Link href="/master-data?tab=signatures">Tanda Tangan</Link>
-                  </SidebarMenuSubButton>
-                </SidebarMenuSubItem>
-                 <SidebarMenuSubItem>
-                  <SidebarMenuSubButton asChild>
-                    <Link href="/master-data?tab=letterheads">Kop Surat</Link>
-                  </SidebarMenuSubButton>
-                </SidebarMenuSubItem>
-              </SidebarMenuSub>
-            </SidebarMenuItem>
-          </SidebarMenu>
+            </SidebarGroupLabel>
+            <SidebarMenu>
+                 <SidebarMenuItem>
+                    <SidebarMenuButton asChild tooltip="Kelola">
+                        <Link href="/sppd">
+                            <FolderKanban />
+                            <span>Kelola</span>
+                        </Link>
+                    </SidebarMenuButton>
+                </SidebarMenuItem>
+                <SidebarMenuItem>
+                    <SidebarMenuButton asChild tooltip="SPJ">
+                        <Link href="#">
+                            <FileCheck2 />
+                            <span>SPJ</span>
+                        </Link>
+                    </SidebarMenuButton>
+                </SidebarMenuItem>
+                <SidebarMenuItem>
+                    <SidebarMenuButton asChild tooltip="Rekap">
+                        <Link href="/reports">
+                            <PieChart />
+                            <span>Rekap</span>
+                        </Link>
+                    </SidebarMenuButton>
+                </SidebarMenuItem>
+            </SidebarMenu>
+          </SidebarGroup>
+           <SidebarGroup>
+                <SidebarGroupLabel className='pl-2'>
+                    <Users />
+                    <span>Master</span>
+                </SidebarGroupLabel>
+                 <SidebarMenu>
+                    <SidebarMenuItem>
+                        <SidebarMenuButton asChild tooltip="Pegawai">
+                            <Link href="/master-data">
+                                <User />
+                                <span>Pegawai</span>
+                            </Link>
+                        </SidebarMenuButton>
+                    </SidebarMenuItem>
+                    <SidebarMenuItem>
+                        <SidebarMenuButton asChild tooltip="Tanda Tangan">
+                            <Link href="/master-data?tab=signatures">
+                                <Fingerprint />
+                                <span>Tanda Tangan</span>
+                            </Link>
+                        </SidebarMenuButton>
+                    </SidebarMenuItem>
+                    <SidebarMenuItem>
+                        <SidebarMenuButton asChild tooltip="Kop Surat">
+                            <Link href="/master-data?tab=letterheads">
+                                <Newspaper />
+                                <span>Kop Surat</span>
+                            </Link>
+                        </SidebarMenuButton>
+                    </SidebarMenuItem>
+                 </SidebarMenu>
+           </SidebarGroup>
         </SidebarContent>
         <SidebarFooter>
           <SidebarMenu>
