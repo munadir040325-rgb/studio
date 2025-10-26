@@ -25,7 +25,7 @@ const calendarEventSchema = z.object({
   }).optional().nullable(),
   end: z.object({
     dateTime: z.string().optional().nullable(),
-    timeZone: zstring().optional().nullable(),
+    timeZone: z.string().optional().nullable(),
     date: z.string().optional().nullable(),
   }).optional().nullable(),
   location: z.string().optional().nullable(),
@@ -103,7 +103,7 @@ const uploadFileFlow = ai.defineFlow(
                 media: media,
                 requestBody: {
                     name: fileData.filename,
-                    parents: [DRIVE_FOLDER_ID], // Ini adalah perbaikan kuncinya
+                    parents: [DRIVE_FOLDER_ID],
                 },
                 fields: 'id, webViewLink',
             });
