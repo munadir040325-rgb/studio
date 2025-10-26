@@ -98,7 +98,7 @@ export default function DashboardPage() {
         </Card>
       </div>
 
-      <div className="grid gap-6 md:grid-cols-5">
+      <div className="grid grid-cols-1 md:grid-cols-5 gap-6">
         <Card className="md:col-span-3">
           <CardHeader>
             <CardTitle>SPPD Overview</CardTitle>

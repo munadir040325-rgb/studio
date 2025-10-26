@@ -39,8 +39,8 @@ export default function CalendarPage() {
       />
 
       <Card>
-        <CardContent className="p-4 flex flex-col md:flex-row gap-4">
-            <div className="relative flex-1">
+        <CardContent className="p-4 flex flex-col md:flex-row gap-4 items-start">
+            <div className="relative flex-1 w-full">
                 <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
                 <Input 
                     placeholder="Cari nama kegiatan..." 
@@ -49,7 +49,7 @@ export default function CalendarPage() {
                     onChange={(e) => setSearchTerm(e.target.value)}
                 />
             </div>
-            <div className='flex flex-col sm:flex-row gap-2'>
+            <div className='flex flex-col sm:flex-row gap-2 w-full md:w-auto'>
                 <Popover>
                 <PopoverTrigger asChild>
                     <Button
@@ -79,7 +79,7 @@ export default function CalendarPage() {
         </CardContent>
       </Card>
 
-      <div className="grid gap-6 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4">
+      <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-6">
         {filteredEvents.map(event => (
             <Card key={event.id} className="flex flex-col">
                 <CardHeader className="flex-grow">
