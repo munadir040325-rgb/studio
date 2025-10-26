@@ -17,7 +17,7 @@ import { EventForm } from './components/event-form';
 import type { CalendarEvent } from '@/ai/flows/calendar-flow';
 import { Alert, AlertDescription, AlertTitle } from '@/components/ui/alert';
 
-// Helper to format date into YYYY-MM-DD
+// Helper to format date into YYYY-MM-DD for API calls
 const toYYYYMMDD = (date: Date): string => {
   return format(date, 'yyyy-MM-dd');
 };
@@ -36,14 +36,16 @@ const formatEventDisplay = (startStr: string | null | undefined, endStr: string 
         const endDate = endStr ? parseISO(endStr) : startDate;
 
         if (isAllDay) {
-            // For all-day events, Google's end date is exclusive. Subtract one day for display.
             const inclusiveEndDate = new Date(endDate.getTime());
-            // Only show end date if it's different from start date after adjustment
             if (isSameDay(startDate, inclusiveEndDate) || startDate.getTime() === inclusiveEndDate.getTime() || (inclusiveEndDate.getTime() - startDate.getTime()) <= (24*60*60*1000)) {
                  return format(startDate, 'EEEE, dd MMMM yyyy', { locale: id });
             } else {
                  inclusiveEndDate.setDate(inclusiveEndDate.getDate() - 1);
-                 return `${format(startDate, 'dd MMM yyyy', { locale: id })} - ${format(inclusiveEndDate, 'dd MMM yyyy', { locale: id })}`;
+                 // Check if the adjusted end date is still after the start date
+                 if (inclusiveEndDate > startDate) {
+                    return `${format(startDate, 'dd MMMM yyyy', { locale: id })} - ${format(inclusiveEndDate, 'dd MMMM yyyy', { locale: id })}`;
+                 }
+                 return format(startDate, 'EEEE, dd MMMM yyyy', { locale: id });
             }
         } else {
             if (isSameDay(startDate, endDate)) {
@@ -62,17 +64,27 @@ const extractDisposisi = (description: string | null | undefined): string => {
     if (!description) {
         return '-';
     }
-    const lines = description.split('\n');
-    const disposisiLine = lines.find(line => line.toLowerCase().trim().startsWith('disposisi'));
-    
-    if (disposisiLine) {
-        const parts = disposisiLine.split(':');
-        if (parts.length > 1) {
-            const disposisiText = parts.slice(1).join(':').trim();
-            return disposisiText || '-'; 
+    const lowerDesc = description.toLowerCase();
+    const disposisiIndex = lowerDesc.indexOf('disposisi:');
+
+    if (disposisiIndex !== -1) {
+        // Find the start of the content after "Disposisi:"
+        const contentStartIndex = disposisiIndex + 'disposisi:'.length;
+        // Find the end of the line
+        const endOfLineIndex = description.indexOf('\n', contentStartIndex);
+
+        let disposisiText;
+        if (endOfLineIndex !== -1) {
+            // Extract substring to the end of the line
+            disposisiText = description.substring(contentStartIndex, endOfLineIndex).trim();
+        } else {
+            // If it's the last line, extract to the end of the string
+            disposisiText = description.substring(contentStartIndex).trim();
         }
+        
+        return disposisiText || '-';
     }
-    
+
     return '-';
 };
 
@@ -88,17 +100,12 @@ export default function CalendarPage() {
     setIsLoading(true);
     setError(null);
     try {
-      // If no date is selected, don't fetch anything.
-      if (!date) {
-        setEvents([]);
-        setIsLoading(false);
-        return;
-      }
-      
       const calendarId = 'kecamatan.gandrungmangu2020@gmail.com';
-      const selectedDate = toYYYYMMDD(date);
+
+      // We always need a date to query, so if it's undefined, we default to today
+      const queryDate = date || new Date();
+      const selectedDate = toYYYYMMDD(queryDate);
       
-      // Use the new API route
       let url = `/api/events?calendarId=${calendarId}&start=${selectedDate}&end=${selectedDate}`;
       
       const response = await fetch(url);
@@ -108,6 +115,7 @@ export default function CalendarPage() {
         throw new Error(data.error || 'Gagal mengambil data dari server.');
       }
       
+      // The API now returns a structured object
       setEvents(data.items || []);
     } catch (e: any) {
       console.error("Error fetching calendar events:", e);
@@ -125,7 +133,14 @@ export default function CalendarPage() {
   }, []);
 
   useEffect(() => {
-    fetchEvents(filterDate);
+    // Only fetch if a filterDate is set.
+    if (filterDate) {
+        fetchEvents(filterDate);
+    } else {
+        // If filterDate is cleared, clear events as well.
+        setEvents([]);
+        setIsLoading(false);
+    }
   }, [filterDate, fetchEvents]);
 
   const filteredBySearchEvents = useMemo(() => {
@@ -135,9 +150,15 @@ export default function CalendarPage() {
     
     return events.filter(event => {
         const term = searchTerm.toLowerCase();
-        return event.summary?.toLowerCase().includes(term) ||
-            event.description?.toLowerCase().includes(term) ||
-            event.location?.toLowerCase().includes(term);
+        const summaryMatch = event.summary?.toLowerCase().includes(term);
+        const descriptionMatch = event.description?.toLowerCase().includes(term);
+        const locationMatch = event.location?.toLowerCase().includes(term);
+
+        // Also check if the extracted disposisi matches
+        const disposisi = extractDisposisi(event.description).toLowerCase();
+        const disposisiMatch = disposisi.includes(term);
+
+        return summaryMatch || descriptionMatch || locationMatch || disposisiMatch;
     });
   }, [events, searchTerm]);
 
@@ -282,3 +303,5 @@ export default function CalendarPage() {
     </div>
   );
 }
+
+    
