@@ -20,7 +20,7 @@ export default function CalendarPage() {
   const [events, setEvents] = useState<CalendarEvent[]>([]);
   const [isLoading, setIsLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
-  const [filterDate, setFilterDate] = useState<Date | undefined>();
+  const [filterDate, setFilterDate] = useState<Date | undefined>(new Date());
   const [searchTerm, setSearchTerm] = useState('');
   const [isFormOpen, setIsFormOpen] = useState(false);
 
