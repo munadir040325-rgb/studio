@@ -1,4 +1,3 @@
-
 'use client';
 
 import { useState, useEffect, useCallback, useMemo } from 'react';
@@ -30,8 +29,14 @@ const getDatePartFromISO = (isoString: string | null | undefined): string | null
 };
 
 // Helper to format date/time string from Google into a readable Indonesian format
-const formatEventDateTime = (dateTimeString: string) => {
+const formatEventDateTime = (dateTimeString: string | null | undefined) => {
+    if (!dateTimeString) {
+      return ''; // Return empty string if input is null or undefined to prevent crash
+    }
     const date = parseISO(dateTimeString);
+    if (isNaN(date.getTime())) {
+      return ''; // Return empty string if parsing fails
+    }
     // If the string only contains a date (all-day event), just format the date part
     if (dateTimeString.length === 10) {
         return format(date, 'EEEE, dd MMMM yyyy', { locale: id });
@@ -50,11 +55,17 @@ export default function CalendarPage() {
   const [isFormOpen, setIsFormOpen] = useState(false);
 
   const fetchEvents = useCallback(async (date: Date | undefined) => {
-    if (!date) return;
+    // No need to fetch if no date is selected
+    if (!date) {
+      setEvents([]);
+      setIsLoading(false);
+      return;
+    }
     setIsLoading(true);
     setError(null);
     try {
       const dateStr = toYYYYMMDD(date);
+      // Use the API route which correctly handles timezones and fetching
       const response = await fetch(`/api/events?start=${dateStr}`);
       const data = await response.json();
 
@@ -184,7 +195,7 @@ export default function CalendarPage() {
                     <CardHeader className="flex-grow pb-4">
                         <CardTitle className="text-base truncate">{event.summary}</CardTitle>
                         {event.start && (
-                           <p className="text-sm text-muted-foreground">{formatEventDateTime(event.start.dateTime || event.start.date || '')}</p>
+                           <p className="text-sm text-muted-foreground">{formatEventDateTime(event.start.dateTime || event.start.date)}</p>
                         )}
                     </CardHeader>
                     <CardContent className="flex-grow py-0">
