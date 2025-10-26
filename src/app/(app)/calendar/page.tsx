@@ -49,13 +49,13 @@ export default function CalendarPage() {
                     onChange={(e) => setSearchTerm(e.target.value)}
                 />
             </div>
-            <div className='flex gap-2'>
+            <div className='flex flex-col sm:flex-row gap-2'>
                 <Popover>
                 <PopoverTrigger asChild>
                     <Button
                     variant={'outline'}
                     className={cn(
-                        'w-full md:w-[280px] justify-start text-left font-normal',
+                        'w-full justify-start text-left font-normal',
                         !filterDate && 'text-muted-foreground'
                     )}
                     >
@@ -79,17 +79,17 @@ export default function CalendarPage() {
         </CardContent>
       </Card>
 
-      <div className="grid gap-6 md:grid-cols-2 lg:grid-cols-3">
+      <div className="grid gap-6 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4">
         {filteredEvents.map(event => (
-            <Card key={event.id}>
-                <CardHeader>
+            <Card key={event.id} className="flex flex-col">
+                <CardHeader className="flex-grow">
                     <CardTitle className="truncate">{event.title}</CardTitle>
                     <p className="text-sm text-muted-foreground">{format(new Date(event.date), 'EEEE, dd MMMM yyyy')}</p>
                 </CardHeader>
-                <CardContent>
-                    <p className="text-sm text-muted-foreground line-clamp-2">{event.description}</p>
+                <CardContent className="flex-grow">
+                    <p className="text-sm text-muted-foreground line-clamp-3">{event.description}</p>
                 </CardContent>
-                <CardFooter className="flex justify-between">
+                <CardFooter className="flex flex-wrap justify-end gap-2">
                     <Button variant="ghost" size="sm" asChild>
                        <a href={`https://calendar.google.com/calendar/r/eventedit?text=${encodeURIComponent(event.title)}&dates=${event.date.replace(/-/g, '')}T090000/${event.date.replace(/-/g, '')}T100000&details=${encodeURIComponent(event.description)}&src=kecamatan.gandrungmangu2020@gmail.com`} target="_blank" rel="noopener noreferrer">
                            <ExternalLink className='mr-2 h-4 w-4' />
