@@ -95,14 +95,9 @@ export const createCalendarEventFlow = ai.defineFlow(
         });
         return response.data as CalendarEvent;
     } catch (error: any) {
-        const clientEmail = process.env.GOOGLE_CLIENT_EMAIL || 'EMAIL_TIDAK_DITEMUKAN';
-        if (error.message && (error.message.includes('writer access') || error.message.includes('permission'))) {
-             throw new Error(`Gagal: Service account '${clientEmail}' tidak memiliki izin tulis. Pastikan email service account tersebut telah ditambahkan ke setelan berbagi kalender target dengan izin 'Membuat perubahan pada acara'.`);
-        }
-        if (error.message && error.message.includes('API is not enabled')) {
-            throw new Error(`Gagal: Google Calendar API sepertinya belum diaktifkan untuk proyek Google Cloud Anda. Silakan aktifkan terlebih dahulu di Google Cloud Console.`);
-        }
-        throw error;
+        // Let the original error bubble up for clearer debugging.
+        // It might contain more specific details from the Google API.
+        throw new Error(`Gagal membuat acara di Google Calendar: ${error.message}`);
     }
   }
 );
