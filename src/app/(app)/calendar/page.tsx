@@ -16,10 +16,20 @@ import { EventForm } from './components/event-form';
 import { listCalendarEvents, type CalendarEvent } from '@/ai/flows/calendar-flow';
 import { Alert, AlertDescription, AlertTitle } from '@/components/ui/alert';
 
-// Helper function to format a Date object or an ISO string to 'yyyy-MM-dd'
-const toISODateString = (date: Date | string) => {
-    return new Date(date).toISOString().split('T')[0];
-}
+// Helper function to get 'yyyy-MM-dd' from an ISO string like '2023-10-27T10:00:00+07:00'
+// This is robust and avoids timezone issues by just slicing the string.
+const getDatePartFromISO = (isoString: string) => {
+  return isoString.split('T')[0];
+};
+
+// Helper function to format a Date object to 'yyyy-MM-dd' in a timezone-safe way.
+const formatDateToYYYYMMDD = (date: Date) => {
+  const year = date.getFullYear();
+  const month = (date.getMonth() + 1).toString().padStart(2, '0');
+  const day = date.getDate().toString().padStart(2, '0');
+  return `${year}-${month}-${day}`;
+};
+
 
 export default function CalendarPage() {
   const [events, setEvents] = useState<CalendarEvent[]>([]);
@@ -58,8 +68,8 @@ export default function CalendarPage() {
   const filteredEvents = events.filter(event => {
     if (!event.start?.dateTime) return false;
     
-    // Compare dates as 'YYYY-MM-DD' strings to ignore timezone issues
-    const matchesDate = !filterDate || (toISODateString(event.start.dateTime) === toISODateString(filterDate));
+    // Timezone-safe date comparison
+    const matchesDate = !filterDate || (getDatePartFromISO(event.start.dateTime) === formatDateToYYYYMMDD(filterDate));
 
     const summaryMatch = event.summary?.toLowerCase().includes(searchTerm.toLowerCase());
     const descriptionMatch = event.description?.toLowerCase().includes(searchTerm.toLowerCase());
@@ -175,7 +185,7 @@ export default function CalendarPage() {
                           </Button>
                         )}
                         <Button asChild size="sm">
-                          <Link href={`/sppd/new?title=${encodeURIComponent(event.summary || '')}&startDate=${event.start?.dateTime ? format(new Date(event.start.dateTime), 'yyyy-MM-dd') : ''}`}>
+                          <Link href={`/sppd/new?title=${encodeURIComponent(event.summary || '')}&startDate=${event.start?.dateTime ? getDatePartFromISO(event.start.dateTime) : ''}`}>
                               <FilePlus className='mr-2 h-4 w-4' />
                               Buat SPPD
                           </Link>
