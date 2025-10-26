@@ -4,7 +4,7 @@
 import { zodResolver } from '@hookform/resolvers/zod';
 import { useForm } from 'react-hook-form';
 import { z } from 'zod';
-import { Button } from '@/components/ui/button';
+import { Button, buttonVariants } from '@/components/ui/button';
 import {
   Form,
   FormControl,
@@ -52,7 +52,6 @@ type EventFormProps = {
 export function EventForm({ onSuccess }: EventFormProps) {
   const { toast } = useToast();
   const [isSubmitting, setIsSubmitting] = useState(false);
-  const fileInputRef = useRef<HTMLInputElement>(null);
 
   const form = useForm<z.infer<typeof formSchema>>({
     resolver: zodResolver(formSchema),
@@ -299,33 +298,32 @@ export function EventForm({ onSuccess }: EventFormProps) {
                         <Paperclip className="h-4 w-4 flex-shrink-0" />
                         <span className='truncate'>{attachmentFile.name}</span>
                     </div>
-                    <Button type="button" variant="ghost" size="icon" className='h-6 w-6 flex-shrink-0' onClick={() => {
-                        onChange(undefined);
-                        if (fileInputRef.current) fileInputRef.current.value = '';
-                    }}>
+                    <Button type="button" variant="ghost" size="icon" className='h-6 w-6 flex-shrink-0' onClick={() => onChange(undefined)}>
                         <X className='h-4 w-4'/>
                         <span className="sr-only">Hapus file</span>
                     </Button>
                 </div>
               ) : (
-                <FormControl>
-                    <Button type='button' variant="outline" onClick={() => fileInputRef.current?.click()}>
-                        <Paperclip className="mr-2 h-4 w-4" />
-                        Pilih Lampiran
-                    </Button>
-                </FormControl>
+                <div>
+                   <label htmlFor="file-upload" className={cn(buttonVariants({ variant: 'outline' }), 'cursor-pointer')}>
+                      <Paperclip className="mr-2 h-4 w-4" />
+                      Pilih Lampiran
+                  </label>
+                  <FormControl>
+                    <Input
+                      type="file"
+                      id="file-upload"
+                      onChange={(e) => {
+                        const file = e.target.files?.[0];
+                        onChange(file);
+                      }}
+                      className="hidden"
+                      accept=".pdf,.doc,.docx,.xls,.xlsx,.ppt,.pptx,image/*"
+                      {...rest}
+                    />
+                  </FormControl>
+                </div>
               )}
-              <Input
-                type="file"
-                ref={fileInputRef}
-                onChange={(e) => {
-                  const file = e.target.files?.[0];
-                  onChange(file);
-                }}
-                className="hidden"
-                accept=".pdf,.doc,.docx,.xls,.xlsx,.ppt,.pptx,image/*"
-                {...rest}
-              />
                <FormDescription>
                     File akan diunggah ke Google Drive terpusat. Ukuran maks 10MB.
                 </FormDescription>
@@ -345,3 +343,5 @@ export function EventForm({ onSuccess }: EventFormProps) {
     </Form>
   );
 }
+
+    
