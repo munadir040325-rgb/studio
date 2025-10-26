@@ -88,12 +88,18 @@ export const createCalendarEventFlow = ai.defineFlow(
       },
     };
 
-    const response = await calendar.events.insert({
-      calendarId: calendarId,
-      requestBody: event,
-    });
-
-    return response.data as CalendarEvent;
+    try {
+        const response = await calendar.events.insert({
+            calendarId: calendarId,
+            requestBody: event,
+        });
+        return response.data as CalendarEvent;
+    } catch (error: any) {
+        if (error.message && error.message.includes('writer access')) {
+            throw new Error(`Gagal: Service account tidak memiliki izin tulis. Pastikan email service account (${process.env.GOOGLE_CLIENT_EMAIL}) telah ditambahkan ke setelan berbagi kalender target dengan izin 'Membuat perubahan pada acara'.`);
+        }
+        throw error;
+    }
   }
 );
 
