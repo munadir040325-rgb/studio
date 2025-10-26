@@ -115,96 +115,98 @@ export function EventForm({ onSuccess }: EventFormProps) {
             </FormItem>
           )}
         />
-        <FormField
-          control={form.control}
-          name="startDateTime"
-          render={({ field }) => (
-            <FormItem className="flex flex-col">
-              <FormLabel>Waktu Mulai</FormLabel>
-              <Popover>
-                <PopoverTrigger asChild>
-                  <FormControl>
-                    <Button
-                      variant={'outline'}
-                      className={cn(
-                        'pl-3 text-left font-normal',
-                        !field.value && 'text-muted-foreground'
-                      )}
-                    >
-                      {field.value ? (
-                        format(field.value, 'PPP HH:mm', { locale: id })
-                      ) : (
-                        <span>Pilih tanggal dan waktu</span>
-                      )}
-                      <CalendarIcon className="ml-auto h-4 w-4 opacity-50" />
-                    </Button>
-                  </FormControl>
-                </PopoverTrigger>
-                <PopoverContent className="w-auto p-0" align="start">
-                  <Calendar
-                    mode="single"
-                    selected={field.value}
-                    onSelect={(date) => handleDateChange(field, date)}
-                    locale={id}
-                  />
-                  <div className="p-2 border-t">
-                     <Input 
-                        type="time" 
-                        value={field.value ? format(field.value, 'HH:mm') : ''}
-                        onChange={(e) => handleTimeChange(field, e.target.value)}
-                     />
-                  </div>
-                </PopoverContent>
-              </Popover>
-              <FormMessage />
-            </FormItem>
-          )}
-        />
-         <FormField
-          control={form.control}
-          name="endDateTime"
-          render={({ field }) => (
-            <FormItem className="flex flex-col">
-              <FormLabel>Waktu Selesai</FormLabel>
-              <Popover>
-                <PopoverTrigger asChild>
-                  <FormControl>
-                    <Button
-                      variant={'outline'}
-                      className={cn(
-                        'pl-3 text-left font-normal',
-                        !field.value && 'text-muted-foreground'
-                      )}
-                    >
-                      {field.value ? (
-                        format(field.value, 'PPP HH:mm', { locale: id })
-                      ) : (
-                        <span>Pilih tanggal dan waktu</span>
-                      )}
-                      <CalendarIcon className="ml-auto h-4 w-4 opacity-50" />
-                    </Button>
-                  </FormControl>
-                </PopoverTrigger>
-                <PopoverContent className="w-auto p-0" align="start">
-                  <Calendar
-                    mode="single"
-                    selected={field.value}
-                    onSelect={(date) => handleDateChange(field, date)}
-                    locale={id}
-                  />
-                   <div className="p-2 border-t">
-                     <Input 
-                        type="time" 
-                        value={field.value ? format(field.value, 'HH:mm') : ''}
-                        onChange={(e) => handleTimeChange(field, e.target.value)}
-                      />
-                  </div>
-                </PopoverContent>
-              </Popover>
-              <FormMessage />
-            </FormItem>
-          )}
-        />
+        <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+            <FormField
+            control={form.control}
+            name="startDateTime"
+            render={({ field }) => (
+                <FormItem className="flex flex-col">
+                <FormLabel>Waktu Mulai</FormLabel>
+                <Popover>
+                    <PopoverTrigger asChild>
+                    <FormControl>
+                        <Button
+                        variant={'outline'}
+                        className={cn(
+                            'pl-3 text-left font-normal',
+                            !field.value && 'text-muted-foreground'
+                        )}
+                        >
+                        {field.value ? (
+                            format(field.value, 'PPP HH:mm', { locale: id })
+                        ) : (
+                            <span>Pilih tanggal dan waktu</span>
+                        )}
+                        <CalendarIcon className="ml-auto h-4 w-4 opacity-50" />
+                        </Button>
+                    </FormControl>
+                    </PopoverTrigger>
+                    <PopoverContent className="w-auto p-0" align="start">
+                    <Calendar
+                        mode="single"
+                        selected={field.value}
+                        onSelect={(date) => handleDateChange(field, date)}
+                        locale={id}
+                    />
+                    <div className="p-2 border-t">
+                        <Input 
+                            type="time" 
+                            value={field.value ? format(field.value, 'HH:mm') : ''}
+                            onChange={(e) => handleTimeChange(field, e.target.value)}
+                        />
+                    </div>
+                    </PopoverContent>
+                </Popover>
+                <FormMessage />
+                </FormItem>
+            )}
+            />
+            <FormField
+            control={form.control}
+            name="endDateTime"
+            render={({ field }) => (
+                <FormItem className="flex flex-col">
+                <FormLabel>Waktu Selesai</FormLabel>
+                <Popover>
+                    <PopoverTrigger asChild>
+                    <FormControl>
+                        <Button
+                        variant={'outline'}
+                        className={cn(
+                            'pl-3 text-left font-normal',
+                            !field.value && 'text-muted-foreground'
+                        )}
+                        >
+                        {field.value ? (
+                            format(field.value, 'PPP HH:mm', { locale: id })
+                        ) : (
+                            <span>Pilih tanggal dan waktu</span>
+                        )}
+                        <CalendarIcon className="ml-auto h-4 w-4 opacity-50" />
+                        </Button>
+                    </FormControl>
+                    </PopoverTrigger>
+                    <PopoverContent className="w-auto p-0" align="start">
+                    <Calendar
+                        mode="single"
+                        selected={field.value}
+                        onSelect={(date) => handleDateChange(field, date)}
+                        locale={id}
+                    />
+                    <div className="p-2 border-t">
+                        <Input 
+                            type="time" 
+                            value={field.value ? format(field.value, 'HH:mm') : ''}
+                            onChange={(e) => handleTimeChange(field, e.target.value)}
+                        />
+                    </div>
+                    </PopoverContent>
+                </Popover>
+                <FormMessage />
+                </FormItem>
+            )}
+            />
+        </div>
         <FormField
           control={form.control}
           name="location"
