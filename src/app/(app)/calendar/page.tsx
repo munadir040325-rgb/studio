@@ -7,7 +7,7 @@ import { Card, CardContent, CardFooter, CardHeader, CardTitle } from '@/componen
 import { Input } from '@/components/ui/input';
 import { Popover, PopoverContent, PopoverTrigger } from '@/components/ui/popover';
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger } from '@/components/ui/dialog';
-import { Calendar as CalendarIcon, ExternalLink, FilePlus, PlusCircle, RefreshCw, Search, MapPin } from 'lucide-react';
+import { Calendar as CalendarIcon, ExternalLink, FilePlus, PlusCircle, RefreshCw, Search, MapPin, FileSignature } from 'lucide-react';
 import { Calendar } from '@/components/ui/calendar';
 import { format, parseISO, isSameDay } from 'date-fns';
 import { id } from 'date-fns/locale';
@@ -28,18 +28,17 @@ const getDatePartFromISO = (isoString: string | null | undefined): string | null
 };
 
 // Helper to format date/time string from Google into a readable Indonesian format
-const formatEventDisplay = (startStr: string | null | undefined, endStr: string | null | undefined, isAllDay: boolean | undefined) => {
-    if (!startStr) return '';
+const formatEventDisplay = (startStr: string | null | undefined, endStr: string | null | undefined, isAllDay: boolean) => {
+    if (!startStr) return 'Waktu tidak valid';
 
     try {
         const startDate = parseISO(startStr);
         const endDate = endStr ? parseISO(endStr) : startDate;
 
         if (isAllDay) {
-            // For all-day events, Google's end date is exclusive. We subtract a day to get the inclusive end date.
             const inclusiveEndDate = new Date(endDate.getTime() - (24 * 60 * 60 * 1000));
             if (isSameDay(startDate, inclusiveEndDate)) {
-                return format(startDate, 'EEEE, dd MMMM yyyy (Seharian)', { locale: id });
+                return format(startDate, 'EEEE, dd MMMM yyyy', { locale: id });
             } else {
                 return `${format(startDate, 'dd MMM yyyy', { locale: id })} - ${format(inclusiveEndDate, 'dd MMM yyyy', { locale: id })}`;
             }
@@ -56,6 +55,25 @@ const formatEventDisplay = (startStr: string | null | undefined, endStr: string 
     }
 };
 
+const extractDisposisi = (description: string | null | undefined): string => {
+    if (!description) {
+        return '-';
+    }
+    const lines = description.split('\n');
+    const disposisiLine = lines.find(line => line.toLowerCase().trim().startsWith('disposisi'));
+    
+    if (disposisiLine) {
+        // Coba ekstrak teks setelah "Disposisi:"
+        const parts = disposisiLine.split(':');
+        if (parts.length > 1) {
+            const disposisiText = parts.slice(1).join(':').trim();
+            return disposisiText || '-'; // Kembalikan '-' jika teksnya kosong setelah trim
+        }
+        return disposisiLine.trim(); // Jika tidak ada ':', kembalikan seluruh baris
+    }
+    
+    return '-'; // Jika tidak ada baris yang mengandung "Disposisi"
+};
 
 export default function CalendarPage() {
   const [events, setEvents] = useState<CalendarEvent[]>([]);
@@ -69,12 +87,16 @@ export default function CalendarPage() {
     setIsLoading(true);
     setError(null);
     try {
+      if (!date) {
+        setEvents([]);
+        setIsLoading(false);
+        return;
+      }
+      
       const calendarId = 'kecamatan.gandrungmangu2020@gmail.com';
-      // If no date is selected, fetch a wide range. Otherwise, fetch for the selected day.
-      const startDate = date ? toYYYYMMDD(date) : toYYYYMMDD(new Date(new Date().setFullYear(new Date().getFullYear() - 1)));
-      const endDate = date ? toYYYYMMDD(date) : toYYYYMMDD(new Date(new Date().setFullYear(new Date().getFullYear() + 1)));
-
-      let url = `/api/events?calendarId=${calendarId}&start=${startDate}&end=${endDate}`;
+      const selectedDate = toYYYYMMDD(date);
+      
+      let url = `/api/events?calendarId=${calendarId}&start=${selectedDate}&end=${selectedDate}`;
       
       const response = await fetch(url);
       const data = await response.json();
@@ -105,7 +127,7 @@ export default function CalendarPage() {
 
   const filteredBySearchEvents = useMemo(() => {
     if (!searchTerm) {
-        return events; // When no search term, return all events for the selected date
+        return events;
     }
     
     return events.filter(event => {
@@ -209,26 +231,23 @@ export default function CalendarPage() {
           <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-4">
             {filteredBySearchEvents.map(event => event.id && (
                 <Card key={event.id} className="flex flex-col">
-                    <CardHeader className="pb-2">
-                        <CardTitle className="text-base line-clamp-2">{event.summary || '(Tanpa Judul)'}</CardTitle>
+                    <CardHeader className="pb-4">
+                        <CardTitle className="text-base line-clamp-2 leading-snug">{event.summary || '(Tanpa Judul)'}</CardTitle>
                     </CardHeader>
-                    <CardContent className="flex-grow space-y-2 text-sm">
-                        <p className="text-muted-foreground">
-                            {formatEventDisplay(event.start, event.end, event.isAllDay)}
+                    <CardContent className="flex-grow space-y-2 text-sm text-muted-foreground">
+                        <p className='font-medium text-foreground'>
+                            {formatEventDisplay(event.start, event.end, !!event.isAllDay)}
                         </p>
                         {event.location && (
-                           <p className="flex items-start text-muted-foreground">
+                           <p className="flex items-start">
                              <MapPin className="h-4 w-4 mr-2 mt-0.5 flex-shrink-0" />
                              <span>{event.location}</span>
                            </p>
                         )}
-                        {/* Placeholder untuk Disposisi, bisa diisi nanti */}
-                        {/* <p className="text-muted-foreground">Disposisi: -</p> */}
-                        {event.description && (
-                            <p className="text-muted-foreground pt-2 line-clamp-3">
-                                {event.description}
-                            </p>
-                        )}
+                        <p className="flex items-start">
+                           <FileSignature className="h-4 w-4 mr-2 mt-0.5 flex-shrink-0" />
+                           <span className='line-clamp-2'>Disposisi: {extractDisposisi(event.description)}</span>
+                        </p>
                     </CardContent>
                     <CardFooter className="flex flex-wrap justify-end gap-2 pt-4 mt-auto">
                         {event.htmlLink && (
