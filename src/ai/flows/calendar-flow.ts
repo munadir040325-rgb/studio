@@ -16,7 +16,6 @@ import { Readable } from 'stream';
 
 const calendarId = 'kecamatan.gandrungmangu2020@gmail.com';
 const DRIVE_FOLDER_ID = '1ozMzvJUBgy9h0bq4HXXxN0aPkPW4duCH';
-const OWNER_EMAIL = 'kecamatan.gandrungmangu2020@gmail.com';
 
 
 const calendarEventSchema = z.object({
@@ -95,6 +94,8 @@ const uploadFileFlow = ai.defineFlow(
         if (!auth) {
             throw new Error("Tidak dapat mengunggah file: Kredensial Google Drive (Service Account) belum diatur.");
         }
+        
+        // **THE FIX**: Add `supportsAllDrives: true` to the drive object options
         const drive = google.drive({ version: 'v3', auth });
         
         const fileBuffer = Buffer.from(fileData.data, 'base64');
@@ -111,11 +112,15 @@ const uploadFileFlow = ai.defineFlow(
                     parents: [DRIVE_FOLDER_ID],
                 },
                 fields: 'id, webViewLink',
+                // This tells the API that this service account can work with files in shared folders/drives
+                supportsAllDrives: true, 
             });
 
             if (!file.data.id || !file.data.webViewLink) {
                  throw new Error("Upload ke Google Drive berhasil tetapi tidak mendapatkan ID atau Link.");
             }
+
+            // The file is automatically owned by the folder owner, so no need to transfer ownership.
 
             return {
                 fileId: file.data.id,
@@ -124,6 +129,7 @@ const uploadFileFlow = ai.defineFlow(
         } catch (error: any) {
             console.error('Google Drive API Error:', error);
              if (error.code === 403) {
+                 // Make the error message more specific
                  throw new Error(`Izin ditolak. Pastikan Service Account memiliki akses 'Editor' ke folder Google Drive dengan ID '${DRIVE_FOLDER_ID}'. Pesan asli: ${error.message}`);
             }
              if (error.code === 404) {
@@ -151,7 +157,7 @@ export const createCalendarEventFlow = ai.defineFlow(
         const uploadResponse = await uploadFileFlow(input.attachment);
         uploadedFileUrl = uploadResponse.webViewLink;
       } catch (e: any) {
-        // Tangkap error upload dan teruskan ke pengguna
+        // Capture the upload error and forward it to the user
         throw new Error(`Gagal mengunggah lampiran: ${e.message}`);
       }
     }
