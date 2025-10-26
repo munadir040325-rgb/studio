@@ -24,8 +24,10 @@ import { format } from 'date-fns';
 import { id } from 'date-fns/locale';
 import { createCalendarEvent } from '@/ai/flows/calendar-flow';
 import { useToast } from '@/hooks/use-toast';
-import { useState, useRef } from 'react';
+import { useState, useEffect } from 'react';
+import { gapi } from 'gapi-script';
 
+const DRIVE_FOLDER_ID = '1ozMzvJUBgy9h0bq4HXXxN0aPkPW4duCH';
 
 const formSchema = z.object({
   summary: z.string().min(2, {
@@ -39,7 +41,6 @@ const formSchema = z.object({
   endDateTime: z.date({
     required_error: 'Tanggal & waktu selesai harus diisi.',
   }),
-  // attachment will be a File object from the input
   attachment: z.instanceof(File).optional(),
 });
 
@@ -52,6 +53,7 @@ type EventFormProps = {
 export function EventForm({ onSuccess }: EventFormProps) {
   const { toast } = useToast();
   const [isSubmitting, setIsSubmitting] = useState(false);
+  const [isGapiLoaded, setIsGapiLoaded] = useState(false);
 
   const form = useForm<z.infer<typeof formSchema>>({
     resolver: zodResolver(formSchema),
@@ -62,47 +64,149 @@ export function EventForm({ onSuccess }: EventFormProps) {
     },
   });
 
-  // Helper function to convert file to base64
-  const fileToBase64 = (file: File): Promise<string> => {
-    return new Promise((resolve, reject) => {
-        const reader = new FileReader();
-        reader.readAsDataURL(file);
-        reader.onload = () => {
-            // result is "data:mime/type;base64,the-real-base-64-string"
-            // we just want "the-real-base-64-string"
-            const base64String = (reader.result as string).split(',')[1];
-            resolve(base64String);
+  useEffect(() => {
+    const CLIENT_ID = process.env.NEXT_PUBLIC_GOOGLE_CLIENT_ID;
+    const API_KEY = process.env.NEXT_PUBLIC_GOOGLE_API_KEY;
+    
+    if (!CLIENT_ID || !API_KEY) {
+      console.error("Google API credentials are not set in .env file.");
+      return;
+    }
+    
+    const start = () => {
+      gapi.client.init({
+        apiKey: API_KEY,
+        clientId: CLIENT_ID,
+        scope: 'https://www.googleapis.com/auth/drive.file',
+        discoveryDocs: ['https://www.googleapis.com/discovery/v1/apis/drive/v3/rest'],
+      }).then(() => {
+        setIsGapiLoaded(true);
+      }, (error: any) => {
+        console.error("Error initializing gapi client:", error);
+        toast({
+          variant: 'destructive',
+          title: 'Gagal Inisialisasi Google API',
+          description: 'Tidak dapat terhubung ke layanan Google. Silakan coba lagi nanti.'
+        });
+      });
+    };
+    gapi.load('client:auth2', start);
+  }, [toast]);
+
+
+  const uploadFileToDrive = async (file: File): Promise<string> => {
+    return new Promise(async (resolve, reject) => {
+      if (!isGapiLoaded) {
+        reject(new Error("Google API client is not loaded yet."));
+        return;
+      }
+      
+      const authInstance = gapi.auth2.getAuthInstance();
+      const isSignedIn = authInstance.isSignedIn.get();
+
+      if (!isSignedIn) {
+        try {
+          await authInstance.signIn();
+        } catch (error) {
+           console.error("Google Sign-In Error:", error);
+           reject(new Error("Login Google dibatalkan atau gagal."));
+           return;
+        }
+      }
+      
+      const reader = new FileReader();
+      reader.readAsArrayBuffer(file);
+      reader.onload = async () => {
+        const fileContent = reader.result;
+        const boundary = '-------314159265358979323846';
+        const delimiter = "\r\n--" + boundary + "\r\n";
+        const close_delim = "\r-n--" + boundary + "--";
+
+        const metadata = {
+          name: file.name,
+          mimeType: file.type,
+          parents: [DRIVE_FOLDER_ID],
         };
-        reader.onerror = error => reject(error);
+
+        const multipartRequestBody =
+          delimiter +
+          'Content-Type: application/json; charset=UTF-8\r\n\r\n' +
+          JSON.stringify(metadata) +
+          delimiter +
+          'Content-Type: ' + file.type + '\r\n' +
+          '\r\n' +
+          // We need to process the ArrayBuffer to a raw string
+          String.fromCharCode.apply(null, Array.from(new Uint8Array(fileContent as ArrayBuffer))) +
+          close_delim;
+        
+        try {
+          const request = gapi.client.request({
+            path: '/upload/drive/v3/files',
+            method: 'POST',
+            params: { uploadType: 'multipart' },
+            headers: {
+              'Content-Type': 'multipart/related; boundary=' + boundary,
+            },
+            body: multipartRequestBody,
+          });
+
+          const response = await request;
+          const uploadedFile = JSON.parse(response.body);
+          
+          if (!uploadedFile.id) {
+            reject(new Error("Upload failed, file ID not returned."));
+            return;
+          }
+
+          // Important: Make the file publically viewable
+          await gapi.client.drive.permissions.create({
+              fileId: uploadedFile.id,
+              requestBody: {
+                  role: 'reader',
+                  type: 'anyone'
+              }
+          });
+
+          const fileWithLink = await gapi.client.drive.files.get({
+              fileId: uploadedFile.id,
+              fields: 'webViewLink'
+          });
+
+          resolve(fileWithLink.result.webViewLink as string);
+
+        } catch (error: any) {
+          console.error("Google Drive Upload Error:", error);
+          reject(new Error(`Gagal mengunggah file ke Google Drive: ${error?.result?.error?.message || error.message}`));
+        }
+      };
+      reader.onerror = error => reject(error);
     });
   }
+
 
   async function onSubmit(values: z.infer<typeof formSchema>) {
     setIsSubmitting(true);
     try {
       
-      let attachmentPayload;
+      let attachmentUrlPayload: string | undefined;
       if (values.attachment) {
-          const base64Data = await fileToBase64(values.attachment);
-          attachmentPayload = {
-              filename: values.attachment.name,
-              mimetype: values.attachment.type,
-              data: base64Data,
-          };
+          toast({ description: "Meminta izin dan mengunggah file ke Google Drive..." });
+          attachmentUrlPayload = await uploadFileToDrive(values.attachment);
       }
 
+      toast({ description: "Menyimpan kegiatan ke Google Calendar..." });
       await createCalendarEvent({
         summary: values.summary,
         description: values.description,
         location: values.location,
         startDateTime: values.startDateTime.toISOString(),
         endDateTime: values.endDateTime.toISOString(),
-        attachment: attachmentPayload,
+        attachmentUrl: attachmentUrlPayload,
       });
 
       toast({
         title: 'Berhasil!',
-        description: 'Kegiatan baru telah ditambahkan ke kalender.',
+        description: 'Kegiatan baru telah ditambahkan ke kalender dan file telah diunggah.',
       });
       onSuccess();
     } catch (error: any) {
@@ -325,7 +429,7 @@ export function EventForm({ onSuccess }: EventFormProps) {
                 </div>
               )}
                <FormDescription>
-                    File akan diunggah ke Google Drive terpusat. Ukuran maks 10MB.
+                    File akan diunggah ke Google Drive Anda setelah Anda memberikan izin. Ukuran maks 10MB.
                 </FormDescription>
               <FormMessage />
             </FormItem>
@@ -334,14 +438,12 @@ export function EventForm({ onSuccess }: EventFormProps) {
 
 
         <div className="flex justify-end">
-            <Button type="submit" disabled={isSubmitting}>
+            <Button type="submit" disabled={isSubmitting || !isGapiLoaded}>
             {isSubmitting && <Loader2 className="mr-2 h-4 w-4 animate-spin" />}
-            Simpan Kegiatan
+            {isSubmitting ? "Menyimpan..." : !isGapiLoaded ? "Memuat Google API..." : "Simpan Kegiatan"}
             </Button>
         </div>
       </form>
     </Form>
   );
 }
-
-    
