@@ -1,3 +1,4 @@
+
 'use client';
 
 import { useState, useEffect, useCallback, useMemo } from 'react';
@@ -133,10 +134,16 @@ export default function CalendarPage() {
   const [events, setEvents] = useState<CalendarEvent[]>([]);
   const [isLoading, setIsLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
-  const [filterDate, setFilterDate] = useState<Date | undefined>(new Date());
+  const [filterDate, setFilterDate] = useState<Date | undefined>();
   const [searchTerm, setSearchTerm] = useState('');
   const [isFormOpen, setIsFormOpen] = useState(false);
   const [viewMode, setViewMode] = useState<'card' | 'whatsapp'>('card');
+
+  useEffect(() => {
+    // Set the initial date on the client-side to avoid hydration mismatch
+    setFilterDate(new Date());
+  }, []);
+
 
   const fetchEvents = useCallback(async (date: Date | undefined) => {
     setIsLoading(true);
@@ -352,3 +359,6 @@ export default function CalendarPage() {
     </div>
   );
 }
+
+
+    
