@@ -40,7 +40,14 @@ const createEventInputSchema = z.object({
 
 export type CreateEventInput = z.infer<typeof createEventInputSchema>;
 
+function areCredentialsConfigured() {
+    return process.env.GOOGLE_CLIENT_EMAIL && process.env.GOOGLE_PRIVATE_KEY;
+}
+
 async function getGoogleAuth() {
+  if (!areCredentialsConfigured()) {
+      return null;
+  }
   const auth = new google.auth.GoogleAuth({
     credentials: {
       client_email: process.env.GOOGLE_CLIENT_EMAIL,
@@ -59,17 +66,26 @@ export const listCalendarEventsFlow = ai.defineFlow(
   },
   async () => {
     const auth = await getGoogleAuth();
+    if (!auth) {
+        console.warn("Google Calendar credentials are not configured. Returning empty list.");
+        return [];
+    }
     const calendar = google.calendar({ version: 'v3', auth });
 
-    const response = await calendar.events.list({
-      calendarId: calendarId,
-      timeMin: new Date().toISOString(),
-      maxResults: 20,
-      singleEvents: true,
-      orderBy: 'startTime',
-    });
-
-    return (response.data.items || []) as CalendarEvent[];
+    try {
+        const response = await calendar.events.list({
+            calendarId: calendarId,
+            timeMin: new Date().toISOString(),
+            maxResults: 20,
+            singleEvents: true,
+            orderBy: 'startTime',
+        });
+        return (response.data.items || []) as CalendarEvent[];
+    } catch (e: any) {
+        console.error("Failed to list calendar events:", e.message);
+        // Return empty on error to prevent crash, but log the issue.
+        return [];
+    }
   }
 );
 
@@ -81,6 +97,9 @@ export const createCalendarEventFlow = ai.defineFlow(
   },
   async (input) => {
     const auth = await getGoogleAuth();
+    if (!auth) {
+        throw new Error("Cannot create event: Google Calendar credentials are not configured in environment variables.");
+    }
     const calendar = google.calendar({ version: 'v3', auth });
 
     const event = {
