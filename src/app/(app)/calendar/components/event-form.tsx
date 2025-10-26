@@ -20,6 +20,7 @@ import { Calendar } from '@/components/ui/calendar';
 import { CalendarIcon, Loader2 } from 'lucide-react';
 import { cn } from '@/lib/utils';
 import { format } from 'date-fns';
+import { id } from 'date-fns/locale';
 import { createCalendarEvent } from '@/ai/flows/calendar-flow';
 import { useToast } from '@/hooks/use-toast';
 import { useState } from 'react';
@@ -131,7 +132,7 @@ export function EventForm({ onSuccess }: EventFormProps) {
                       )}
                     >
                       {field.value ? (
-                        format(field.value, 'PPP HH:mm')
+                        format(field.value, 'PPP HH:mm', { locale: id })
                       ) : (
                         <span>Pilih tanggal dan waktu</span>
                       )}
@@ -144,6 +145,7 @@ export function EventForm({ onSuccess }: EventFormProps) {
                     mode="single"
                     selected={field.value}
                     onSelect={(date) => handleDateChange(field, date)}
+                    locale={id}
                   />
                   <div className="p-2 border-t">
                      <Input 
@@ -175,7 +177,7 @@ export function EventForm({ onSuccess }: EventFormProps) {
                       )}
                     >
                       {field.value ? (
-                        format(field.value, 'PPP HH:mm')
+                        format(field.value, 'PPP HH:mm', { locale: id })
                       ) : (
                         <span>Pilih tanggal dan waktu</span>
                       )}
@@ -188,6 +190,7 @@ export function EventForm({ onSuccess }: EventFormProps) {
                     mode="single"
                     selected={field.value}
                     onSelect={(date) => handleDateChange(field, date)}
+                    locale={id}
                   />
                    <div className="p-2 border-t">
                      <Input 

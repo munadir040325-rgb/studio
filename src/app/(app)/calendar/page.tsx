@@ -10,6 +10,7 @@ import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger } from 
 import { Calendar as CalendarIcon, ExternalLink, FilePlus, PlusCircle, RefreshCw, Search } from 'lucide-react';
 import { Calendar } from '@/components/ui/calendar';
 import { format } from 'date-fns';
+import { id } from 'date-fns/locale';
 import { cn } from '@/lib/utils';
 import Link from 'next/link';
 import { EventForm } from './components/event-form';
@@ -136,11 +137,12 @@ export default function CalendarPage() {
                 )}
                 >
                 <CalendarIcon className="mr-2 h-4 w-4" />
-                {filterDate ? format(filterDate, 'PPP') : <span>Pilih tanggal</span>}
+                {filterDate ? format(filterDate, 'PPP', { locale: id }) : <span>Pilih tanggal</span>}
                 </Button>
             </PopoverTrigger>
             <PopoverContent className="w-auto p-0">
                 <Calendar
+                locale={id}
                 mode="single"
                 selected={filterDate}
                 onSelect={setFilterDate}
@@ -173,7 +175,7 @@ export default function CalendarPage() {
                     <CardHeader className="flex-grow pb-4">
                         <CardTitle className="text-base truncate">{event.summary}</CardTitle>
                         {event.start?.dateTime && (
-                           <p className="text-sm text-muted-foreground">{format(new Date(event.start.dateTime), 'EEEE, dd MMMM yyyy, HH:mm')}</p>
+                           <p className="text-sm text-muted-foreground">{format(new Date(event.start.dateTime), 'EEEE, dd MMMM yyyy, HH:mm', { locale: id })}</p>
                         )}
                     </CardHeader>
                     <CardContent className="flex-grow py-0">
