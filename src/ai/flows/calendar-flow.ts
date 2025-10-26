@@ -95,7 +95,7 @@ export const createCalendarEventFlow = ai.defineFlow(
         });
         return response.data as CalendarEvent;
     } catch (error: any) {
-        if (error.message && error.message.includes('writer access')) {
+        if (error.message && (error.message.includes('writer access') || error.message.includes('permission'))) {
             const clientEmail = process.env.GOOGLE_CLIENT_EMAIL || 'EMAIL_TIDAK_DITEMUKAN';
             throw new Error(`Gagal: Service account '${clientEmail}' tidak memiliki izin tulis. Pastikan email service account tersebut telah ditambahkan ke setelan berbagi kalender target dengan izin 'Membuat perubahan pada acara'.`);
         }
