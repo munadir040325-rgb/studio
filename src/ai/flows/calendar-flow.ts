@@ -46,7 +46,7 @@ function areCredentialsConfigured() {
     return process.env.GOOGLE_CLIENT_EMAIL && process.env.GOOGLE_PRIVATE_KEY;
 }
 
-async function getGoogleAuth() {
+export async function getGoogleAuth(scopes: string | string[]) {
   if (!areCredentialsConfigured()) {
       return null;
   }
@@ -55,7 +55,7 @@ async function getGoogleAuth() {
       client_email: process.env.GOOGLE_CLIENT_EMAIL,
       private_key: process.env.GOOGLE_PRIVATE_KEY?.replace(/\\n/g, '\n'),
     },
-    scopes: ['https://www.googleapis.com/auth/calendar'],
+    scopes: scopes,
   });
   return auth;
 }
@@ -68,7 +68,7 @@ export const createCalendarEventFlow = ai.defineFlow(
     outputSchema: calendarEventSchema,
   },
   async (input) => {
-    const auth = await getGoogleAuth();
+    const auth = await getGoogleAuth(['https://www.googleapis.com/auth/calendar']);
     if (!auth) {
         throw new Error("Tidak dapat membuat kegiatan: Kredensial Google Calendar belum diatur.");
     }
