@@ -99,6 +99,8 @@ function WhatsAppScheduleView({ events, scheduleDate }: { events: CalendarEvent[
    - Disposisi: ${disposisi || '-'}`;
     });
 
+    text += "\n\nMohon ralat jika ada tambahan dari bagian lain";
+
     return text;
   }, [events, scheduleDate]);
 
