@@ -408,7 +408,7 @@ export function EventForm({ onSuccess }: EventFormProps) {
 
         <div className="flex justify-end">
             <Button type="submit" disabled={isSubmitting}>
-            {isSubripping && <Loader2 className="mr-2 h-4 w-4 animate-spin" />}
+            {isSubmitting && <Loader2 className="mr-2 h-4 w-4 animate-spin" />}
             Simpan Kegiatan
             </Button>
         </div>
@@ -416,4 +416,3 @@ export function EventForm({ onSuccess }: EventFormProps) {
     </Form>
   );
 }
-
