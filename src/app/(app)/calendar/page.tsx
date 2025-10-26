@@ -7,7 +7,7 @@ import { Card, CardContent, CardFooter, CardHeader, CardTitle } from '@/componen
 import { Input } from '@/components/ui/input';
 import { Popover, PopoverContent, PopoverTrigger } from '@/components/ui/popover';
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger } from '@/components/ui/dialog';
-import { Calendar as CalendarIcon, ExternalLink, FilePlus, PlusCircle, RefreshCw, Search, MapPin, FileSignature } from 'lucide-react';
+import { Calendar as CalendarIcon, ExternalLink, FilePlus, PlusCircle, RefreshCw, Search, MapPin, FileSignature, Clock } from 'lucide-react';
 import { Calendar } from '@/components/ui/calendar';
 import { format, parseISO, isSameDay } from 'date-fns';
 import { id } from 'date-fns/locale';
@@ -68,21 +68,14 @@ const extractDisposisi = (description: string | null | undefined): string => {
     const disposisiIndex = lowerDesc.indexOf('disposisi:');
 
     if (disposisiIndex !== -1) {
-        // Find the start of the content after "Disposisi:"
-        const contentStartIndex = disposisiIndex + 'disposisi:'.length;
-        // Find the end of the line
-        const endOfLineIndex = description.indexOf('\n', contentStartIndex);
-
-        let disposisiText;
-        if (endOfLineIndex !== -1) {
-            // Extract substring to the end of the line
-            disposisiText = description.substring(contentStartIndex, endOfLineIndex).trim();
-        } else {
-            // If it's the last line, extract to the end of the string
-            disposisiText = description.substring(contentStartIndex).trim();
-        }
+        const contentAfterDisposisi = description.substring(disposisiIndex + 'disposisi:'.length);
+        const endOfLineIndex = contentAfterDisposisi.indexOf('\n');
         
-        return disposisiText || '-';
+        if (endOfLineIndex !== -1) {
+            return contentAfterDisposisi.substring(0, endOfLineIndex).trim();
+        } else {
+            return contentAfterDisposisi.trim();
+        }
     }
 
     return '-';
@@ -100,13 +93,14 @@ export default function CalendarPage() {
     setIsLoading(true);
     setError(null);
     try {
-      const calendarId = 'kecamatan.gandrungmangu2020@gmail.com';
-
-      // We always need a date to query, so if it's undefined, we default to today
-      const queryDate = date || new Date();
-      const selectedDate = toYYYYMMDD(queryDate);
+      if (!date) {
+        setEvents([]);
+        setIsLoading(false);
+        return;
+      }
       
-      let url = `/api/events?calendarId=${calendarId}&start=${selectedDate}&end=${selectedDate}`;
+      const selectedDate = toYYYYMMDD(date);
+      let url = `/api/events?start=${selectedDate}`;
       
       const response = await fetch(url);
       const data = await response.json();
@@ -115,7 +109,6 @@ export default function CalendarPage() {
         throw new Error(data.error || 'Gagal mengambil data dari server.');
       }
       
-      // The API now returns a structured object
       setEvents(data.items || []);
     } catch (e: any) {
       console.error("Error fetching calendar events:", e);
@@ -133,14 +126,7 @@ export default function CalendarPage() {
   }, []);
 
   useEffect(() => {
-    // Only fetch if a filterDate is set.
-    if (filterDate) {
-        fetchEvents(filterDate);
-    } else {
-        // If filterDate is cleared, clear events as well.
-        setEvents([]);
-        setIsLoading(false);
-    }
+    fetchEvents(filterDate);
   }, [filterDate, fetchEvents]);
 
   const filteredBySearchEvents = useMemo(() => {
@@ -258,18 +244,19 @@ export default function CalendarPage() {
                     <CardHeader className="pb-4">
                         <CardTitle className="text-base line-clamp-2 leading-snug">{event.summary || '(Tanpa Judul)'}</CardTitle>
                     </CardHeader>
-                    <CardContent className="flex-grow space-y-2 text-sm text-muted-foreground">
-                         <p className='font-medium text-foreground'>
-                            {formatEventDisplay(event.start, event.end, event.isAllDay)}
+                    <CardContent className="flex-grow space-y-3 text-sm text-muted-foreground">
+                        <p className="flex items-start">
+                             <Clock className="h-4 w-4 mr-2 mt-0.5 flex-shrink-0 text-blue-500" />
+                             <span className='font-medium text-foreground'>{formatEventDisplay(event.start, event.end, event.isAllDay)}</span>
                         </p>
                         {event.location && (
                            <p className="flex items-start">
-                             <MapPin className="h-4 w-4 mr-2 mt-0.5 flex-shrink-0" />
+                             <MapPin className="h-4 w-4 mr-2 mt-0.5 flex-shrink-0 text-red-500" />
                              <span>{event.location}</span>
                            </p>
                         )}
                         <p className="flex items-start">
-                           <FileSignature className="h-4 w-4 mr-2 mt-0.5 flex-shrink-0" />
+                           <FileSignature className="h-4 w-4 mr-2 mt-0.5 flex-shrink-0 text-green-500" />
                            <span className='line-clamp-2'>Disposisi: {extractDisposisi(event.description)}</span>
                         </p>
                     </CardContent>
@@ -303,5 +290,3 @@ export default function CalendarPage() {
     </div>
   );
 }
-
-    
