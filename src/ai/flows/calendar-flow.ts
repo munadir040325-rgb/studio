@@ -68,7 +68,15 @@ export const createCalendarEventFlow = ai.defineFlow(
     outputSchema: calendarEventSchema,
   },
   async (input) => {
-    const auth = await getGoogleAuth(['https://www.googleapis.com/auth/calendar']);
+    // Explicitly create a new auth instance for writing to avoid any state issues.
+    const auth = new google.auth.GoogleAuth({
+        credentials: {
+          client_email: process.env.GOOGLE_CLIENT_EMAIL,
+          private_key: process.env.GOOGLE_PRIVATE_KEY?.replace(/\\n/g, '\n'),
+        },
+        scopes: ['https://www.googleapis.com/auth/calendar'],
+    });
+
     if (!auth) {
         throw new Error("Tidak dapat membuat kegiatan: Kredensial Google Calendar belum diatur.");
     }
