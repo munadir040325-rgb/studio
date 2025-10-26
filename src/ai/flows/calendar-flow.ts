@@ -67,6 +67,8 @@ export const listCalendarEventsFlow = ai.defineFlow(
   async () => {
     const auth = await getGoogleAuth();
     if (!auth) {
+        // This case is for when environment variables are not set.
+        // The frontend will receive an empty array.
         console.warn("Google Calendar credentials are not configured. Returning empty list.");
         return [];
     }
@@ -83,8 +85,8 @@ export const listCalendarEventsFlow = ai.defineFlow(
         return (response.data.items || []) as CalendarEvent[];
     } catch (e: any) {
         console.error("Failed to list calendar events:", e.message);
-        // Return empty on error to prevent crash, but log the issue.
-        return [];
+        // Throw the error so the frontend can catch it and display a useful message
+        throw new Error(`Gagal mengambil data dari Google Calendar: ${e.message}`);
     }
   }
 );
@@ -98,7 +100,7 @@ export const createCalendarEventFlow = ai.defineFlow(
   async (input) => {
     const auth = await getGoogleAuth();
     if (!auth) {
-        throw new Error("Cannot create event: Google Calendar credentials are not configured in environment variables.");
+        throw new Error("Tidak dapat membuat kegiatan: Kredensial Google Calendar belum diatur di variabel lingkungan.");
     }
     const calendar = google.calendar({ version: 'v3', auth });
 
@@ -126,6 +128,10 @@ export const createCalendarEventFlow = ai.defineFlow(
 );
 
 export async function listCalendarEvents(): Promise<CalendarEvent[]> {
+    if (!areCredentialsConfigured()) {
+      // Return a specific error message if credentials are not configured
+      throw new Error("Kredensial Google Kalender belum dikonfigurasi di file .env Anda.");
+    }
     return listCalendarEventsFlow();
 }
 

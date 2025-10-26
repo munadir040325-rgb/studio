@@ -1,6 +1,6 @@
 'use client';
 
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useCallback } from 'react';
 import { PageHeader } from '@/components/page-header';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardFooter, CardHeader, CardTitle } from '@/components/ui/card';
@@ -24,40 +24,31 @@ export default function CalendarPage() {
   const [searchTerm, setSearchTerm] = useState('');
   const [isFormOpen, setIsFormOpen] = useState(false);
 
-  const fetchEvents = async () => {
+  const fetchEvents = useCallback(async () => {
     setIsLoading(true);
     setError(null);
     try {
       const fetchedEvents = await listCalendarEvents();
-      // Handle potential undefined return
-      if (fetchedEvents) {
-        setEvents(fetchedEvents);
-      } else {
-        // If flow returns undefined (e.g. on credential error), treat as empty
-        setEvents([]);
-        // Optionally set a specific message if no events are returned
-        if(!process.env.NEXT_PUBLIC_GOOGLE_CLIENT_EMAIL) {
-            setError("Kredensial Google Kalender belum dikonfigurasi. Silakan periksa file .env Anda.");
-        }
-      }
+      setEvents(fetchedEvents || []);
     } catch (e: any) {
       console.error("Error fetching calendar events:", e);
       let errorMessage = 'Gagal memuat kegiatan dari kalender.';
-      if (e.message && e.message.includes('permission')) {
-          errorMessage = 'Akses ditolak. Pastikan Service Account memiliki izin untuk mengakses kalender ini.';
-      } else if (e.message) {
+       if (e.message) {
           errorMessage = e.message;
       }
+      if (e.message && e.message.includes('permission')) {
+          errorMessage = 'Akses ditolak. Pastikan Service Account memiliki izin untuk mengakses kalender dan kalender telah dibagikan ke email Service Account tersebut.';
+      }
       setError(errorMessage);
-      setEvents([]); // Clear events on error
+      setEvents([]);
     } finally {
       setIsLoading(false);
     }
-  };
+  }, []);
 
   useEffect(() => {
     fetchEvents();
-  }, []);
+  }, [fetchEvents]);
 
   const filteredEvents = events.filter(event => {
     if (!event.start?.dateTime) return false;
@@ -69,7 +60,7 @@ export default function CalendarPage() {
   });
 
   return (
-    <div className="flex flex-col gap-6 mx-auto w-full max-w-6xl">
+    <div className="flex flex-col gap-6 w-full">
       <PageHeader
         title="Jadwal Kegiatan"
         description="Lihat dan kelola jadwal kegiatan yang akan datang."
@@ -86,7 +77,7 @@ export default function CalendarPage() {
                 Tambah Kegiatan
                 </Button>
             </DialogTrigger>
-            <DialogContent>
+            <DialogContent className="max-w-md">
                 <DialogHeader>
                 <DialogTitle>Tambah Kegiatan Baru</DialogTitle>
                 </DialogHeader>
@@ -101,46 +92,44 @@ export default function CalendarPage() {
         </div>
       </PageHeader>
 
-      <Card>
-        <CardContent className="p-4 flex flex-col md:flex-row gap-4 items-start">
-            <div className="relative flex-1 w-full">
-                <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
-                <Input 
-                    placeholder="Cari nama atau deskripsi kegiatan..." 
-                    className="pl-10" 
-                    value={searchTerm}
-                    onChange={(e) => setSearchTerm(e.target.value)}
+      <div className="flex flex-col md:flex-row gap-4">
+        <div className="relative flex-1">
+            <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
+            <Input 
+                placeholder="Cari nama atau deskripsi kegiatan..." 
+                className="pl-10 w-full" 
+                value={searchTerm}
+                onChange={(e) => setSearchTerm(e.target.value)}
+            />
+        </div>
+        <div className='flex flex-col sm:flex-row gap-2 w-full md:w-auto'>
+            <Popover>
+            <PopoverTrigger asChild>
+                <Button
+                variant={'outline'}
+                className={cn(
+                    'w-full justify-start text-left font-normal md:w-[240px]',
+                    !filterDate && 'text-muted-foreground'
+                )}
+                >
+                <CalendarIcon className="mr-2 h-4 w-4" />
+                {filterDate ? format(filterDate, 'PPP') : <span>Pilih tanggal</span>}
+                </Button>
+            </PopoverTrigger>
+            <PopoverContent className="w-auto p-0">
+                <Calendar
+                mode="single"
+                selected={filterDate}
+                onSelect={setFilterDate}
+                initialFocus
                 />
-            </div>
-            <div className='flex flex-col sm:flex-row gap-2 w-full md:w-auto'>
-                <Popover>
-                <PopoverTrigger asChild>
-                    <Button
-                    variant={'outline'}
-                    className={cn(
-                        'w-full justify-start text-left font-normal md:w-[240px]',
-                        !filterDate && 'text-muted-foreground'
-                    )}
-                    >
-                    <CalendarIcon className="mr-2 h-4 w-4" />
-                    {filterDate ? format(filterDate, 'PPP') : <span>Pilih tanggal</span>}
-                    </Button>
-                </PopoverTrigger>
-                <PopoverContent className="w-auto p-0">
-                    <Calendar
-                    mode="single"
-                    selected={filterDate}
-                    onSelect={setFilterDate}
-                    initialFocus
-                    />
-                </PopoverContent>
-                </Popover>
-                {filterDate || searchTerm ? (
-                    <Button variant="ghost" onClick={() => { setFilterDate(undefined); setSearchTerm('')}}>Reset</Button>
-                ) : null}
-            </div>
-        </CardContent>
-      </Card>
+            </PopoverContent>
+            </Popover>
+            {filterDate || searchTerm ? (
+                <Button variant="ghost" onClick={() => { setFilterDate(undefined); setSearchTerm('')}}>Reset</Button>
+            ) : null}
+        </div>
+      </div>
       
       {isLoading && <div className="text-center py-12 text-muted-foreground">Memuat kegiatan...</div>}
 
@@ -149,27 +138,25 @@ export default function CalendarPage() {
           <AlertTitle>Terjadi Kesalahan</AlertTitle>
           <AlertDescription>
             {error}
-            <br />
-            Pastikan kredensial di file `.env` sudah benar dan Service Account memiliki izin akses 'Editor' ke kalender.
           </AlertDescription>
         </Alert>
       )}
       
       {!isLoading && !error && (
         <>
-          <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-6">
+          <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-4">
             {filteredEvents.map(event => event.id && (
                 <Card key={event.id} className="flex flex-col">
-                    <CardHeader className="flex-grow">
-                        <CardTitle className="truncate">{event.summary}</CardTitle>
+                    <CardHeader className="flex-grow pb-4">
+                        <CardTitle className="text-base truncate">{event.summary}</CardTitle>
                         {event.start?.dateTime && (
                            <p className="text-sm text-muted-foreground">{format(parseISO(event.start.dateTime), 'EEEE, dd MMMM yyyy, HH:mm')}</p>
                         )}
                     </CardHeader>
-                    <CardContent className="flex-grow">
+                    <CardContent className="flex-grow py-0">
                         <p className="text-sm text-muted-foreground line-clamp-3">{event.description || 'Tidak ada deskripsi.'}</p>
                     </CardContent>
-                    <CardFooter className="flex flex-wrap justify-end gap-2">
+                    <CardFooter className="flex flex-wrap justify-end gap-2 pt-4">
                         {event.htmlLink && (
                           <Button variant="ghost" size="sm" asChild>
                             <a href={event.htmlLink} target="_blank" rel="noopener noreferrer">
@@ -190,7 +177,8 @@ export default function CalendarPage() {
           </div>
           {filteredEvents.length === 0 && (
               <div className="text-center py-12 text-muted-foreground">
-                <p>Tidak ada kegiatan yang ditemukan untuk filter yang dipilih.</p>
+                <p>Tidak ada kegiatan yang ditemukan.</p>
+                <p className="text-xs">Pastikan filter tanggal sudah benar atau coba muat ulang.</p>
               </div>
             )}
         </>
