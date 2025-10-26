@@ -253,10 +253,12 @@ export function EventForm({ onSuccess }: EventFormProps) {
                 )}
              />
         </div>
-        <Button type="submit" disabled={isSubmitting} className="w-full">
-          {isSubmitting && <Loader2 className="mr-2 h-4 w-4 animate-spin" />}
-          Simpan Kegiatan
-        </Button>
+        <div className="flex justify-end">
+            <Button type="submit" disabled={isSubmitting}>
+            {isSubmitting && <Loader2 className="mr-2 h-4 w-4 animate-spin" />}
+            Simpan Kegiatan
+            </Button>
+        </div>
       </form>
     </Form>
   );
