@@ -32,7 +32,7 @@ export default function CalendarPage() {
   });
 
   return (
-    <div className="flex flex-col gap-6">
+    <div className="flex flex-col gap-6 mx-auto w-full max-w-6xl">
       <PageHeader
         title="Jadwal Kegiatan"
         description="Lihat dan kelola jadwal kegiatan yang akan datang."
