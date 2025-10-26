@@ -17,13 +17,13 @@ import { Input } from '@/components/ui/input';
 import { Textarea } from '@/components/ui/textarea';
 import { Popover, PopoverContent, PopoverTrigger } from '@/components/ui/popover';
 import { Calendar } from '@/components/ui/calendar';
-import { CalendarIcon, Loader2 } from 'lucide-react';
+import { CalendarIcon, Loader2, Paperclip, X } from 'lucide-react';
 import { cn } from '@/lib/utils';
 import { format } from 'date-fns';
 import { id } from 'date-fns/locale';
 import { createCalendarEvent } from '@/ai/flows/calendar-flow';
 import { useToast } from '@/hooks/use-toast';
-import { useState } from 'react';
+import { useState, useRef } from 'react';
 
 const formSchema = z.object({
   summary: z.string().min(2, {
@@ -37,6 +37,7 @@ const formSchema = z.object({
   endDateTime: z.date({
     required_error: 'Tanggal & waktu selesai harus diisi.',
   }),
+  attachment: z.any().optional(),
 });
 
 type EventFormProps = {
@@ -46,6 +47,8 @@ type EventFormProps = {
 export function EventForm({ onSuccess }: EventFormProps) {
   const { toast } = useToast();
   const [isSubmitting, setIsSubmitting] = useState(false);
+  const fileInputRef = useRef<HTMLInputElement>(null);
+  const [fileName, setFileName] = useState<string | null>(null);
 
   const form = useForm<z.infer<typeof formSchema>>({
     resolver: zodResolver(formSchema),
@@ -59,6 +62,7 @@ export function EventForm({ onSuccess }: EventFormProps) {
   async function onSubmit(values: z.infer<typeof formSchema>) {
     setIsSubmitting(true);
     try {
+      // TODO: Handle file upload to GCS and get the link
       await createCalendarEvent({
         ...values,
         startDateTime: values.startDateTime.toISOString(),
@@ -108,6 +112,22 @@ export function EventForm({ onSuccess }: EventFormProps) {
     newDate.setMinutes(minutes);
     field.onChange(newDate);
   };
+
+  const handleFileChange = (event: React.ChangeEvent<HTMLInputElement>) => {
+    const file = event.target.files?.[0];
+    if (file) {
+      form.setValue('attachment', file);
+      setFileName(file.name);
+    }
+  };
+
+  const removeFile = () => {
+    form.setValue('attachment', null);
+    setFileName(null);
+    if(fileInputRef.current) {
+        fileInputRef.current.value = '';
+    }
+  }
 
   return (
     <Form {...form}>
@@ -253,6 +273,27 @@ export function EventForm({ onSuccess }: EventFormProps) {
                 )}
              />
         </div>
+        <div className="space-y-2">
+            <FormLabel>Lampiran</FormLabel>
+            {fileName ? (
+                <div className='flex items-center justify-between gap-2 text-sm p-2 bg-muted rounded-md'>
+                    <span className='truncate'>{fileName}</span>
+                    <Button type="button" variant="ghost" size="icon" className='h-6 w-6' onClick={removeFile}>
+                        <X className='h-4 w-4'/>
+                    </Button>
+                </div>
+            ) : (
+                <Button type='button' variant="outline" onClick={() => fileInputRef.current?.click()}>
+                    <Paperclip className="mr-2 h-4 w-4" />
+                    Lampirkan File
+                </Button>
+            )}
+            <Input type="file" ref={fileInputRef} onChange={handleFileChange} className="hidden"/>
+            <FormDescription>
+                Anda bisa melampirkan file relevan (opsional).
+            </FormDescription>
+        </div>
+
         <div className="flex justify-end">
             <Button type="submit" disabled={isSubmitting}>
             {isSubmitting && <Loader2 className="mr-2 h-4 w-4 animate-spin" />}
