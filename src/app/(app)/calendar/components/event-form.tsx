@@ -119,7 +119,7 @@ export function EventForm({ onSuccess }: EventFormProps) {
             <FormItem>
               <FormLabel>Judul Kegiatan</FormLabel>
               <FormControl>
-                <Textarea placeholder="e.g., Rapat Koordinasi Staf" {...field} className="min-h-[60px]" />
+                <Input placeholder="e.g., Rapat Koordinasi Staf" {...field} />
               </FormControl>
               <FormMessage />
             </FormItem>
@@ -218,37 +218,38 @@ export function EventForm({ onSuccess }: EventFormProps) {
                 </FormItem>
             )}
             />
-        </div>
-        <FormField
-          control={form.control}
-          name="location"
-          render={({ field }) => (
-            <FormItem>
-              <FormLabel>Lokasi</FormLabel>
-              <FormControl>
-                <Input placeholder="e.g., Aula Kecamatan" {...field} />
-              </FormControl>
-              <FormMessage />
-            </FormItem>
-          )}
-        />
-        <FormField
-          control={form.control}
-          name="description"
-          render={({ field }) => (
-            <FormItem>
-              <FormLabel>Deskripsi</FormLabel>
-              <FormControl>
-                <Textarea
-                  placeholder="Tambahkan detail atau catatan penting tentang kegiatan ini."
-                  {...field}
+             <FormField
+                control={form.control}
+                name="location"
+                render={({ field }) => (
+                    <FormItem>
+                    <FormLabel>Lokasi</FormLabel>
+                    <FormControl>
+                        <Input placeholder="e.g., Aula Kecamatan" {...field} />
+                    </FormControl>
+                    <FormMessage />
+                    </FormItem>
+                )}
                 />
-              </FormControl>
-              <FormMessage />
-            </FormItem>
-          )}
-        />
-        <Button type="submit" disabled={isSubmitting}>
+            <FormField
+                control={form.control}
+                name="description"
+                render={({ field }) => (
+                    <FormItem>
+                    <FormLabel>Deskripsi</FormLabel>
+                    <FormControl>
+                        <Textarea
+                        placeholder="Tambahkan detail kegiatan."
+                        {...field}
+                        className="h-20"
+                        />
+                    </FormControl>
+                    <FormMessage />
+                    </FormItem>
+                )}
+             />
+        </div>
+        <Button type="submit" disabled={isSubmitting} className="w-full">
           {isSubmitting && <Loader2 className="mr-2 h-4 w-4 animate-spin" />}
           Simpan Kegiatan
         </Button>
