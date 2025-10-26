@@ -95,7 +95,6 @@ const uploadFileFlow = ai.defineFlow(
             throw new Error("Tidak dapat mengunggah file: Kredensial Google Drive (Service Account) belum diatur.");
         }
         
-        // **THE FIX**: Add `supportsAllDrives: true` to the drive object options
         const drive = google.drive({ version: 'v3', auth });
         
         const fileBuffer = Buffer.from(fileData.data, 'base64');
@@ -112,7 +111,6 @@ const uploadFileFlow = ai.defineFlow(
                     parents: [DRIVE_FOLDER_ID],
                 },
                 fields: 'id, webViewLink',
-                // This tells the API that this service account can work with files in shared folders/drives
                 supportsAllDrives: true, 
             });
 
@@ -120,20 +118,19 @@ const uploadFileFlow = ai.defineFlow(
                  throw new Error("Upload ke Google Drive berhasil tetapi tidak mendapatkan ID atau Link.");
             }
 
-            // The file is automatically owned by the folder owner, so no need to transfer ownership.
-
             return {
                 fileId: file.data.id,
                 webViewLink: file.data.webViewLink,
             };
         } catch (error: any) {
             console.error('Google Drive API Error:', error);
-             if (error.code === 403) {
-                 // Make the error message more specific
-                 throw new Error(`Izin ditolak. Pastikan Service Account memiliki akses 'Editor' ke folder Google Drive dengan ID '${DRIVE_FOLDER_ID}'. Pesan asli: ${error.message}`);
+            if (error.code === 403) {
+                // Make the error message more specific for permission issues
+                throw new Error(`Izin ditolak. Pastikan Service Account memiliki akses 'Editor' ke folder Google Drive dengan ID '${DRIVE_FOLDER_ID}'. Pesan asli: ${error.message}`);
             }
-             if (error.code === 404) {
-                 throw new Error(`Folder Google Drive dengan ID '${DRIVE_FOLDER_ID}' tidak ditemukan. Mohon periksa kembali ID folder Anda.`);
+            if (error.code === 404) {
+                 // Make the error message more specific for not found issues
+                throw new Error(`Folder Google Drive dengan ID '${DRIVE_FOLDER_ID}' tidak ditemukan. Mohon periksa kembali ID folder Anda.`);
             }
             throw new Error(`Gagal mengunggah file ke Google Drive: ${error.message}`);
         }
