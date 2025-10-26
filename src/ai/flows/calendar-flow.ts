@@ -1,5 +1,8 @@
 
 'use server';
+
+import 'dotenv/config'
+
 /**
  * @fileOverview Flow for interacting with Google Calendar and Drive.
  *
@@ -13,6 +16,8 @@ import { Readable } from 'stream';
 
 const calendarId = 'kecamatan.gandrungmangu2020@gmail.com';
 const DRIVE_FOLDER_ID = '1ozMzvJUBgy9h0bq4HXXxN0aPkPW4duCH';
+const OWNER_EMAIL = 'kecamatan.gandrungmangu2020@gmail.com';
+
 
 const calendarEventSchema = z.object({
   id: z.string().optional().nullable(),

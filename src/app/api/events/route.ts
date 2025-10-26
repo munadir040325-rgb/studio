@@ -1,4 +1,5 @@
 
+import 'dotenv/config'
 export const runtime = "nodejs";          // jangan edge: googleapis butuh Node
 export const revalidate = 0;              // no cache
 export const dynamic = "force-dynamic";
