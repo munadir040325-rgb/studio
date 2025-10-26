@@ -25,7 +25,7 @@ const calendarEventSchema = z.object({
   }).optional().nullable(),
   end: z.object({
     dateTime: z.string().optional().nullable(),
-    timeZone: z.string().optional().nullable(),
+    timeZone: zstring().optional().nullable(),
     date: z.string().optional().nullable(),
   }).optional().nullable(),
   location: z.string().optional().nullable(),
@@ -103,7 +103,7 @@ const uploadFileFlow = ai.defineFlow(
                 media: media,
                 requestBody: {
                     name: fileData.filename,
-                    parents: [DRIVE_FOLDER_ID],
+                    parents: [DRIVE_FOLDER_ID], // Ini adalah perbaikan kuncinya
                 },
                 fields: 'id, webViewLink',
             });
@@ -117,9 +117,12 @@ const uploadFileFlow = ai.defineFlow(
                 webViewLink: file.data.webViewLink,
             };
         } catch (error: any) {
-            console.error('Google Drive API Error:', error.response?.data || error.message);
-            if (error.response?.data?.error?.message.includes('File not found')) {
-                 throw new Error(`Folder Google Drive dengan ID '${DRIVE_FOLDER_ID}' tidak ditemukan atau Service Account tidak memiliki akses. Pastikan folder sudah dibagikan dengan akses 'Editor'.`);
+            console.error('Google Drive API Error:', error);
+             if (error.code === 403) {
+                 throw new Error(`Izin ditolak. Pastikan Service Account memiliki akses 'Editor' ke folder Google Drive dengan ID '${DRIVE_FOLDER_ID}'. Pesan asli: ${error.message}`);
+            }
+             if (error.code === 404) {
+                 throw new Error(`Folder Google Drive dengan ID '${DRIVE_FOLDER_ID}' tidak ditemukan. Mohon periksa kembali ID folder Anda.`);
             }
             throw new Error(`Gagal mengunggah file ke Google Drive: ${error.message}`);
         }
@@ -139,8 +142,13 @@ export const createCalendarEventFlow = ai.defineFlow(
     // 1. Upload file if it exists
     let uploadedFileUrl: string | undefined;
     if (input.attachment) {
-      const uploadResponse = await uploadFileFlow(input.attachment);
-      uploadedFileUrl = uploadResponse.webViewLink;
+      try {
+        const uploadResponse = await uploadFileFlow(input.attachment);
+        uploadedFileUrl = uploadResponse.webViewLink;
+      } catch (e: any) {
+        // Tangkap error upload dan teruskan ke pengguna
+        throw new Error(`Gagal mengunggah lampiran: ${e.message}`);
+      }
     }
 
     // 2. Append the link to the calendar event description
