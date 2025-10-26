@@ -68,7 +68,7 @@ export async function GET(req: NextRequest) {
 
     const { timeMin, timeMax } = buildRangeISO(startDate, end ?? startDate, "Asia/Jakarta");
 
-    // Auth service account
+    // Auth service account for calendar
     const auth = await getGoogleAuth("https://www.googleapis.com/auth/calendar.readonly");
     if (!auth) {
         return NextResponse.json({ error: "Kredensial Google Service Account tidak dikonfigurasi." }, { status: 500 });
@@ -109,3 +109,4 @@ export async function GET(req: NextRequest) {
     return NextResponse.json({ error: errorMessage }, { status: 500 });
   }
 }
+

@@ -44,6 +44,24 @@ type EventFormProps = {
   onSuccess: () => void;
 };
 
+// Helper function to convert file to base64
+const fileToBase64 = (file: File): Promise<string> => {
+    return new Promise((resolve, reject) => {
+        const reader = new FileReader();
+        reader.readAsDataURL(file);
+        reader.onload = () => {
+            const base64String = (reader.result as string).split(',')[1];
+            if (base64String) {
+                resolve(base64String);
+            } else {
+                reject(new Error("Failed to convert file to base64"));
+            }
+        };
+        reader.onerror = (error) => reject(error);
+    });
+};
+
+
 export function EventForm({ onSuccess }: EventFormProps) {
   const { toast } = useToast();
   const [isSubmitting, setIsSubmitting] = useState(false);
@@ -62,12 +80,27 @@ export function EventForm({ onSuccess }: EventFormProps) {
   async function onSubmit(values: z.infer<typeof formSchema>) {
     setIsSubmitting(true);
     try {
-      // TODO: Handle file upload to GCS and get the link
+      let attachmentPayload;
+      const file = values.attachment as File | undefined;
+      
+      if (file) {
+          const base64Data = await fileToBase64(file);
+          attachmentPayload = {
+              filename: file.name,
+              contentType: file.type,
+              data: base64Data,
+          };
+      }
+
       await createCalendarEvent({
-        ...values,
+        summary: values.summary,
+        description: values.description,
+        location: values.location,
         startDateTime: values.startDateTime.toISOString(),
         endDateTime: values.endDateTime.toISOString(),
+        attachment: attachmentPayload,
       });
+
       toast({
         title: 'Berhasil!',
         description: 'Kegiatan baru telah ditambahkan ke kalender.',
@@ -80,8 +113,11 @@ export function EventForm({ onSuccess }: EventFormProps) {
         if (error.message.includes("writer access")) {
           errorMessage = "Gagal: Pastikan service account memiliki izin 'Membuat perubahan pada acara' di setelan berbagi kalender.";
         } else if (error.message.includes("enabled")) {
-          errorMessage = "Gagal: Google Calendar API mungkin belum diaktifkan untuk proyek Anda."
-        } else {
+          errorMessage = "Gagal: Google Calendar API atau Google Drive API mungkin belum diaktifkan untuk proyek Anda."
+        } else if (error.message.includes("drive")){
+            errorMessage = "Terjadi kesalahan saat mengunggah lampiran ke Google Drive. Pastikan API Drive sudah aktif."
+        }
+        else {
           errorMessage = error.message;
         }
       }
@@ -274,7 +310,7 @@ export function EventForm({ onSuccess }: EventFormProps) {
              />
         </div>
         <div className="space-y-2">
-            <FormLabel>Lampiran</FormLabel>
+            <FormLabel>Lampiran (Google Drive)</FormLabel>
             {fileName ? (
                 <div className='flex items-center justify-between gap-2 text-sm p-2 bg-muted rounded-md'>
                     <span className='truncate'>{fileName}</span>
@@ -285,12 +321,12 @@ export function EventForm({ onSuccess }: EventFormProps) {
             ) : (
                 <Button type='button' variant="outline" onClick={() => fileInputRef.current?.click()}>
                     <Paperclip className="mr-2 h-4 w-4" />
-                    Lampirkan File
+                    Pilih File untuk Diunggah
                 </Button>
             )}
             <Input type="file" ref={fileInputRef} onChange={handleFileChange} className="hidden"/>
             <FormDescription>
-                Anda bisa melampirkan file relevan (opsional).
+                File akan diunggah ke Google Drive terpusat dan tautannya akan ditambahkan ke deskripsi acara.
             </FormDescription>
         </div>
 
