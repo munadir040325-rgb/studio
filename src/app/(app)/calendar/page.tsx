@@ -91,7 +91,7 @@ export default function CalendarPage() {
                 </CardContent>
                 <CardFooter className="flex justify-between">
                     <Button variant="ghost" size="sm" asChild>
-                       <a href={`https://calendar.google.com/calendar/u/0/r/eventedit?text=${encodeURIComponent(event.title)}&dates=${event.date.replace(/-/g, '')}T090000/${event.date.replace(/-/g, '')}T100000&details=${encodeURIComponent(event.description)}`} target="_blank" rel="noopener noreferrer">
+                       <a href={`https://calendar.google.com/calendar/r/eventedit?text=${encodeURIComponent(event.title)}&dates=${event.date.replace(/-/g, '')}T090000/${event.date.replace(/-/g, '')}T100000&details=${encodeURIComponent(event.description)}&src=kecamatan.gandrungmangu2020@gmail.com`} target="_blank" rel="noopener noreferrer">
                            <ExternalLink className='mr-2 h-4 w-4' />
                            Detail
                        </a>
