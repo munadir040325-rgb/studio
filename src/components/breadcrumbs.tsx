@@ -13,7 +13,7 @@ const formatSegment = (segment: string) => {
   const customFormats: { [key: string]: string } = {
     'sppd': 'SPPD',
     'spj': 'SPJ',
-    'master-data': 'Master Data',
+    'master': 'Master',
     'employees': 'Pegawai',
     'signatures': 'Tanda Tangan',
     'letterheads': 'Kop Surat'
@@ -34,21 +34,8 @@ export function Breadcrumbs() {
   const segments = pathname.split('/').filter(Boolean);
 
   // Handle case for root or dashboard
-  if (segments.length === 0) {
+  if (segments.length === 0 || (segments.length === 1 && segments[0] === 'dashboard')) {
     return (
-        <nav aria-label="Breadcrumb" className="hidden flex-1 md:flex">
-            <ol className="flex items-center space-x-1 text-sm text-muted-foreground">
-                <li>
-                    <span className="font-medium text-foreground">Dashboard</span>
-                </li>
-            </ol>
-        </nav>
-    );
-  }
-
-  // Handle dashboard explicitly
-  if (segments.length === 1 && segments[0] === 'dashboard') {
-     return (
         <nav aria-label="Breadcrumb" className="hidden flex-1 md:flex">
             <ol className="flex items-center space-x-1 text-sm text-muted-foreground">
                 <li>
@@ -71,7 +58,6 @@ export function Breadcrumbs() {
           const href = `/${segments.slice(0, index + 1).join('/')}`;
           const isLast = index === segments.length - 1;
           
-          // Handle 'new' segment to customize display text
           let displayText = formatSegment(segment);
           if (segment === 'new') {
             displayText = 'Buat Baru';
