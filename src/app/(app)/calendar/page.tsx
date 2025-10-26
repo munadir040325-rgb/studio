@@ -13,10 +13,11 @@ import { cn } from '@/lib/utils';
 import Link from 'next/link';
 
 const calendarEvents = [
-    { id: 1, title: 'Rakornas KemenPUPR', date: '2024-09-10', description: 'Rapat Koordinasi Nasional di Jakarta' },
-    { id: 2, title: 'Bimtek Siskeudes', date: '2024-09-15', description: 'Bimbingan Teknis Siskeudes di Bandung' },
-    { id: 3, title: 'Bimtek Siskeudes Day 2', date: '2024-09-16', description: 'Lanjutan Bimbingan Teknis Siskeudes' },
-    { id: 4, title: 'Meeting Pembahasan DAK', date: '2024-09-20', description: 'Rapat internal pembahasan DAK' },
+    { id: 1, title: 'Musrenbang Kecamatan Gandrungmangu', date: '2024-10-05', description: 'Musyawarah Perencanaan Pembangunan Kecamatan di Aula Kecamatan.' },
+    { id: 2, title: 'Rapat Koordinasi Staf Mingguan', date: '2024-10-07', description: 'Rapat rutin mingguan untuk koordinasi antar seksi.' },
+    { id: 3, title: 'Pelatihan Kader Posyandu se-Kecamatan', date: '2024-10-12', description: 'Pelatihan untuk meningkatkan kapasitas kader Posyandu.' },
+    { id: 4, title: 'Penyuluhan Program Desa Digital', date: '2024-10-18', description: 'Sosialisasi dan penyuluhan mengenai program desa digital kepada kepala desa.' },
+    { id: 5, title: 'Verifikasi Lapangan Bantuan Sosial', date: '2024-10-22', description: 'Kunjungan lapangan untuk verifikasi data penerima bantuan sosial.' },
 ];
 
 export default function CalendarPage() {
@@ -90,14 +91,14 @@ export default function CalendarPage() {
                 </CardContent>
                 <CardFooter className="flex justify-between">
                     <Button variant="ghost" size="sm" asChild>
-                       <a href="https://calendar.google.com" target="_blank" rel="noopener noreferrer">
-                           <ExternalLink className='mr-2' />
+                       <a href={`https://calendar.google.com/calendar/u/0/r/eventedit?text=${encodeURIComponent(event.title)}&dates=${event.date.replace(/-/g, '')}T090000/${event.date.replace(/-/g, '')}T100000&details=${encodeURIComponent(event.description)}`} target="_blank" rel="noopener noreferrer">
+                           <ExternalLink className='mr-2 h-4 w-4' />
                            Detail
                        </a>
                     </Button>
                     <Button asChild size="sm">
                        <Link href={`/sppd/new?title=${encodeURIComponent(event.title)}&startDate=${event.date}`}>
-                           <FilePlus className='mr-2' />
+                           <FilePlus className='mr-2 h-4 w-4' />
                            Buat SPPD
                        </Link>
                     </Button>
