@@ -17,17 +17,18 @@ import { listCalendarEvents, type CalendarEvent } from '@/ai/flows/calendar-flow
 import { Alert, AlertDescription, AlertTitle } from '@/components/ui/alert';
 
 // Helper function to get 'yyyy-MM-dd' from an ISO string like '2023-10-27T10:00:00+07:00'
-// This is robust and avoids timezone issues by just slicing the string.
-const getDatePartFromISO = (isoString: string) => {
-  return isoString.split('T')[0];
+// This is the most robust way as it simply slices the string, ignoring timezone/time.
+const getDatePartFromISO = (isoString: string | null | undefined): string | null => {
+  if (!isoString) return null;
+  return isoString.substring(0, 10); // Extracts 'YYYY-MM-DD'
 };
 
 // Helper function to format a Date object to 'yyyy-MM-dd' in a timezone-safe way.
-const formatDateToYYYYMMDD = (date: Date) => {
-  const year = date.getFullYear();
-  const month = (date.getMonth() + 1).toString().padStart(2, '0');
-  const day = date.getDate().toString().padStart(2, '0');
-  return `${year}-${month}-${day}`;
+const formatDateToYYYYMMDD = (date: Date | null | undefined): string | null => {
+  if (!date) return null;
+  // Using date-fns format ensures consistency and avoids manual timezone wrestling.
+  // 'yyyy-MM-dd' is a timezone-agnostic representation of a calendar date.
+  return format(date, 'yyyy-MM-dd');
 };
 
 
@@ -51,8 +52,8 @@ export default function CalendarPage() {
        if (e.message) {
           errorMessage = e.message;
       }
-      if (e.message && (e.message.includes('permission') || e.message.includes('not configured'))) {
-          errorMessage = 'Akses ditolak. Pastikan Service Account memiliki izin untuk mengakses kalender, kalender telah dibagikan ke email Service Account, dan kredensial sudah benar.';
+      if (e.message && (e.message.includes('permission') || e.message.includes('configured') || e.message.includes('client_email'))) {
+          errorMessage = 'Akses ditolak. Pastikan Service Account memiliki izin, kalender telah dibagikan ke email Service Account, dan kredensial di file .env sudah benar.';
       }
       setError(errorMessage);
       setEvents([]);
@@ -66,16 +67,19 @@ export default function CalendarPage() {
   }, [fetchEvents]);
 
   const filteredEvents = events.filter(event => {
-    if (!event.start?.dateTime) return false;
-    
-    // Timezone-safe date comparison
-    const matchesDate = !filterDate || (getDatePartFromISO(event.start.dateTime) === formatDateToYYYYMMDD(filterDate));
+    // Filter by date
+    const eventDateStr = getDatePartFromISO(event.start?.dateTime);
+    const filterDateStr = formatDateToYYYYMMDD(filterDate);
+    const matchesDate = !filterDateStr || eventDateStr === filterDateStr;
 
+    if (!matchesDate) return false;
+
+    // Filter by search term (if a date match is found)
     const summaryMatch = event.summary?.toLowerCase().includes(searchTerm.toLowerCase());
     const descriptionMatch = event.description?.toLowerCase().includes(searchTerm.toLowerCase());
     const locationMatch = event.location?.toLowerCase().includes(searchTerm.toLowerCase());
-
-    return matchesDate && (summaryMatch || descriptionMatch || locationMatch);
+    
+    return searchTerm ? (summaryMatch || descriptionMatch || locationMatch) : true;
   });
 
   return (
@@ -185,7 +189,7 @@ export default function CalendarPage() {
                           </Button>
                         )}
                         <Button asChild size="sm">
-                          <Link href={`/sppd/new?title=${encodeURIComponent(event.summary || '')}&startDate=${event.start?.dateTime ? getDatePartFromISO(event.start.dateTime) : ''}`}>
+                          <Link href={`/sppd/new?title=${encodeURIComponent(event.summary || '')}&startDate=${getDatePartFromISO(event.start?.dateTime) || ''}`}>
                               <FilePlus className='mr-2 h-4 w-4' />
                               Buat SPPD
                           </Link>
@@ -196,8 +200,8 @@ export default function CalendarPage() {
           </div>
           {filteredEvents.length === 0 && (
               <div className="text-center py-12 text-muted-foreground">
-                <p>Tidak ada kegiatan yang ditemukan.</p>
-                <p className="text-sm">Pastikan filter tanggal sudah benar atau coba muat ulang.</p>
+                <p>Tidak ada kegiatan yang ditemukan untuk filter yang dipilih.</p>
+                <p className="text-sm">Coba pilih tanggal lain atau reset filter.</p>
               </div>
             )}
         </>
