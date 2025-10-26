@@ -69,12 +69,18 @@ export function EventForm({ onSuccess }: EventFormProps) {
         description: 'Kegiatan baru telah ditambahkan ke kalender.',
       });
       onSuccess();
-    } catch (error) {
+    } catch (error: any) {
       console.error('Failed to create event:', error);
+      let errorMessage = 'Terjadi kesalahan saat menambahkan kegiatan.';
+      if (error.message && error.message.includes('writer access')) {
+        errorMessage = "Gagal: Service account tidak memiliki izin tulis. Pastikan email service account telah ditambahkan ke setelan berbagi kalender dengan izin 'Membuat perubahan pada acara'.";
+      } else if (error.message) {
+        errorMessage = error.message;
+      }
       toast({
         variant: 'destructive',
-        title: 'Gagal',
-        description: 'Terjadi kesalahan saat menambahkan kegiatan.',
+        title: 'Gagal Membuat Kegiatan',
+        description: errorMessage,
       });
     } finally {
         setIsSubmitting(false);
