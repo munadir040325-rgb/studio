@@ -7,13 +7,14 @@ import { Card, CardContent, CardFooter, CardHeader, CardTitle } from '@/componen
 import { Input } from '@/components/ui/input';
 import { Popover, PopoverContent, PopoverTrigger } from '@/components/ui/popover';
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger } from '@/components/ui/dialog';
-import { Calendar as CalendarIcon, ExternalLink, FilePlus, PlusCircle, Search } from 'lucide-react';
+import { Calendar as CalendarIcon, ExternalLink, FilePlus, PlusCircle, RefreshCw, Search } from 'lucide-react';
 import { Calendar } from '@/components/ui/calendar';
 import { format, parseISO } from 'date-fns';
 import { cn } from '@/lib/utils';
 import Link from 'next/link';
 import { EventForm } from './components/event-form';
 import { listCalendarEvents, type CalendarEvent } from '@/ai/flows/calendar-flow';
+import { Alert, AlertDescription, AlertTitle } from '@/components/ui/alert';
 
 export default function CalendarPage() {
   const [events, setEvents] = useState<CalendarEvent[]>([]);
@@ -28,10 +29,27 @@ export default function CalendarPage() {
     setError(null);
     try {
       const fetchedEvents = await listCalendarEvents();
-      setEvents(fetchedEvents || []);
+      // Handle potential undefined return
+      if (fetchedEvents) {
+        setEvents(fetchedEvents);
+      } else {
+        // If flow returns undefined (e.g. on credential error), treat as empty
+        setEvents([]);
+        // Optionally set a specific message if no events are returned
+        if(!process.env.NEXT_PUBLIC_GOOGLE_CLIENT_EMAIL) {
+            setError("Kredensial Google Kalender belum dikonfigurasi. Silakan periksa file .env Anda.");
+        }
+      }
     } catch (e: any) {
-      setError(e.message || 'Failed to fetch calendar events.');
-      console.error(e);
+      console.error("Error fetching calendar events:", e);
+      let errorMessage = 'Gagal memuat kegiatan dari kalender.';
+      if (e.message && e.message.includes('permission')) {
+          errorMessage = 'Akses ditolak. Pastikan Service Account memiliki izin untuk mengakses kalender ini.';
+      } else if (e.message) {
+          errorMessage = e.message;
+      }
+      setError(errorMessage);
+      setEvents([]); // Clear events on error
     } finally {
       setIsLoading(false);
     }
@@ -45,8 +63,9 @@ export default function CalendarPage() {
     if (!event.start?.dateTime) return false;
     const eventDate = parseISO(event.start.dateTime);
     const matchesDate = !filterDate || eventDate.toDateString() === filterDate.toDateString();
-    const matchesSearch = event.summary?.toLowerCase().includes(searchTerm.toLowerCase());
-    return matchesDate && matchesSearch;
+    const summaryMatch = event.summary?.toLowerCase().includes(searchTerm.toLowerCase());
+    const descriptionMatch = event.description?.toLowerCase().includes(searchTerm.toLowerCase());
+    return matchesDate && (summaryMatch || descriptionMatch);
   });
 
   return (
@@ -55,25 +74,31 @@ export default function CalendarPage() {
         title="Jadwal Kegiatan"
         description="Lihat dan kelola jadwal kegiatan yang akan datang."
       >
-        <Dialog open={isFormOpen} onOpenChange={setIsFormOpen}>
-          <DialogTrigger asChild>
-            <Button>
-              <PlusCircle className="mr-2 h-4 w-4" />
-              Tambah Kegiatan
+        <div className="flex items-center gap-2">
+            <Button variant="outline" size="icon" onClick={fetchEvents} disabled={isLoading}>
+                <RefreshCw className={cn("h-4 w-4", isLoading && "animate-spin")} />
+                <span className="sr-only">Muat Ulang</span>
             </Button>
-          </DialogTrigger>
-          <DialogContent>
-            <DialogHeader>
-              <DialogTitle>Tambah Kegiatan Baru</DialogTitle>
-            </DialogHeader>
-            <EventForm 
-              onSuccess={() => {
-                setIsFormOpen(false);
-                fetchEvents();
-              }} 
-            />
-          </DialogContent>
-        </Dialog>
+            <Dialog open={isFormOpen} onOpenChange={setIsFormOpen}>
+            <DialogTrigger asChild>
+                <Button>
+                <PlusCircle className="mr-2 h-4 w-4" />
+                Tambah Kegiatan
+                </Button>
+            </DialogTrigger>
+            <DialogContent>
+                <DialogHeader>
+                <DialogTitle>Tambah Kegiatan Baru</DialogTitle>
+                </DialogHeader>
+                <EventForm 
+                onSuccess={() => {
+                    setIsFormOpen(false);
+                    fetchEvents();
+                }} 
+                />
+            </DialogContent>
+            </Dialog>
+        </div>
       </PageHeader>
 
       <Card>
@@ -81,7 +106,7 @@ export default function CalendarPage() {
             <div className="relative flex-1 w-full">
                 <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
                 <Input 
-                    placeholder="Cari nama kegiatan..." 
+                    placeholder="Cari nama atau deskripsi kegiatan..." 
                     className="pl-10" 
                     value={searchTerm}
                     onChange={(e) => setSearchTerm(e.target.value)}
@@ -93,7 +118,7 @@ export default function CalendarPage() {
                     <Button
                     variant={'outline'}
                     className={cn(
-                        'w-full justify-start text-left font-normal',
+                        'w-full justify-start text-left font-normal md:w-[240px]',
                         !filterDate && 'text-muted-foreground'
                     )}
                     >
@@ -116,9 +141,19 @@ export default function CalendarPage() {
             </div>
         </CardContent>
       </Card>
-
+      
       {isLoading && <div className="text-center py-12 text-muted-foreground">Memuat kegiatan...</div>}
-      {error && <div className="text-center py-12 text-red-500">{error}</div>}
+
+      {error && (
+        <Alert variant="destructive">
+          <AlertTitle>Terjadi Kesalahan</AlertTitle>
+          <AlertDescription>
+            {error}
+            <br />
+            Pastikan kredensial di file `.env` sudah benar dan Service Account memiliki izin akses 'Editor' ke kalender.
+          </AlertDescription>
+        </Alert>
+      )}
       
       {!isLoading && !error && (
         <>
@@ -155,7 +190,7 @@ export default function CalendarPage() {
           </div>
           {filteredEvents.length === 0 && (
               <div className="text-center py-12 text-muted-foreground">
-                <p>Tidak ada kegiatan yang ditemukan.</p>
+                <p>Tidak ada kegiatan yang ditemukan untuk filter yang dipilih.</p>
               </div>
             )}
         </>
