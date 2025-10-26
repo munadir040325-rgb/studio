@@ -1,4 +1,3 @@
-
 'use client';
 
 import { useState, useEffect, useCallback, useMemo } from 'react';
@@ -15,10 +14,20 @@ import { id } from 'date-fns/locale';
 import { cn } from '@/lib/utils';
 import Link from 'next/link';
 import { EventForm } from './components/event-form';
-import type { CalendarEvent } from '@/ai/flows/calendar-flow';
 import { Alert, AlertDescription, AlertTitle } from '@/components/ui/alert';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { useToast } from '@/hooks/use-toast';
+
+type CalendarEvent = {
+    id: string | null | undefined;
+    summary: string | null | undefined;
+    description: string | null | undefined;
+    location: string | null | undefined;
+    start: string | null | undefined;
+    end: string | null | undefined;
+    isAllDay: boolean;
+    htmlLink: string | null | undefined;
+}
 
 const toYYYYMMDD = (date: Date): string => {
   return format(date, 'yyyy-MM-dd');
@@ -185,12 +194,22 @@ export default function CalendarPage() {
     fetchEvents(filterDate);
   }, [filterDate, fetchEvents]);
 
-  const filteredBySearchEvents = useMemo(() => {
-    if (!searchTerm) {
-        return events;
-    }
+  const filteredEvents = useMemo(() => {
+    if (!filterDate) return [];
+    const selectedDay = toYYYYMMDD(filterDate);
     
     return events.filter(event => {
+        const eventDate = getDatePartFromISO(event.start);
+        return eventDate === selectedDay;
+    });
+  }, [events, filterDate]);
+
+  const filteredBySearchEvents = useMemo(() => {
+    if (!searchTerm) {
+        return filteredEvents;
+    }
+    
+    return filteredEvents.filter(event => {
         const term = searchTerm.toLowerCase();
         const summaryMatch = event.summary?.toLowerCase().includes(term);
         const descriptionMatch = event.description?.toLowerCase().includes(term);
@@ -200,7 +219,7 @@ export default function CalendarPage() {
 
         return summaryMatch || descriptionMatch || locationMatch || disposisiMatch;
     });
-  }, [events, searchTerm]);
+  }, [filteredEvents, searchTerm]);
 
   const handleRefresh = () => {
     fetchEvents(filterDate);
@@ -294,12 +313,12 @@ export default function CalendarPage() {
         <>
             {filterDate && (
                  <Tabs value={viewMode} onValueChange={(value) => setViewMode(value as 'card' | 'whatsapp')} className="w-full">
-                    <TabsList className="grid w-full grid-cols-2 md:w-[400px]">
+                    <TabsList className="grid w-full grid-cols-2 max-w-[400px] mx-auto">
                         <TabsTrigger value="card">Tampilan Kartu</TabsTrigger>
                         <TabsTrigger value="whatsapp">Jadwal WA</TabsTrigger>
                     </TabsList>
                     <TabsContent value="card">
-                        <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-4">
+                        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
                             {filteredBySearchEvents.map(event => event.id && (
                                 <Card key={event.id} className="flex flex-col">
                                     <CardHeader className="pb-4">
@@ -359,6 +378,3 @@ export default function CalendarPage() {
     </div>
   );
 }
-
-
-    
