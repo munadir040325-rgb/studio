@@ -67,6 +67,9 @@ export async function getGoogleAuth(scopes: string | string[]) {
       private_key: process.env.GOOGLE_PRIVATE_KEY?.replace(/\\n/g, '\n'),
     },
     scopes: scopes,
+    clientOptions: {
+        subject: 'kecamatan.gandrungmangu2020@gmail.com'
+    }
   });
   return auth;
 }
@@ -99,6 +102,7 @@ const uploadFileFlow = ai.defineFlow(
                 requestBody: fileMetadata,
                 media: media,
                 fields: 'id, webViewLink',
+                supportsAllDrives: true,
             });
 
             // Make file publicly accessible with a link
@@ -108,6 +112,7 @@ const uploadFileFlow = ai.defineFlow(
                     role: 'reader',
                     type: 'anyone',
                 },
+                supportsAllDrives: true,
             });
             
             if (!file.data.webViewLink) {
@@ -118,6 +123,9 @@ const uploadFileFlow = ai.defineFlow(
 
         } catch (error: any) {
             console.error('Google Drive API error:', error);
+            if (error.message.includes('Service Accounts do not have storage quota')) {
+                throw new Error('Gagal: Service Account tidak memiliki kuota Google Drive. Solusi: Gunakan Drive Bersama (Shared Drive) atau aktifkan impersonasi di Google Workspace Admin.');
+            }
             throw new Error(`Gagal mengunggah file ke Google Drive: ${error.message}`);
         }
     }
