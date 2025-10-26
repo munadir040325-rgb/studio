@@ -53,14 +53,12 @@ export default function CalendarPage() {
   const filteredEvents = events.filter(event => {
     if (!event.start?.dateTime) return false;
     
-    // Always create date objects from the ISO string from the API
     const eventDate = new Date(event.start.dateTime);
-    
-    // Timezone-insensitive date comparison
+
     const matchesDate = !filterDate || (
-        eventDate.getFullYear() === filterDate.getFullYear() &&
-        eventDate.getMonth() === filterDate.getMonth() &&
-        eventDate.getDate() === filterDate.getDate()
+      eventDate.getUTCFullYear() === filterDate.getUTCFullYear() &&
+      eventDate.getUTCMonth() === filterDate.getUTCMonth() &&
+      eventDate.getUTCDate() === filterDate.getUTCDate()
     );
 
     const summaryMatch = event.summary?.toLowerCase().includes(searchTerm.toLowerCase());
