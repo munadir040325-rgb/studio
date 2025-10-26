@@ -14,6 +14,8 @@ import { Readable } from 'stream';
 const calendarId = 'kecamatan.gandrungmangu2020@gmail.com';
 // ID folder Google Drive untuk lampiran undangan/surat tugas
 const driveFolderId = '1ozMzvJUBgy9h0bq4HXXxN0aPkPW4duCH';
+const TEMPLATE_FILENAME = 'TEMPLATE_SURAT.txt';
+
 
 const calendarEventSchema = z.object({
   id: z.string().optional().nullable(),
@@ -61,15 +63,13 @@ export async function getGoogleAuth(scopes: string | string[]) {
   if (!areCredentialsConfigured()) {
       return null;
   }
+  // Dihapus: clientOptions untuk impersonasi, karena tidak didukung akun gratis
   const auth = new google.auth.GoogleAuth({
     credentials: {
       client_email: process.env.GOOGLE_CLIENT_EMAIL,
       private_key: process.env.GOOGLE_PRIVATE_KEY?.replace(/\\n/g, '\n'),
     },
     scopes: scopes,
-    clientOptions: {
-        subject: 'kecamatan.gandrungmangu2020@gmail.com'
-    }
   });
   return auth;
 }
@@ -87,44 +87,74 @@ const uploadFileFlow = ai.defineFlow(
         }
         const drive = google.drive({ version: 'v3', auth });
 
-        // Upload file langsung ke folder target
-        const fileMetadata = {
-            name: fileData.filename,
-            parents: [driveFolderId],
-        };
-        const media = {
-            mimeType: fileData.contentType,
-            body: Readable.from(Buffer.from(fileData.data, 'base64')),
-        };
-
         try {
-            const file = await drive.files.create({
-                requestBody: fileMetadata,
-                media: media,
-                fields: 'id, webViewLink',
+            // 1. Cari ID file template
+            const templateFileRes = await drive.files.list({
+                q: `name='${TEMPLATE_FILENAME}' and '${driveFolderId}' in parents and trashed=false`,
+                fields: 'files(id)',
                 supportsAllDrives: true,
             });
 
-            // Make file publicly accessible with a link
+            const templateFileId = templateFileRes.data.files?.[0]?.id;
+            if (!templateFileId) {
+                throw new Error(`File template '${TEMPLATE_FILENAME}' tidak ditemukan di folder Drive.`);
+            }
+
+            // 2. Salin file template untuk membuat file baru (pemiliknya adalah pemilik folder)
+            const copiedFile = await drive.files.copy({
+                fileId: templateFileId,
+                requestBody: {
+                    name: fileData.filename, // Langsung beri nama baru
+                    parents: [driveFolderId],
+                },
+                supportsAllDrives: true,
+                fields: 'id, webViewLink',
+            });
+
+            const newFileId = copiedFile.data.id;
+            if (!newFileId) {
+                throw new Error('Gagal membuat salinan file di Google Drive.');
+            }
+
+            // 3. Update konten file yang baru disalin dengan data file yang diunggah
+            const media = {
+                mimeType: fileData.contentType,
+                body: Readable.from(Buffer.from(fileData.data, 'base64')),
+            };
+            
+            await drive.files.update({
+                fileId: newFileId,
+                media: media,
+                supportsAllDrives: true,
+            });
+            
+            // 4. Pastikan file dapat diakses publik (opsional, tergantung kebutuhan)
             await drive.permissions.create({
-                fileId: file.data.id!,
+                fileId: newFileId,
                 requestBody: {
                     role: 'reader',
                     type: 'anyone',
                 },
                 supportsAllDrives: true,
             });
-            
-            if (!file.data.webViewLink) {
-                throw new Error('Gagal mendapatkan tautan file dari Google Drive.');
-            }
 
-            return file.data.webViewLink;
+            // 5. Ambil lagi metadata file untuk mendapatkan webViewLink yang sudah diperbarui
+            const finalFile = await drive.files.get({
+                fileId: newFileId,
+                fields: 'webViewLink',
+                supportsAllDrives: true,
+            });
+            
+            if (!finalFile.data.webViewLink) {
+                throw new Error('Gagal mendapatkan tautan file dari Google Drive setelah upload.');
+            }
+            
+            return finalFile.data.webViewLink;
 
         } catch (error: any) {
             console.error('Google Drive API error:', error);
-            if (error.message.includes('Service Accounts do not have storage quota')) {
-                throw new Error('Gagal: Service Account tidak memiliki kuota Google Drive. Solusi: Gunakan Drive Bersama (Shared Drive) atau aktifkan impersonasi di Google Workspace Admin.');
+            if (error.message.includes('File not found')) {
+                 throw new Error(`File template '${TEMPLATE_FILENAME}' atau folder Drive tidak ditemukan. Pastikan file dan folder ada dan sudah dibagikan.`);
             }
             throw new Error(`Gagal mengunggah file ke Google Drive: ${error.message}`);
         }
