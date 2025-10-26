@@ -25,7 +25,6 @@ import { id } from 'date-fns/locale';
 import { createCalendarEvent } from '@/ai/flows/calendar-flow';
 import { useToast } from '@/hooks/use-toast';
 import { useState, useRef } from 'react';
-import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 
 const formSchema = z.object({
   summary: z.string().min(2, {
@@ -39,18 +38,7 @@ const formSchema = z.object({
   endDateTime: z.date({
     required_error: 'Tanggal & waktu selesai harus diisi.',
   }),
-  department: z.string().optional(),
-  fileType: z.string().optional(),
   attachment: z.any().optional(),
-}).refine(data => {
-    // If there is an attachment, department and fileType must be selected.
-    if (data.attachment && (!data.department || !data.fileType)) {
-        return false;
-    }
-    return true;
-}, {
-    message: "Bagian dan Jenis Lampiran harus dipilih jika ada file yang diunggah.",
-    path: ["attachment"], // You can point this error to a specific field if you prefer
 });
 
 
@@ -75,10 +63,6 @@ const fileToBase64 = (file: File): Promise<string> => {
     });
 };
 
-const departments = ["UMPEG", "SEKRETARIAT", "PKA", "TRANTIB", "KESRA", "PM", "TAPEM"];
-const fileTypes = ["Notulen", "Foto Kegiatan", "Materi", "Lainnya"];
-
-
 export function EventForm({ onSuccess }: EventFormProps) {
   const { toast } = useToast();
   const [isSubmitting, setIsSubmitting] = useState(false);
@@ -94,22 +78,18 @@ export function EventForm({ onSuccess }: EventFormProps) {
     },
   });
 
-  const attachmentValue = form.watch('attachment');
-
   async function onSubmit(values: z.infer<typeof formSchema>) {
     setIsSubmitting(true);
     try {
       let attachmentPayload;
       const file = values.attachment as File | undefined;
       
-      if (file && values.department && values.fileType) {
+      if (file) {
           const base64Data = await fileToBase64(file);
           attachmentPayload = {
               filename: file.name,
               contentType: file.type,
               data: base64Data,
-              department: values.department,
-              fileType: values.fileType,
           };
       }
 
@@ -136,7 +116,7 @@ export function EventForm({ onSuccess }: EventFormProps) {
         } else if (error.message.includes("enabled")) {
           errorMessage = "Gagal: Google Calendar API atau Google Drive API mungkin belum diaktifkan untuk proyek Anda."
         } else if (error.message.includes("drive")){
-            errorMessage = "Terjadi kesalahan saat mengunggah lampiran ke Google Drive. Pastikan API Drive sudah aktif dan ID Folder Root sudah benar."
+            errorMessage = "Terjadi kesalahan saat mengunggah lampiran ke Google Drive. Pastikan API Drive sudah aktif dan ID Folder sudah benar."
         }
         else {
           errorMessage = error.message;
@@ -331,7 +311,7 @@ export function EventForm({ onSuccess }: EventFormProps) {
              />
         </div>
         <div className="space-y-4 rounded-md border p-4">
-            <h3 className="font-medium text-base">Lampiran (Google Drive)</h3>
+            <h3 className="font-medium text-base">Lampiran Undangan/Surat Tugas</h3>
             <div>
                 {fileName ? (
                     <div className='flex items-center justify-between gap-2 text-sm p-2 bg-muted rounded-md'>
@@ -343,58 +323,14 @@ export function EventForm({ onSuccess }: EventFormProps) {
                 ) : (
                     <Button type='button' variant="outline" onClick={() => fileInputRef.current?.click()}>
                         <Paperclip className="mr-2 h-4 w-4" />
-                        Pilih File untuk Diunggah
+                        Pilih Undangan/Surat Tugas
                     </Button>
                 )}
                 <Input type="file" ref={fileInputRef} onChange={handleFileChange} className="hidden"/>
                 <FormDescription className="mt-2">
-                    File akan diunggah ke folder Google Drive terpusat.
+                    File akan diunggah ke Google Drive terpusat.
                 </FormDescription>
             </div>
-            {attachmentValue && (
-                <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-                    <FormField
-                        control={form.control}
-                        name="department"
-                        render={({ field }) => (
-                            <FormItem>
-                                <FormLabel>Bagian Penyelenggara</FormLabel>
-                                <Select onValueChange={field.onChange} defaultValue={field.value}>
-                                    <FormControl>
-                                        <SelectTrigger>
-                                            <SelectValue placeholder="Pilih bagian..." />
-                                        </SelectTrigger>
-                                    </FormControl>
-                                    <SelectContent>
-                                        {departments.map(dep => <SelectItem key={dep} value={dep}>{dep}</SelectItem>)}
-                                    </SelectContent>
-                                </Select>
-                                <FormMessage />
-                            </FormItem>
-                        )}
-                    />
-                    <FormField
-                        control={form.control}
-                        name="fileType"
-                        render={({ field }) => (
-                            <FormItem>
-                                <FormLabel>Jenis Lampiran</FormLabel>
-                                <Select onValueChange={field.onChange} defaultValue={field.value}>
-                                    <FormControl>
-                                        <SelectTrigger>
-                                            <SelectValue placeholder="Pilih jenis file..." />
-                                        </SelectTrigger>
-                                    </FormControl>
-                                    <SelectContent>
-                                        {fileTypes.map(type => <SelectItem key={type} value={type}>{type}</SelectItem>)}
-                                    </SelectContent>
-                                </Select>
-                                <FormMessage />
-                            </FormItem>
-                        )}
-                    />
-                </div>
-            )}
              <FormField
                 control={form.control}
                 name="attachment"
