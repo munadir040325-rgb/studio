@@ -18,6 +18,35 @@ export function Breadcrumbs() {
   const pathname = usePathname();
   const segments = pathname.split('/').filter(Boolean);
 
+  // Custom logic for SPPD routes
+  if (segments[0] === 'sppd' && segments.length > 0) {
+    const isSubPath = segments.length > 1;
+    const currentSegment = isSubPath ? `${formatSegment(segments[0])}/${formatSegment(segments[1])}` : formatSegment(segments[0]);
+    const href = `/${segments.join('/')}`;
+
+    return (
+        <nav aria-label="Breadcrumb" className="hidden flex-1 md:flex">
+            <ol className="flex items-center space-x-1 text-sm text-muted-foreground">
+                <li>
+                    <Link href="/dashboard" className="hover:text-foreground">
+                        Home
+                    </Link>
+                </li>
+                <li className="flex items-center">
+                    <ChevronRight className="h-4 w-4" />
+                    <Link
+                        href={href}
+                        className="ml-1 font-medium text-foreground"
+                        aria-current="page"
+                    >
+                        {currentSegment}
+                    </Link>
+                </li>
+            </ol>
+        </nav>
+    )
+  }
+
   return (
     <nav aria-label="Breadcrumb" className="hidden flex-1 md:flex">
       <ol className="flex items-center space-x-1 text-sm text-muted-foreground">
