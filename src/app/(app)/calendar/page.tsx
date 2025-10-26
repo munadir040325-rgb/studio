@@ -7,7 +7,7 @@ import { Card, CardContent, CardFooter, CardHeader, CardTitle } from '@/componen
 import { Input } from '@/components/ui/input';
 import { Popover, PopoverContent, PopoverTrigger } from '@/components/ui/popover';
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger } from '@/components/ui/dialog';
-import { Calendar as CalendarIcon, ExternalLink, FilePlus, PlusCircle, RefreshCw, Search } from 'lucide-react';
+import { Calendar as CalendarIcon, ExternalLink, FilePlus, PlusCircle, RefreshCw, Search, MapPin } from 'lucide-react';
 import { Calendar } from '@/components/ui/calendar';
 import { format, parseISO, isSameDay } from 'date-fns';
 import { id } from 'date-fns/locale';
@@ -28,36 +28,32 @@ const getDatePartFromISO = (isoString: string | null | undefined): string | null
 };
 
 // Helper to format date/time string from Google into a readable Indonesian format
-const formatEventDisplay = (startStr: string | null | undefined, endStr: string | null | undefined, location: string | null | undefined, isAllDay: boolean | undefined) => {
+const formatEventDisplay = (startStr: string | null | undefined, endStr: string | null | undefined, isAllDay: boolean | undefined) => {
     if (!startStr) return '';
 
-    const startDate = parseISO(startStr);
-    const endDate = endStr ? parseISO(endStr) : startDate;
+    try {
+        const startDate = parseISO(startStr);
+        const endDate = endStr ? parseISO(endStr) : startDate;
 
-    if (isNaN(startDate.getTime()) || isNaN(endDate.getTime())) {
-        return '';
-    }
-
-    let dateDisplay;
-
-    if (isAllDay) {
-        const adjustedEndDate = new Date(endDate.getTime() - 1); // Google's end date for all-day is exclusive
-        if (isSameDay(startDate, adjustedEndDate)) {
-            dateDisplay = format(startDate, 'EEEE, dd MMMM yyyy', { locale: id });
+        if (isAllDay) {
+            // For all-day events, Google's end date is exclusive. We subtract a day to get the inclusive end date.
+            const inclusiveEndDate = new Date(endDate.getTime() - (24 * 60 * 60 * 1000));
+            if (isSameDay(startDate, inclusiveEndDate)) {
+                return format(startDate, 'EEEE, dd MMMM yyyy (Seharian)', { locale: id });
+            } else {
+                return `${format(startDate, 'dd MMM yyyy', { locale: id })} - ${format(inclusiveEndDate, 'dd MMM yyyy', { locale: id })}`;
+            }
         } else {
-            dateDisplay = `${format(startDate, 'dd MMM', { locale: id })} - ${format(adjustedEndDate, 'dd MMM yyyy', { locale: id })}`;
+            if (isSameDay(startDate, endDate)) {
+                return `${format(startDate, 'EEEE, dd MMMM yyyy, HH:mm', { locale: id })} - ${format(endDate, 'HH:mm', { locale: id })}`;
+            } else {
+                return `${format(startDate, 'dd MMM yyyy, HH:mm', { locale: id })} - ${format(endDate, 'dd MMM yyyy, HH:mm', { locale: id })}`;
+            }
         }
-    } else {
-        if (isSameDay(startDate, endDate)) {
-            dateDisplay = `${format(startDate, 'EEEE, dd MMMM yyyy, HH:mm', { locale: id })} - ${format(endDate, 'HH:mm', { locale: id })}`;
-        } else {
-            dateDisplay = `${format(startDate, 'dd MMM, HH:mm', { locale: id })} - ${format(endDate, 'dd MMM yyyy, HH:mm', { locale: id })}`;
-        }
+    } catch (e) {
+        console.error("Invalid date string provided to formatEventDisplay:", startStr, endStr);
+        return 'Waktu tidak valid';
     }
-
-    const locationDisplay = location ? ` - ${location}` : '';
-
-    return `${dateDisplay}${locationDisplay}`;
 };
 
 
@@ -74,10 +70,11 @@ export default function CalendarPage() {
     setError(null);
     try {
       const calendarId = 'kecamatan.gandrungmangu2020@gmail.com';
-      let url = `/api/events?calendarId=${calendarId}`;
-      if (date) {
-        url += `&start=${toYYYYMMDD(date)}`;
-      }
+      // If no date is selected, fetch a wide range. Otherwise, fetch for the selected day.
+      const startDate = date ? toYYYYMMDD(date) : toYYYYMMDD(new Date(new Date().setFullYear(new Date().getFullYear() - 1)));
+      const endDate = date ? toYYYYMMDD(date) : toYYYYMMDD(new Date(new Date().setFullYear(new Date().getFullYear() + 1)));
+
+      let url = `/api/events?calendarId=${calendarId}&start=${startDate}&end=${endDate}`;
       
       const response = await fetch(url);
       const data = await response.json();
@@ -90,10 +87,10 @@ export default function CalendarPage() {
     } catch (e: any) {
       console.error("Error fetching calendar events:", e);
       let friendlyMessage = e.message || 'Gagal memuat kegiatan dari kalender.';
-      if (friendlyMessage.includes("not found")) {
-        friendlyMessage = "Kalender tidak ditemukan atau belum dibagikan ke Service Account. Pastikan ID Kalender benar dan sudah dibagikan.";
-      } else if (friendlyMessage.includes("client_email")) {
-        friendlyMessage = "Kredensial Service Account (di file .env) sepertinya belum diatur atau tidak valid. Silakan periksa kembali.";
+      if (friendlyMessage.includes("client_email") || friendlyMessage.includes("private_key")) {
+        friendlyMessage = "Kredensial Google Service Account (di file .env) sepertinya belum diatur atau tidak valid. Silakan periksa kembali.";
+      } else if (friendlyMessage.includes("not found")) {
+        friendlyMessage = "Kalender tidak ditemukan atau belum dibagikan ke email Service Account. Pastikan ID Kalender benar dan izin telah diberikan.";
       }
       setError(friendlyMessage);
       setEvents([]);
@@ -107,25 +104,17 @@ export default function CalendarPage() {
   }, [filterDate, fetchEvents]);
 
   const filteredBySearchEvents = useMemo(() => {
-    if (!searchTerm && !filterDate) {
-        return events;
+    if (!searchTerm) {
+        return events; // When no search term, return all events for the selected date
     }
-    const filterDateStr = filterDate ? toYYYYMMDD(filterDate) : null;
     
     return events.filter(event => {
-        const eventDateStr = getDatePartFromISO(event.start);
-        
-        const dateMatch = !filterDateStr || eventDateStr === filterDateStr;
-
         const term = searchTerm.toLowerCase();
-        const searchMatch = !term ||
-            event.summary?.toLowerCase().includes(term) ||
+        return event.summary?.toLowerCase().includes(term) ||
             event.description?.toLowerCase().includes(term) ||
             event.location?.toLowerCase().includes(term);
-
-        return dateMatch && searchMatch;
     });
-  }, [events, searchTerm, filterDate]);
+  }, [events, searchTerm]);
 
   const handleRefresh = () => {
     fetchEvents(filterDate);
@@ -199,7 +188,7 @@ export default function CalendarPage() {
             </PopoverContent>
             </Popover>
             {filterDate || searchTerm ? (
-                <Button variant="ghost" onClick={() => { setFilterDate(undefined); setSearchTerm('')}}>Reset</Button>
+                <Button variant="ghost" onClick={() => { setFilterDate(new Date()); setSearchTerm('')}}>Reset</Button>
             ) : null}
         </div>
       </div>
@@ -220,16 +209,28 @@ export default function CalendarPage() {
           <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-4">
             {filteredBySearchEvents.map(event => event.id && (
                 <Card key={event.id} className="flex flex-col">
-                    <CardHeader className="flex-grow pb-4">
-                        <CardTitle className="text-base">{event.summary}</CardTitle>
-                        <p className="text-sm text-muted-foreground">{formatEventDisplay(event.start, event.end, event.location, event.isAllDay)}</p>
+                    <CardHeader className="pb-2">
+                        <CardTitle className="text-base line-clamp-2">{event.summary || '(Tanpa Judul)'}</CardTitle>
                     </CardHeader>
-                    {event.description && (
-                      <CardContent className="flex-grow py-0">
-                          <p className="text-sm text-muted-foreground line-clamp-3">{event.description}</p>
-                      </CardContent>
-                    )}
-                    <CardFooter className="flex flex-wrap justify-end gap-2 pt-4">
+                    <CardContent className="flex-grow space-y-2 text-sm">
+                        <p className="text-muted-foreground">
+                            {formatEventDisplay(event.start, event.end, event.isAllDay)}
+                        </p>
+                        {event.location && (
+                           <p className="flex items-start text-muted-foreground">
+                             <MapPin className="h-4 w-4 mr-2 mt-0.5 flex-shrink-0" />
+                             <span>{event.location}</span>
+                           </p>
+                        )}
+                        {/* Placeholder untuk Disposisi, bisa diisi nanti */}
+                        {/* <p className="text-muted-foreground">Disposisi: -</p> */}
+                        {event.description && (
+                            <p className="text-muted-foreground pt-2 line-clamp-3">
+                                {event.description}
+                            </p>
+                        )}
+                    </CardContent>
+                    <CardFooter className="flex flex-wrap justify-end gap-2 pt-4 mt-auto">
                         {event.htmlLink && (
                           <Button variant="ghost" size="sm" asChild>
                             <a href={event.htmlLink} target="_blank" rel="noopener noreferrer">
