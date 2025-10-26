@@ -107,7 +107,7 @@ export const createCalendarEventFlow = ai.defineFlow(
 
 export async function createCalendarEvent(input: CreateEventInput): Promise<CalendarEvent> {
     if (!areCredentialsConfigured()) {
-      throw new Error("Kredensial Google Kalender belum dikonfigurasi di file .env Anda.");
+      throw new Error("Kredensial Google Kalender (GOOGLE_CLIENT_EMAIL, GOOGLE_PRIVATE_KEY) belum dikonfigurasi di file .env Anda.");
     }
     return createCalendarEventFlow(input);
 }
