@@ -36,8 +36,8 @@ export default function CalendarPage() {
        if (e.message) {
           errorMessage = e.message;
       }
-      if (e.message && e.message.includes('permission')) {
-          errorMessage = 'Akses ditolak. Pastikan Service Account memiliki izin untuk mengakses kalender dan kalender telah dibagikan ke email Service Account tersebut.';
+      if (e.message && (e.message.includes('permission') || e.message.includes('not configured'))) {
+          errorMessage = 'Akses ditolak. Pastikan Service Account memiliki izin untuk mengakses kalender, kalender telah dibagikan ke email Service Account, dan kredensial sudah benar.';
       }
       setError(errorMessage);
       setEvents([]);
@@ -52,15 +52,25 @@ export default function CalendarPage() {
 
   const filteredEvents = events.filter(event => {
     if (!event.start?.dateTime) return false;
+    
     const eventDate = parseISO(event.start.dateTime);
-    const matchesDate = !filterDate || eventDate.toDateString() === filterDate.toDateString();
+    
+    // Timezone-insensitive date comparison
+    const matchesDate = !filterDate || (
+        eventDate.getFullYear() === filterDate.getFullYear() &&
+        eventDate.getMonth() === filterDate.getMonth() &&
+        eventDate.getDate() === filterDate.getDate()
+    );
+
     const summaryMatch = event.summary?.toLowerCase().includes(searchTerm.toLowerCase());
     const descriptionMatch = event.description?.toLowerCase().includes(searchTerm.toLowerCase());
-    return matchesDate && (summaryMatch || descriptionMatch);
+    const locationMatch = event.location?.toLowerCase().includes(searchTerm.toLowerCase());
+
+    return matchesDate && (summaryMatch || descriptionMatch || locationMatch);
   });
 
   return (
-    <div className="flex flex-col gap-6 w-full">
+    <div className="flex flex-col gap-6 w-full max-w-6xl mx-auto">
       <PageHeader
         title="Jadwal Kegiatan"
         description="Lihat dan kelola jadwal kegiatan yang akan datang."
@@ -96,7 +106,7 @@ export default function CalendarPage() {
         <div className="relative flex-1">
             <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
             <Input 
-                placeholder="Cari nama atau deskripsi kegiatan..." 
+                placeholder="Cari nama, deskripsi, atau lokasi..." 
                 className="pl-10 w-full" 
                 value={searchTerm}
                 onChange={(e) => setSearchTerm(e.target.value)}
@@ -178,7 +188,7 @@ export default function CalendarPage() {
           {filteredEvents.length === 0 && (
               <div className="text-center py-12 text-muted-foreground">
                 <p>Tidak ada kegiatan yang ditemukan.</p>
-                <p className="text-xs">Pastikan filter tanggal sudah benar atau coba muat ulang.</p>
+                <p className="text-sm">Pastikan filter tanggal sudah benar atau coba muat ulang.</p>
               </div>
             )}
         </>
