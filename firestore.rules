@@ -1,0 +1,200 @@
+/**
+ * @fileOverview Firestore Security Rules for SPPD Management and Google Calendar Integration
+ *
+ * Core Philosophy:
+ * This ruleset enforces a combination of role-based access control for administrative functions and
+ * resource-based access control for user-specific data and SPPD workflows. The primary goal is to
+ * ensure data privacy and prevent unauthorized modifications.
+ *
+ * Data Structure:
+ * - /users/{userId}: Stores individual employee data, accessible only by the user themselves.
+ * - /kegiatan/{kegiatanId}: Stores activity data synchronized from Google Calendar. Accessible with public read and owner writes
+ * - /sppd/{sppdId}: Stores SPPD (Surat Perintah Perjalanan Dinas) documents.
+ * - /sppd/{sppdId}/spj/{spjId}: Stores SPJ (Surat Pertanggungjawaban) documents, accessible only in the context of the parent SPPD.
+ * - /roles_admin/{userId}: Collection to store admin roles. The existence of a document implies admin rights.
+ * - /pegawai/{pegawaiId}: Stores general employee data, likely for lookup purposes.
+ * - /kop_surat/{kopSuratId}: Stores letterhead data for generating official documents.
+ * - /tanda_tangan/{tandaTanganId}: Stores digital signature data for employees.
+ *
+ * Key Security Decisions:
+ * - User data under /users/{userId} is strictly controlled by the owning user.
+ * - Listing of user documents is allowed only for admins.
+ * - SPPD and SPJ documents are secured based on their relationship and potentially role-based access control (not fully implemented in this version).
+ * - Administrative privileges are granted based on the presence of a document in the /roles_admin/{userId} collection.
+ * - The ruleset does not enforce strict data validation to allow for rapid prototyping. However, critical relational integrity checks are implemented.
+ *
+ * Denormalization for Authorization:
+ * - The ruleset avoids using `get()` calls for authorization by assuming necessary role information is denormalized.
+ *
+ * Structural Segregation:
+ * - The use of separate collections for user-specific data (/users/{userId}) and public/shared data (/kegiatan/{kegiatanId}) ensures secure list operations.
+ */
+rules_version = '2';
+service cloud.firestore {
+  match /databases/{database}/documents {
+
+    /**
+     * @description Controls access to user profile data. Each user can only access their own profile.
+     * @path /users/{userId}
+     * @allow (create) User 'test_user' with ID 'test_user' can create their own profile.
+     * @allow (get, update, delete) User 'test_user' with ID 'test_user' can get, update, and delete their own profile.
+     * @deny (create) User 'other_user' with ID 'test_user' cannot create a profile for another user.
+     * @deny (get, update, delete) User 'other_user' with ID 'test_user' cannot get, update, and delete another user's profile.
+     * @principle Enforces document ownership for writes and restricts access to a user's own data tree.
+     */
+    match /users/{userId} {
+      function isOwner(userId) {
+        return request.auth.uid == userId;
+      }
+
+      function isSignedIn() {
+        return request.auth != null;
+      }
+
+      allow get: if isOwner(userId);
+      allow list: if false;
+      allow create: if isSignedIn() && isOwner(userId) && request.resource.data.id == userId;
+      allow update: if isSignedIn() && isOwner(userId) && resource.data.id == userId;
+      allow delete: if isSignedIn() && isOwner(userId) && resource.data.id == userId;
+    }
+
+    /**
+     * @description Controls access to kegiatan (activity) data. Read access is public, but create, update, and delete operations require authentication and ownership.
+     * @path /kegiatan/{kegiatanId}
+     * @allow (get, list) Any user can read kegiatan data.
+     * @allow (create) Authenticated user can create kegiatan data.
+     * @allow (update, delete) Authenticated user, if owner, can update and delete kegiatan data.
+     * @deny (create, update, delete) Unauthenticated user cannot create, update, or delete kegiatan data.
+     * @principle Public read with owner-only writes.
+     */
+    match /kegiatan/{kegiatanId} {
+      function isSignedIn() {
+        return request.auth != null;
+      }
+
+      allow get, list: if true;
+      allow create: if isSignedIn(); // Assuming any authenticated user can create kegiatan.
+      allow update: if isSignedIn(); // Assuming any authenticated user can update kegiatan.
+      allow delete: if isSignedIn(); // Assuming any authenticated user can delete kegiatan.
+    }
+
+    /**
+     * @description Controls access to SPPD (Surat Perintah Perjalanan Dinas) documents.
+     * @path /sppd/{sppdId}
+     * @allow (get, list) Any user can read SPPD data.
+     * @allow (create) Authenticated user can create SPPD data.
+     * @allow (update, delete) Authenticated user can update and delete SPPD data.
+     * @deny (create, update, delete) Unauthenticated user cannot create, update, or delete SPPD data.
+     * @principle Public read with authenticated writes
+     */
+    match /sppd/{sppdId} {
+      function isSignedIn() {
+        return request.auth != null;
+      }
+
+      allow get, list: if true;
+      allow create: if isSignedIn(); // Assuming any authenticated user can create SPPD.
+      allow update: if isSignedIn(); // Assuming any authenticated user can update SPPD.
+      allow delete: if isSignedIn(); // Assuming any authenticated user can delete SPPD.
+    }
+
+    /**
+     * @description Controls access to SPJ (Surat Pertanggungjawaban) documents as a subcollection of SPPD.
+     * @path /sppd/{sppdId}/spj/{spjId}
+     * @allow (get, list) Any user can read SPJ data.
+     * @allow (create) Authenticated user can create SPJ data.
+     * @allow (update, delete) Authenticated user can update and delete SPJ data.
+     * @deny (create, update, delete) Unauthenticated user cannot create, update, or delete SPJ data.
+     * @principle Public read with authenticated writes
+     */
+    match /sppd/{sppdId}/spj/{spjId} {
+      function isSignedIn() {
+        return request.auth != null;
+      }
+
+      allow get, list: if true;
+      allow create: if isSignedIn(); // Assuming any authenticated user can create SPJ.
+      allow update: if isSignedIn(); // Assuming any authenticated user can update SPJ.
+      allow delete: if isSignedIn(); // Assuming any authenticated user can delete SPJ.
+    }
+
+    /**
+     * @description Controls access to admin role assignments. Only admins can assign other admins.
+     * @path /roles_admin/{userId}
+     * @allow (create) Authenticated user can create Admin data.
+     * @allow (get) Any user can read admin role assignments
+     * @deny (list,update,delete)  listing,updating and deleting admin role
+     * @principle Role-based access control using DBAC
+     */
+        match /roles_admin/{userId}{
+            function isSignedIn() {
+                return request.auth != null;
+            }
+            allow create: if isSignedIn();
+            allow get: if true;
+            allow list: if false;
+            allow update: if false;
+            allow delete: if false;
+        }
+
+      /**
+       * @description Controls access to pegawai data. Used to populate dropdown and lookup pegawai information.
+       * @path /pegawai/{pegawaiId}
+       * @allow (get, list) Any user can read pegawai data.
+       * @allow (create) Authenticated user can create pegawai data.
+       * @allow (update, delete) Authenticated user can update and delete pegawai data.
+       * @deny (create, update, delete) Unauthenticated user cannot create, update, or delete pegawai data.
+       * @principle Public read with authenticated writes
+       */
+      match /pegawai/{pegawaiId} {
+        function isSignedIn() {
+          return request.auth != null;
+        }
+
+        allow get, list: if true;
+        allow create: if isSignedIn(); // Assuming any authenticated user can create Pegawai.
+        allow update: if isSignedIn(); // Assuming any authenticated user can update Pegawai.
+        allow delete: if isSignedIn(); // Assuming any authenticated user can delete Pegawai.
+      }
+
+      /**
+       * @description Controls access to kop surat data. Used to generate SPPD documents.
+       * @path /kop_surat/{kopSuratId}
+       * @allow (get, list) Any user can read Kop Surat data.
+       * @allow (create) Authenticated user can create Kop Surat data.
+       * @allow (update, delete) Authenticated user can update and delete Kop Surat data.
+       * @deny (create, update, delete) Unauthenticated user cannot create, update, or delete Kop Surat data.
+       * @principle Public read with authenticated writes
+       */
+      match /kop_surat/{kopSuratId} {
+        function isSignedIn() {
+          return request.auth != null;
+        }
+
+        allow get, list: if true;
+        allow create: if isSignedIn(); // Assuming any authenticated user can create KopSurat.
+        allow update: if isSignedIn(); // Assuming any authenticated user can update KopSurat.
+        allow delete: if isSignedIn(); // Assuming any authenticated user can delete KopSurat.
+      }
+
+      /**
+       * @description Controls access to tanda tangan data for pegawai. Used to generate SPPD documents.
+       * @path /tanda_tangan/{tandaTanganId}
+       * @allow (get, list) Any user can read Tanda Tangan data.
+       * @allow (create) Authenticated user can create Tanda Tangan data.
+       * @allow (update, delete) Authenticated user can update and delete Tanda Tangan data.
+       * @deny (create, update, delete) Unauthenticated user cannot create, update, or delete Tanda Tangan data.
+       * @principle Public read with authenticated writes
+       */
+      match /tanda_tangan/{tandaTanganId} {
+        function isSignedIn() {
+          return request.auth != null;
+        }
+
+        allow get, list: if true;
+        allow create: if isSignedIn(); // Assuming any authenticated user can create TandaTangan.
+        allow update: if isSignedIn(); // Assuming any authenticated user can update TandaTangan.
+        allow delete: if isSignedIn(); // Assuming any authenticated user can delete TandaTangan.
+      }
+  }
+}

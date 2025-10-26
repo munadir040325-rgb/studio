@@ -1,0 +1,375 @@
+{
+  "entities": {
+    "Pegawai": {
+      "$schema": "http://json-schema.org/draft-07/schema#",
+      "title": "Pegawai",
+      "type": "object",
+      "description": "Represents an employee within the organization.",
+      "properties": {
+        "id": {
+          "type": "string",
+          "description": "Unique identifier for the employee."
+        },
+        "nama": {
+          "type": "string",
+          "description": "Full name of the employee."
+        },
+        "nip": {
+          "type": "string",
+          "description": "Employee Identification Number."
+        },
+        "jabatan": {
+          "type": "string",
+          "description": "Job title of the employee."
+        },
+        "golongan": {
+          "type": "string",
+          "description": "Rank or group of the employee."
+        },
+        "ttdImage": {
+          "type": "string",
+          "description": "Reference to the TandaTangan entity. (Relationship: Pegawai 1:1 TandaTangan)"
+        }
+      },
+      "required": [
+        "id",
+        "nama",
+        "nip",
+        "jabatan",
+        "golongan"
+      ]
+    },
+    "TandaTangan": {
+      "$schema": "http://json-schema.org/draft-07/schema#",
+      "title": "TandaTangan",
+      "type": "object",
+      "description": "Represents a digital signature for an employee.",
+      "properties": {
+        "id": {
+          "type": "string",
+          "description": "Unique identifier for the signature."
+        },
+        "pegawaiId": {
+          "type": "string",
+          "description": "Reference to Pegawai. (Relationship: Pegawai 1:1 TandaTangan)"
+        },
+        "imageData": {
+          "type": "string",
+          "description": "Base64 encoded image data of the signature."
+        }
+      },
+      "required": [
+        "id",
+        "pegawaiId",
+        "imageData"
+      ]
+    },
+    "KopSurat": {
+      "$schema": "http://json-schema.org/draft-07/schema#",
+      "title": "KopSurat",
+      "type": "object",
+      "description": "Represents the letterhead for official documents.",
+      "properties": {
+        "id": {
+          "type": "string",
+          "description": "Unique identifier for the letterhead."
+        },
+        "namaInstansi": {
+          "type": "string",
+          "description": "Name of the institution."
+        },
+        "alamat": {
+          "type": "string",
+          "description": "Address of the institution."
+        },
+        "logo": {
+          "type": "string",
+          "description": "Base64 encoded logo image data."
+        }
+      },
+      "required": [
+        "id",
+        "namaInstansi",
+        "alamat",
+        "logo"
+      ]
+    },
+    "Kegiatan": {
+      "$schema": "http://json-schema.org/draft-07/schema#",
+      "title": "Kegiatan",
+      "type": "object",
+      "description": "Represents an activity retrieved from Google Calendar.",
+      "properties": {
+        "id": {
+          "type": "string",
+          "description": "Unique identifier for the activity."
+        },
+        "googleCalendarId": {
+          "type": "string",
+          "description": "ID of the event in Google Calendar."
+        },
+        "namaKegiatan": {
+          "type": "string",
+          "description": "Name or title of the activity."
+        },
+        "tanggalMulai": {
+          "type": "string",
+          "description": "Start date of the activity.",
+          "format": "date-time"
+        },
+        "tanggalSelesai": {
+          "type": "string",
+          "description": "End date of the activity.",
+          "format": "date-time"
+        },
+        "tempat": {
+          "type": "string",
+          "description": "Location where the activity takes place."
+        },
+        "sppdIds": {
+          "type": "array",
+          "description": "References to SPPDs. (Relationship: Kegiatan 1:N SPPD)",
+          "items": {
+            "type": "string"
+          }
+        }
+      },
+      "required": [
+        "id",
+        "googleCalendarId",
+        "namaKegiatan",
+        "tanggalMulai",
+        "tanggalSelesai",
+        "tempat"
+      ]
+    },
+    "SPPD": {
+      "$schema": "http://json-schema.org/draft-07/schema#",
+      "title": "SPPD",
+      "type": "object",
+      "description": "Represents a Surat Perintah Perjalanan Dinas (Official Travel Authorization).",
+      "properties": {
+        "id": {
+          "type": "string",
+          "description": "Unique identifier for the SPPD."
+        },
+        "kegiatanId": {
+          "type": "string",
+          "description": "Reference to Kegiatan. (Relationship: Kegiatan 1:N SPPD)"
+        },
+        "nomorSuratTugas": {
+          "type": "string",
+          "description": "Official number of the travel authorization document."
+        },
+        "tanggalSPJ": {
+          "type": "string",
+          "description": "Date when the SPJ (Surat Pertanggungjawaban) was created.",
+          "format": "date-time"
+        },
+        "status": {
+          "type": "string",
+          "description": "Current status of the SPPD (e.g., Draft, Approved, Completed)."
+        },
+        "pegawaiPelaksanaIds": {
+          "type": "array",
+          "description": "References to Pegawai who are authorized to travel. (Relationship: Pegawai N:N SPPD)",
+          "items": {
+            "type": "string"
+          }
+        },
+        "spjId": {
+          "type": "string",
+          "description": "Reference to SPJ. (Relationship: SPPD 1:1 SPJ)"
+        }
+      },
+      "required": [
+        "id",
+        "kegiatanId",
+        "tanggalSPJ",
+        "status"
+      ]
+    },
+    "SPJ": {
+      "$schema": "http://json-schema.org/draft-07/schema#",
+      "title": "SPJ",
+      "type": "object",
+      "description": "Represents a Surat Pertanggungjawaban (Accountability Report).",
+      "properties": {
+        "id": {
+          "type": "string",
+          "description": "Unique identifier for the SPJ."
+        },
+        "sppdId": {
+          "type": "string",
+          "description": "Reference to SPPD. (Relationship: SPPD 1:1 SPJ)"
+        },
+        "rincianSPJ": {
+          "type": "string",
+          "description": "Detailed information about the SPJ."
+        },
+        "kwitansiLumpsum": {
+          "type": "string",
+          "description": "Path of the lumpsum receipt PDF."
+        },
+        "lampiranNotulen": {
+          "type": "string",
+          "description": "Path of the minutes of meeting PDF."
+        },
+        "fotoKegiatan": {
+          "type": "array",
+          "description": "Paths to the photos taken during the activity.",
+          "items": {
+            "type": "string"
+          }
+        }
+      },
+      "required": [
+        "id",
+        "sppdId"
+      ]
+    }
+  },
+  "auth": {
+    "providers": [
+      "password",
+      "anonymous"
+    ]
+  },
+  "firestore": {
+    "structure": [
+      {
+        "path": "/users/{userId}",
+        "definition": {
+          "entityName": "Pegawai",
+          "schema": {
+            "$ref": "#/backend/entities/Pegawai"
+          },
+          "description": "Stores employee data. Path-based ownership.",
+          "params": [
+            {
+              "name": "userId",
+              "description": "The unique identifier of the user."
+            }
+          ]
+        }
+      },
+      {
+        "path": "/kegiatan/{kegiatanId}",
+        "definition": {
+          "entityName": "Kegiatan",
+          "schema": {
+            "$ref": "#/backend/entities/Kegiatan"
+          },
+          "description": "Stores kegiatan (activity) data synced from Google Calendar.",
+          "params": [
+            {
+              "name": "kegiatanId",
+              "description": "The unique identifier of the activity."
+            }
+          ]
+        }
+      },
+      {
+        "path": "/sppd/{sppdId}",
+        "definition": {
+          "entityName": "SPPD",
+          "schema": {
+            "$ref": "#/backend/entities/SPPD"
+          },
+          "description": "Stores SPPD (Surat Perintah Perjalanan Dinas) documents. Includes kegiatanId to reference the related activity.",
+          "params": [
+            {
+              "name": "sppdId",
+              "description": "The unique identifier of the SPPD."
+            }
+          ]
+        }
+      },
+      {
+        "path": "/sppd/{sppdId}/spj/{spjId}",
+        "definition": {
+          "entityName": "SPJ",
+          "schema": {
+            "$ref": "#/backend/entities/SPJ"
+          },
+          "description": "Stores SPJ (Surat Pertanggungjawaban) documents as a subcollection of SPPD.",
+          "params": [
+            {
+              "name": "sppdId",
+              "description": "The unique identifier of the parent SPPD."
+            },
+            {
+              "name": "spjId",
+              "description": "The unique identifier of the SPJ."
+            }
+          ]
+        }
+      },
+      {
+        "path": "/roles_admin/{userId}",
+        "definition": {
+          "entityName": "adminRole",
+          "schema": {
+            "$ref": "#/backend/entities/Pegawai"
+          },
+          "description": "Collection to store admin roles. The existence of a document implies admin rights. DBAC.",
+          "params": [
+            {
+              "name": "userId",
+              "description": "The unique identifier of the user."
+            }
+          ]
+        }
+      },
+      {
+        "path": "/pegawai/{pegawaiId}",
+        "definition": {
+          "entityName": "Pegawai",
+          "schema": {
+            "$ref": "#/backend/entities/Pegawai"
+          },
+          "description": "Stores pegawai data.",
+          "params": [
+            {
+              "name": "pegawaiId",
+              "description": "The unique identifier of the Pegawai."
+            }
+          ]
+        }
+      },
+      {
+        "path": "/kop_surat/{kopSuratId}",
+        "definition": {
+          "entityName": "KopSurat",
+          "schema": {
+            "$ref": "#/backend/entities/KopSurat"
+          },
+          "description": "Stores kop surat data.",
+          "params": [
+            {
+              "name": "kopSuratId",
+              "description": "The unique identifier of the Kop Surat."
+            }
+          ]
+        }
+      },
+      {
+        "path": "/tanda_tangan/{tandaTanganId}",
+        "definition": {
+          "entityName": "TandaTangan",
+          "schema": {
+            "$ref": "#/backend/entities/TandaTangan"
+          },
+          "description": "Stores tanda tangan data for pegawai.",
+          "params": [
+            {
+              "name": "tandaTanganId",
+              "description": "The unique identifier of the Tanda Tangan."
+            }
+          ]
+        }
+      }
+    ],
+    "reasoning": "The Firestore structure is designed to manage SPPD (Surat Perintah Perjalanan Dinas) and integrate with Google Calendar. The structure prioritizes authorization independence and supports secure list operations.\n\n*   `/users/{userId}`: This collection stores user-specific data. It follows the Path-Based Ownership model, making security rules simple and efficient.\n*   `/kegiatan/{kegiatanId}`: Stores kegiatan data synced from Google Calendar. Because access to kegiatan data is likely role-based (e.g., only admins can create/modify), a simple collection is used. If access was more granular (e.g., specific users manage specific activities), then a membership map or subcollection approach would be used. The `sppdIds` array establishes a one-to-many relationship with SPPD documents.\n*   `/sppd/{sppdId}`: SPPD documents. Includes `kegiatanId` to reference the related activity.\n*   `/sppd/{sppdId}/spj/{spjId}`: SPJ documents are stored as a subcollection of SPPD. This reflects a 1:1 relationship, but storing it as a subcollection allows for future expansion if needed and keeps the SPPD document cleaner.\n*   `/roles_admin/{userId}`: used for global admin role using DBAC. The existence of a document implies admin rights.\n*   `/pegawai/{pegawaiId}`: Stores pegawai data. Used to populate dropdown and lookup pegawai information.\n*   `/kop_surat/{kopSuratId}`: Stores kop surat data. Used to generate SPPD documents.\n*   `/tanda_tangan/{tandaTanganId}`: Stores tanda tangan data for pegawai. Used to generate SPPD documents.\n\n**Authorization Independence:**\n\nThe structure avoids `get()` calls in security rules by denormalizing authorization data where needed. For example, if access to `SPPD` documents depended on roles associated with the related `Kegiatan`, the relevant role information would be denormalized into the `SPPD` document. This ensures atomic operations are possible and simplifies security rules.\n\n**QAPs Support:**\n\n*   **Secure List Operations:** The segregation of data into collections with homogeneous security postures (e.g., public vs. private data) ensures that list operations can be securely performed without the need for complex filtering in rules. For example, listing SPPDs is secure because all documents in the `/sppd/{sppdId}` collection share the same access requirements.\n*   The use of `/users/{userId}` paths for user-owned data enables secure listing of user-specific data."
+  }
+}
