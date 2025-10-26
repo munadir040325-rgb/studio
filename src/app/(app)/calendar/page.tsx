@@ -36,11 +36,14 @@ const formatEventDisplay = (startStr: string | null | undefined, endStr: string 
         const endDate = endStr ? parseISO(endStr) : startDate;
 
         if (isAllDay) {
-            const inclusiveEndDate = new Date(endDate.getTime() - (24 * 60 * 60 * 1000));
-            if (isSameDay(startDate, inclusiveEndDate)) {
-                return format(startDate, 'EEEE, dd MMMM yyyy', { locale: id });
+            // For all-day events, Google's end date is exclusive. Subtract one day for display.
+            const inclusiveEndDate = new Date(endDate.getTime());
+            // Only show end date if it's different from start date after adjustment
+            if (isSameDay(startDate, inclusiveEndDate) || startDate.getTime() === inclusiveEndDate.getTime() || (inclusiveEndDate.getTime() - startDate.getTime()) <= (24*60*60*1000)) {
+                 return format(startDate, 'EEEE, dd MMMM yyyy', { locale: id });
             } else {
-                return `${format(startDate, 'dd MMM yyyy', { locale: id })} - ${format(inclusiveEndDate, 'dd MMM yyyy', { locale: id })}`;
+                 inclusiveEndDate.setDate(inclusiveEndDate.getDate() - 1);
+                 return `${format(startDate, 'dd MMM yyyy', { locale: id })} - ${format(inclusiveEndDate, 'dd MMM yyyy', { locale: id })}`;
             }
         } else {
             if (isSameDay(startDate, endDate)) {
@@ -63,16 +66,14 @@ const extractDisposisi = (description: string | null | undefined): string => {
     const disposisiLine = lines.find(line => line.toLowerCase().trim().startsWith('disposisi'));
     
     if (disposisiLine) {
-        // Coba ekstrak teks setelah "Disposisi:"
         const parts = disposisiLine.split(':');
         if (parts.length > 1) {
             const disposisiText = parts.slice(1).join(':').trim();
-            return disposisiText || '-'; // Kembalikan '-' jika teksnya kosong setelah trim
+            return disposisiText || '-'; 
         }
-        return disposisiLine.trim(); // Jika tidak ada ':', kembalikan seluruh baris
     }
     
-    return '-'; // Jika tidak ada baris yang mengandung "Disposisi"
+    return '-';
 };
 
 export default function CalendarPage() {
@@ -87,6 +88,7 @@ export default function CalendarPage() {
     setIsLoading(true);
     setError(null);
     try {
+      // If no date is selected, don't fetch anything.
       if (!date) {
         setEvents([]);
         setIsLoading(false);
@@ -96,6 +98,7 @@ export default function CalendarPage() {
       const calendarId = 'kecamatan.gandrungmangu2020@gmail.com';
       const selectedDate = toYYYYMMDD(date);
       
+      // Use the new API route
       let url = `/api/events?calendarId=${calendarId}&start=${selectedDate}&end=${selectedDate}`;
       
       const response = await fetch(url);
@@ -235,8 +238,8 @@ export default function CalendarPage() {
                         <CardTitle className="text-base line-clamp-2 leading-snug">{event.summary || '(Tanpa Judul)'}</CardTitle>
                     </CardHeader>
                     <CardContent className="flex-grow space-y-2 text-sm text-muted-foreground">
-                        <p className='font-medium text-foreground'>
-                            {formatEventDisplay(event.start, event.end, !!event.isAllDay)}
+                         <p className='font-medium text-foreground'>
+                            {formatEventDisplay(event.start, event.end, event.isAllDay)}
                         </p>
                         {event.location && (
                            <p className="flex items-start">
