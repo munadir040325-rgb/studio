@@ -55,18 +55,16 @@ export default function CalendarPage() {
   const [isFormOpen, setIsFormOpen] = useState(false);
 
   const fetchEvents = useCallback(async (date: Date | undefined) => {
-    // No need to fetch if no date is selected
-    if (!date) {
-      setEvents([]);
-      setIsLoading(false);
-      return;
-    }
     setIsLoading(true);
     setError(null);
     try {
-      const dateStr = toYYYYMMDD(date);
-      // Use the API route which correctly handles timezones and fetching
-      const response = await fetch(`/api/events?start=${dateStr}`);
+      const calendarId = 'kecamatan.gandrungmangu2020@gmail.com';
+      let url = `/api/events?calendarId=${calendarId}`;
+      if (date) {
+        url += `&start=${toYYYYMMDD(date)}`;
+      }
+      
+      const response = await fetch(url);
       const data = await response.json();
 
       if (!response.ok) {
@@ -76,7 +74,13 @@ export default function CalendarPage() {
       setEvents(data.items || []);
     } catch (e: any) {
       console.error("Error fetching calendar events:", e);
-      setError(e.message || 'Gagal memuat kegiatan dari kalender.');
+      let friendlyMessage = e.message || 'Gagal memuat kegiatan dari kalender.';
+      if (friendlyMessage.includes("not found")) {
+        friendlyMessage = "Kalender tidak ditemukan atau belum dibagikan ke Service Account. Pastikan ID Kalender benar dan sudah dibagikan.";
+      } else if (friendlyMessage.includes("client_email")) {
+        friendlyMessage = "Kredensial Service Account (di file .env) sepertinya belum diatur atau tidak valid. Silakan periksa kembali.";
+      }
+      setError(friendlyMessage);
       setEvents([]);
     } finally {
       setIsLoading(false);
