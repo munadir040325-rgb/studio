@@ -109,7 +109,7 @@ export function EventForm({ onSuccess }: EventFormProps) {
             <FormItem>
               <FormLabel>Judul Kegiatan</FormLabel>
               <FormControl>
-                <Input placeholder="e.g., Rapat Koordinasi Staf" {...field} />
+                <Textarea placeholder="e.g., Rapat Koordinasi Staf" {...field} className="min-h-[60px]" />
               </FormControl>
               <FormMessage />
             </FormItem>
