@@ -80,6 +80,24 @@ export function EventForm({ onSuccess }: EventFormProps) {
     }
   }
 
+  const handleDateChange = (field: any, date: Date | undefined) => {
+    if (!date) return;
+    const currentValue = field.value || new Date();
+    const newDate = new Date(date);
+    newDate.setHours(currentValue.getHours());
+    newDate.setMinutes(currentValue.getMinutes());
+    field.onChange(newDate);
+  };
+  
+  const handleTimeChange = (field: any, timeValue: string) => {
+    if (!timeValue) return;
+    const [hours, minutes] = timeValue.split(':').map(Number);
+    const newDate = field.value ? new Date(field.value) : new Date();
+    newDate.setHours(hours);
+    newDate.setMinutes(minutes);
+    field.onChange(newDate);
+  };
+
   return (
     <Form {...form}>
       <form onSubmit={form.handleSubmit(onSubmit)} className="space-y-6">
@@ -125,16 +143,14 @@ export function EventForm({ onSuccess }: EventFormProps) {
                   <Calendar
                     mode="single"
                     selected={field.value}
-                    onSelect={field.onChange}
+                    onSelect={(date) => handleDateChange(field, date)}
                   />
                   <div className="p-2 border-t">
-                     <Input type="time" onChange={(e) => {
-                         const time = e.target.value.split(':');
-                         const newDate = new Date(field.value);
-                         newDate.setHours(parseInt(time[0]));
-                         newDate.setMinutes(parseInt(time[1]));
-                         field.onChange(newDate);
-                     }} />
+                     <Input 
+                        type="time" 
+                        value={field.value ? format(field.value, 'HH:mm') : ''}
+                        onChange={(e) => handleTimeChange(field, e.target.value)}
+                     />
                   </div>
                 </PopoverContent>
               </Popover>
@@ -171,16 +187,14 @@ export function EventForm({ onSuccess }: EventFormProps) {
                   <Calendar
                     mode="single"
                     selected={field.value}
-                    onSelect={field.onChange}
+                    onSelect={(date) => handleDateChange(field, date)}
                   />
                    <div className="p-2 border-t">
-                     <Input type="time" onChange={(e) => {
-                         const time = e.target.value.split(':');
-                         const newDate = new Date(field.value);
-                         newDate.setHours(parseInt(time[0]));
-                         newDate.setMinutes(parseInt(time[1]));
-                         field.onChange(newDate);
-                     }} />
+                     <Input 
+                        type="time" 
+                        value={field.value ? format(field.value, 'HH:mm') : ''}
+                        onChange={(e) => handleTimeChange(field, e.target.value)}
+                      />
                   </div>
                 </PopoverContent>
               </Popover>

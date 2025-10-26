@@ -9,7 +9,7 @@ import { Popover, PopoverContent, PopoverTrigger } from '@/components/ui/popover
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger } from '@/components/ui/dialog';
 import { Calendar as CalendarIcon, ExternalLink, FilePlus, PlusCircle, RefreshCw, Search } from 'lucide-react';
 import { Calendar } from '@/components/ui/calendar';
-import { format, parseISO } from 'date-fns';
+import { format } from 'date-fns';
 import { cn } from '@/lib/utils';
 import Link from 'next/link';
 import { EventForm } from './components/event-form';
@@ -53,7 +53,8 @@ export default function CalendarPage() {
   const filteredEvents = events.filter(event => {
     if (!event.start?.dateTime) return false;
     
-    const eventDate = parseISO(event.start.dateTime);
+    // Always create date objects from the ISO string from the API
+    const eventDate = new Date(event.start.dateTime);
     
     // Timezone-insensitive date comparison
     const matchesDate = !filterDate || (
@@ -70,7 +71,7 @@ export default function CalendarPage() {
   });
 
   return (
-    <div className="flex flex-col gap-6 w-full max-w-6xl mx-auto">
+    <div className="flex flex-col gap-6 w-full">
       <PageHeader
         title="Jadwal Kegiatan"
         description="Lihat dan kelola jadwal kegiatan yang akan datang."
@@ -160,7 +161,7 @@ export default function CalendarPage() {
                     <CardHeader className="flex-grow pb-4">
                         <CardTitle className="text-base truncate">{event.summary}</CardTitle>
                         {event.start?.dateTime && (
-                           <p className="text-sm text-muted-foreground">{format(parseISO(event.start.dateTime), 'EEEE, dd MMMM yyyy, HH:mm')}</p>
+                           <p className="text-sm text-muted-foreground">{format(new Date(event.start.dateTime), 'EEEE, dd MMMM yyyy, HH:mm')}</p>
                         )}
                     </CardHeader>
                     <CardContent className="flex-grow py-0">
@@ -176,7 +177,7 @@ export default function CalendarPage() {
                           </Button>
                         )}
                         <Button asChild size="sm">
-                          <Link href={`/sppd/new?title=${encodeURIComponent(event.summary || '')}&startDate=${event.start?.dateTime ? format(parseISO(event.start.dateTime), 'yyyy-MM-dd') : ''}`}>
+                          <Link href={`/sppd/new?title=${encodeURIComponent(event.summary || '')}&startDate=${event.start?.dateTime ? format(new Date(event.start.dateTime), 'yyyy-MM-dd') : ''}`}>
                               <FilePlus className='mr-2 h-4 w-4' />
                               Buat SPPD
                           </Link>
