@@ -7,9 +7,8 @@
  */
 
 import { ai } from '@/ai/genkit';
-import { z } from 'genkit/zod';
+import { z } from 'zod';
 import { google } from 'googleapis';
-import {defineFlow} from 'genkit/flow';
 
 const calendarId = 'kecamatan.gandrungmangu2020@gmail.com';
 
@@ -52,7 +51,7 @@ async function getGoogleAuth() {
   return auth;
 }
 
-export const listCalendarEventsFlow = defineFlow(
+export const listCalendarEventsFlow = ai.defineFlow(
   {
     name: 'listCalendarEventsFlow',
     inputSchema: z.void(),
@@ -74,7 +73,7 @@ export const listCalendarEventsFlow = defineFlow(
   }
 );
 
-export const createCalendarEventFlow = defineFlow(
+export const createCalendarEventFlow = ai.defineFlow(
   {
     name: 'createCalendarEventFlow',
     inputSchema: createEventInputSchema,
