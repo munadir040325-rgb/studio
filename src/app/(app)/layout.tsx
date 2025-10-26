@@ -126,7 +126,7 @@ export default function AppLayout({
                  <SidebarMenu>
                     <SidebarMenuItem>
                         <SidebarMenuButton asChild tooltip="Pegawai">
-                            <Link href="/master-data">
+                            <Link href="/master/employees">
                                 <User />
                                 <span>Pegawai</span>
                             </Link>
@@ -134,7 +134,7 @@ export default function AppLayout({
                     </SidebarMenuItem>
                     <SidebarMenuItem>
                         <SidebarMenuButton asChild tooltip="Tanda Tangan">
-                            <Link href="/master-data?tab=signatures">
+                            <Link href="/master/signatures">
                                 <Fingerprint />
                                 <span>Tanda Tangan</span>
                             </Link>
@@ -142,7 +142,7 @@ export default function AppLayout({
                     </SidebarMenuItem>
                     <SidebarMenuItem>
                         <SidebarMenuButton asChild tooltip="Kop Surat">
-                            <Link href="/master-data?tab=letterheads">
+                            <Link href="/master/letterheads">
                                 <Newspaper />
                                 <span>Kop Surat</span>
                             </Link>
