@@ -1,21 +1,16 @@
 
 'use server';
 /**
- * @fileOverview Flow for interacting with Google Calendar and Google Drive.
+ * @fileOverview Flow for interacting with Google Calendar.
  *
- * - createCalendarEvent - Creates a new event in a specified Google Calendar, with an optional file attachment uploaded to Google Drive.
+ * - createCalendarEvent - Creates a new event in a specified Google Calendar.
  */
 
 import { ai } from '@/ai/genkit';
 import { z } from 'zod';
 import { google } from 'googleapis';
-import { Readable } from 'stream';
 
 const calendarId = 'kecamatan.gandrungmangu2020@gmail.com';
-const userEmail = 'kecamatan.gandrungmangu2020@gmail.com';
-// ID folder Google Drive untuk lampiran undangan/surat tugas
-const driveFolderId = '1ozMzvJUBgy9h0bq4HXXxN0aPkPW4duCH';
-
 
 const calendarEventSchema = z.object({
   id: z.string().optional().nullable(),
@@ -37,12 +32,6 @@ const calendarEventSchema = z.object({
 
 export type CalendarEvent = z.infer<typeof calendarEventSchema>;
 
-// Skema lampiran disederhanakan
-const attachmentSchema = z.object({
-    filename: z.string(),
-    contentType: z.string(),
-    data: z.string(), // base64 encoded
-});
 
 const createEventInputSchema = z.object({
   summary: z.string(),
@@ -50,7 +39,8 @@ const createEventInputSchema = z.object({
   location: z.string().optional(),
   startDateTime: z.string().datetime(),
   endDateTime: z.string().datetime(),
-  attachment: attachmentSchema.optional(),
+  // Now we just expect a URL, not the file data
+  fileUrl: z.string().url().optional(),
 });
 
 export type CreateEventInput = z.infer<typeof createEventInputSchema>;
@@ -59,6 +49,7 @@ function areCredentialsConfigured() {
     return process.env.GOOGLE_CLIENT_EMAIL && process.env.GOOGLE_PRIVATE_KEY;
 }
 
+// This auth is now only for the calendar, not for Drive.
 export async function getGoogleAuth(scopes: string | string[]) {
   if (!areCredentialsConfigured()) {
       return null;
@@ -73,67 +64,6 @@ export async function getGoogleAuth(scopes: string | string[]) {
   return auth;
 }
 
-const uploadFileFlow = ai.defineFlow(
-    {
-        name: 'uploadFileFlow',
-        inputSchema: attachmentSchema,
-        outputSchema: z.string().url(),
-    },
-    async (fileData) => {
-        const auth = await getGoogleAuth(['https://www.googleapis.com/auth/drive']);
-        if (!auth) {
-            throw new Error("Tidak dapat mengunggah file: Kredensial Google Drive belum diatur.");
-        }
-        const drive = google.drive({ version: 'v3', auth });
-
-        try {
-            // 1. Buat file baru langsung di folder tujuan
-            const media = {
-                mimeType: fileData.contentType,
-                body: Readable.from(Buffer.from(fileData.data, 'base64')),
-            };
-            
-            const file = await drive.files.create({
-                media: media,
-                requestBody: {
-                    name: fileData.filename,
-                    parents: [driveFolderId],
-                },
-                fields: 'id, webViewLink',
-            });
-
-            const newFileId = file.data.id;
-            if (!newFileId) {
-                throw new Error('Gagal membuat file di Google Drive.');
-            }
-
-            // 2. Transfer kepemilikan ke user & hapus akses service account
-            await drive.permissions.create({
-                fileId: newFileId,
-                requestBody: {
-                    type: 'user',
-                    role: 'owner',
-                    emailAddress: userEmail,
-                },
-                transferOwnership: true,
-            });
-
-            if (!file.data.webViewLink) {
-                 throw new Error('Gagal mendapatkan tautan file dari Google Drive setelah upload.');
-            }
-
-            return file.data.webViewLink;
-
-        } catch (error: any) {
-            console.error('Google Drive API error:', error);
-            if (error.code === 403 && error.message.includes('permission')) {
-                throw new Error(`Service Account tidak memiliki izin 'Editor' atau lebih tinggi pada folder Drive. Bagikan folder ke email service account.`);
-            }
-            throw new Error(`Gagal mengunggah file ke Google Drive: ${error.message}`);
-        }
-    }
-);
-
 
 export const createCalendarEventFlow = ai.defineFlow(
   {
@@ -144,23 +74,14 @@ export const createCalendarEventFlow = ai.defineFlow(
   async (input) => {
     let finalDescription = input.description || '';
 
-    // Handle file upload if attachment exists
-    if (input.attachment) {
-        try {
-            const fileUrl = await uploadFileFlow(input.attachment);
-            finalDescription += `\n\nLampiran Surat Tugas/Undangan: ${fileUrl}`;
-        } catch (error: any) {
-            // We won't block calendar event creation if file upload fails,
-            // but we will add a note about the failure.
-            finalDescription += `\n\n(Gagal mengunggah lampiran: ${error.message})`;
-        }
+    // If a file URL was passed from the client, append it.
+    if (input.fileUrl) {
+        finalDescription += `\n\nLampiran Surat Tugas/Undangan: ${input.fileUrl}`;
     }
 
-    // Use a separate auth instance specifically for the calendar
     const auth = await getGoogleAuth(['https://www.googleapis.com/auth/calendar']);
-
     if (!auth) {
-        throw new Error("Tidak dapat membuat kegiatan: Kredensial Google Calendar belum diatur.");
+        throw new Error("Tidak dapat membuat kegiatan: Kredensial Google Calendar (Service Account) belum diatur.");
     }
     const calendar = google.calendar({ version: 'v3', auth });
 
@@ -193,7 +114,7 @@ export const createCalendarEventFlow = ai.defineFlow(
 
 export async function createCalendarEvent(input: CreateEventInput): Promise<CalendarEvent> {
     if (!areCredentialsConfigured()) {
-      throw new Error("Kredensial Google (GOOGLE_CLIENT_EMAIL, GOOGLE_PRIVATE_KEY) belum dikonfigurasi di file .env Anda.");
+      throw new Error("Kredensial Google Service Account (GOOGLE_CLIENT_EMAIL, GOOGLE_PRIVATE_KEY) belum dikonfigurasi di file .env Anda.");
     }
     return createCalendarEventFlow(input);
 }
