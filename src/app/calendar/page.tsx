@@ -382,44 +382,36 @@ export default function CalendarPage() {
             </div>
 
             <div className='flex items-center gap-2'>
-                <Button variant="outline" className="w-28" onClick={goToToday}>Hari Ini</Button>
+                <Button variant="outline" className="w-28" onClick={() => setFilterDate(new Date())}>Hari Ini</Button>
                 <Button variant="ghost" size="icon" onClick={() => handleDateChange(-1)}>
                     <ChevronLeft className="h-5 w-5" />
                 </Button>
-                 <Popover>
-                    <PopoverTrigger asChild>
-                        <span className="text-lg font-semibold w-48 text-center cursor-pointer hover:text-primary">
-                             {getDateNavigatorLabel()}
-                        </span>
-                    </PopoverTrigger>
-                    <PopoverContent className="w-auto p-0">
-                        <Calendar
-                        locale={localeId}
-                        mode="single"
-                        selected={filterDate}
-                        onSelect={setFilterDate}
-                        initialFocus
-                        />
-                    </PopoverContent>
+                <Popover>
+                  <PopoverTrigger asChild>
+                      <Button variant="outline" className="w-48 text-center">
+                          {getDateNavigatorLabel()}
+                      </Button>
+                  </PopoverTrigger>
+                  <PopoverContent className="w-auto p-0">
+                      <Calendar
+                      locale={localeId}
+                      mode="single"
+                      selected={filterDate}
+                      onSelect={(date) => {
+                          setFilterDate(date);
+                      }}
+                      initialFocus
+                      />
+                  </PopoverContent>
                 </Popover>
                 <Button variant="ghost" size="icon" onClick={() => handleDateChange(1)}>
                     <ChevronRight className="h-5 w-5" />
                 </Button>
             </div>
-             <Dialog>
-                <DialogTrigger asChild>
-                    <Button>
-                    <PlusCircle className="mr-2 h-4 w-4" />
-                    Tambah
-                    </Button>
-                </DialogTrigger>
-                <DialogContent className="sm:max-w-2xl max-h-[90vh] overflow-y-auto no-scrollbar">
-                    <DialogHeader>
-                        <DialogTitle>Tambah Kegiatan Baru</DialogTitle>
-                    </DialogHeader>
-                    <EventForm onSuccess={handleSuccess} />
-                </DialogContent>
-            </Dialog>
+             <Button onClick={() => setIsFormOpen(true)}>
+                <PlusCircle className="mr-2 h-4 w-4" />
+                Tambah
+            </Button>
         </div>
 
         {/* Filter Bar */}
