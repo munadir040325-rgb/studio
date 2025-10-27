@@ -1,3 +1,4 @@
+
 'use client';
 
 import { useState, useEffect, useCallback, useMemo, Fragment } from 'react';
@@ -16,6 +17,8 @@ import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { useToast } from '@/hooks/use-toast';
 import { Textarea } from '@/components/ui/textarea';
 import { getFileIcon } from '@/lib/utils';
+import DOMPurify from 'isomorphic-dompurify';
+
 
 type CalendarEvent = {
     id: string | null | undefined;
@@ -72,10 +75,10 @@ const extractAttachmentLink = (description: string | null | undefined, linkTextS
     if (!description) {
         return null;
     }
-    const regex = new RegExp(`${linkTextStart}: \\[([^\\]]+)\\]\\(([^\\)]+)\\)`, 'i');
+    const regex = new RegExp(`${linkTextStart}: <a href="([^"]+)">([^<]+)</a>`, 'i');
     const match = description.match(regex);
     if (match && match[1] && match[2]) {
-        return { name: match[1], url: match[2] };
+        return { name: match[2], url: match[1] };
     }
     return null;
 }
@@ -84,20 +87,12 @@ const extractDisposisi = (description: string | null | undefined): string => {
     if (!description) {
         return '-';
     }
-    const lowerDesc = description.toLowerCase();
-    const disposisiIndex = lowerDesc.indexOf('disposisi:');
-
-    if (disposisiIndex !== -1) {
-        const contentAfterDisposisi = description.substring(disposisiIndex + 'disposisi:'.length);
-        const endOfLineIndex = contentAfterDisposisi.indexOf('\n');
-        
-        if (endOfLineIndex !== -1) {
-            return contentAfterDisposisi.substring(0, endOfLineIndex).trim();
-        } else {
-            return contentAfterDisposisi.trim();
-        }
+    // Match "📍 Disposisi: ..." and extract the content
+    const match = description.match(/📍\s*Disposisi:\s*(.*)/i);
+    if (match && match[1]) {
+        // The content might be followed by <br>, so we split by it
+        return match[1].split('<br>')[0].trim();
     }
-
     return '-';
 };
 
@@ -451,11 +446,17 @@ export default function CalendarPage() {
   
   const invitationLink = selectedEvent ? extractAttachmentLink(selectedEvent.description, 'Lampiran Undangan') : null;
   const resultLink = selectedEvent ? extractAttachmentLink(selectedEvent.description, 'Link Hasil Kegiatan') : null;
-  const cleanDescription = selectedEvent?.description
-    ?.replace(/Lampiran Undangan: \[[^\]]+\]\([^\)]+\)\n?/, '')
-    ?.replace(/Link Hasil Kegiatan: \[[^\]]+\]\([^\)]+\)\n?/, '')
-    .trim();
-
+  
+  const getCleanDescription = (description: string | null | undefined) => {
+    if (!description) return '';
+    const sanitized = DOMPurify.sanitize(description, { USE_PROFILES: { html: true } });
+    const tempDiv = document.createElement('div');
+    tempDiv.innerHTML = sanitized;
+    // Remove all a tags and the disposisi line
+    tempDiv.querySelectorAll('a').forEach(a => a.parentElement?.remove());
+    const textOnly = tempDiv.textContent || '';
+    return textOnly.replace(/📍\s*Disposisi:.*(\r\n|\n|\r)/im, '').trim();
+  }
 
   return (
     <div className="flex flex-col gap-6 w-full">
@@ -627,10 +628,10 @@ export default function CalendarPage() {
                   </div>
                 )}
                 
-                {cleanDescription && (
+                {getCleanDescription(selectedEvent.description) && (
                   <div className="flex items-start pt-4 border-t">
                     <Info className="mr-3 h-5 w-5 flex-shrink-0 text-muted-foreground" />
-                    <p className="text-foreground whitespace-pre-wrap">{cleanDescription}</p>
+                    <p className="text-foreground whitespace-pre-wrap">{getCleanDescription(selectedEvent.description)}</p>
                   </div>
                 )}
               </div>

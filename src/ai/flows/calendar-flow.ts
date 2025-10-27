@@ -91,17 +91,26 @@ export const createCalendarEventFlow = ai.defineFlow(
         throw new Error("ID Kalender (NEXT_PUBLIC_CALENDAR_ID) belum diatur di environment variables.");
     }
       
-    let finalDescription = input.description || '';
+    let descriptionParts: string[] = [];
 
-    // Append the link to the calendar event description
-    if (input.attachmentUrl && input.attachmentName) {
-        const attachmentText = `Lampiran Undangan: [${input.attachmentName}](${input.attachmentUrl})`;
-        if (finalDescription) {
-            finalDescription += `\n\n${attachmentText}`;
+    // Main description
+    if (input.description) {
+        // Check for 'Disposisi' and add pin emoji
+        const disposisiRegex = /^(Disposisi:.*)/im;
+        if (disposisiRegex.test(input.description)) {
+            descriptionParts.push(input.description.replace(disposisiRegex, '📍 $1'));
         } else {
-            finalDescription = attachmentText;
+            descriptionParts.push(input.description);
         }
     }
+
+    // Attachment link
+    if (input.attachmentUrl && input.attachmentName) {
+        const attachmentText = `Lampiran Undangan: <a href="${input.attachmentUrl}">${input.attachmentName}</a>`;
+        descriptionParts.push(attachmentText);
+    }
+
+    const finalDescription = descriptionParts.join('<br><br>');
 
     // Create the calendar event
     const auth = await getGoogleAuth(['https://www.googleapis.com/auth/calendar']);
@@ -164,14 +173,14 @@ export const updateCalendarEventFlow = ai.defineFlow(
                 throw new Error("Kegiatan yang akan diperbarui tidak ditemukan.");
             }
 
-            // 2. Prepare the new description
+            // 2. Prepare the new description using HTML
             let description = existingEvent.data.description || '';
-            const resultLinkText = `Link Hasil Kegiatan: [Folder Hasil](${input.resultFolderUrl})`;
+            const resultLinkText = `Link Hasil Kegiatan: <a href="${input.resultFolderUrl}">Folder Hasil</a>`;
             
             // Avoid adding duplicate links
             if (!description.includes(input.resultFolderUrl)) {
                 if (description) {
-                   description += `\n\n${resultLinkText}`;
+                   description += `<br><br>${resultLinkText}`;
                 } else {
                    description = resultLinkText;
                 }
