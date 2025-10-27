@@ -3,7 +3,7 @@
 import { usePathname } from 'next/navigation';
 import Link from 'next/link';
 import { ChevronRight, Home } from 'lucide-react';
-import { Fragment, useEffect, useState } from 'react';
+import { Fragment } from 'react';
 
 // Fungsi untuk mengubah segmen path menjadi judul yang mudah dibaca
 const formatSegment = (segment: string) => {
@@ -27,16 +27,10 @@ const formatSegment = (segment: string) => {
 
 export function Breadcrumbs() {
   const path = usePathname();
-  const [segments, setSegments] = useState<string[]>([]);
-  
-  useEffect(() => {
-      setSegments(path.split('/').filter(Boolean));
-  }, [path]);
-
+  const segments = path.split('/').filter(Boolean);
 
   // Handle case where root is /calendar
   const breadcrumbSegments = segments.length > 0 ? segments : ['calendar'];
-
 
   return (
     <nav aria-label="Breadcrumb" className="hidden flex-1 md:flex">
@@ -100,3 +94,5 @@ export function Breadcrumbs() {
     </nav>
   );
 }
+
+    

@@ -1,4 +1,3 @@
-
 'use client';
 
 import { useState, useEffect, useCallback, useMemo, Fragment } from 'react';
@@ -96,41 +95,33 @@ const extractDisposisi = (description: string | null | undefined): string => {
     return '-';
 };
 
-const getCleanDescription = (description: string | null | undefined) => {
-    if (!description) return '';
-    let cleanText = description;
-
-    // Use a function that only runs on the client
+const CleanDescription = ({ description }: { description: string | null | undefined }) => {
     const [sanitizedHtml, setSanitizedHtml] = useState('');
 
     useEffect(() => {
-        // Sanitize on the client
-        const sanitized = DOMPurify.sanitize(description || '', { USE_PROFILES: { html: true } });
-        
-        // Remove known link/disposition patterns from the sanitized HTML
-        const tempDiv = document.createElement('div');
-        tempDiv.innerHTML = sanitized;
-        
-        // Remove attachment links and Giat prefix/suffix
-        const lines = tempDiv.innerHTML.split(/<br\s*\/?>/i);
-        const filteredLines = lines.filter(line => 
-            !line.match(/📍\s*Disposisi:/i) &&
-            !line.match(/Lampiran Undangan:/i) &&
-            !line.match(/Link Hasil Kegiatan:/i) &&
-            !line.match(/^Giat_\w+_\d+/i) &&
-            !line.match(/Disimpan pada:/i)
-        );
+        if (typeof window !== 'undefined') {
+            const sanitized = DOMPurify.sanitize(description || '', { USE_PROFILES: { html: true } });
+            
+            const tempDiv = document.createElement('div');
+            tempDiv.innerHTML = sanitized;
+            
+            const lines = tempDiv.innerHTML.split(/<br\s*\/?>/i);
+            const filteredLines = lines.filter(line => 
+                !line.match(/📍\s*Disposisi:/i) &&
+                !line.match(/Lampiran Undangan:/i) &&
+                !line.match(/Link Hasil Kegiatan:/i) &&
+                !line.match(/^Giat_\w+_\d+/i) &&
+                !line.match(/Disimpan pada:/i)
+            );
 
-        // Re-join and get text content
-        const finalHtml = filteredLines.join('\n').trim();
-        const textDiv = document.createElement('div');
-        textDiv.innerHTML = finalHtml;
-
-        setSanitizedHtml(textDiv.textContent || '');
-
+            const finalHtml = filteredLines.join('\n').trim();
+            const textDiv = document.createElement('div');
+            textDiv.innerHTML = finalHtml;
+            setSanitizedHtml(textDiv.textContent || '');
+        }
     }, [description]);
     
-    return sanitizedHtml;
+    return <>{sanitizedHtml}</>;
 };
 
 
@@ -310,7 +301,6 @@ const MonthlyView = ({ events, baseDate, onEventClick, onDayClick }: { events: C
 };
 
 const EventDetailContent = ({ event }: { event: CalendarEvent }) => {
-    const cleanDescription = getCleanDescription(event.description);
     const invitationLink = extractAttachmentLink(event.description, 'Lampiran Undangan');
     const resultLink = extractAttachmentLink(event.description, 'Link Hasil Kegiatan');
 
@@ -351,12 +341,10 @@ const EventDetailContent = ({ event }: { event: CalendarEvent }) => {
                     </div>
                 )}
 
-                {cleanDescription && (
-                    <div className="flex items-start pt-4 border-t">
-                        <Info className="mr-3 h-5 w-5 flex-shrink-0 text-muted-foreground" />
-                        <p className="text-foreground whitespace-pre-wrap">{cleanDescription}</p>
-                    </div>
-                )}
+                <div className="flex items-start pt-4 border-t">
+                    <Info className="mr-3 h-5 w-5 flex-shrink-0 text-muted-foreground" />
+                    <p className="text-foreground whitespace-pre-wrap"><CleanDescription description={event.description} /></p>
+                </div>
             </div>
             <DialogFooter>
                 {event.htmlLink && (
@@ -710,3 +698,5 @@ export default function CalendarPage() {
     </div>
   );
 }
+
+    
