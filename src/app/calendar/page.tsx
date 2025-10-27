@@ -1,11 +1,11 @@
 'use client';
 
-import { useState, useEffect, useCallback, useMemo } from 'react';
+import { useState, useEffect, useCallback, useMemo, Fragment } from 'react';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardFooter, CardHeader, CardTitle } from '@/components/ui/card';
 import { Popover, PopoverContent, PopoverTrigger } from '@/components/ui/popover';
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger, DialogFooter } from '@/components/ui/dialog';
-import { Calendar as CalendarIcon, ExternalLink, PlusCircle, RefreshCw, MapPin, Clock, ChevronLeft, ChevronRight, FileSignature, Copy } from 'lucide-react';
+import { Calendar as CalendarIcon, ExternalLink, PlusCircle, RefreshCw, MapPin, Clock, ChevronLeft, ChevronRight, FileSignature, Copy, Home } from 'lucide-react';
 import { Calendar } from '@/components/ui/calendar';
 import { format, parseISO, isSameDay, startOfDay, endOfDay, startOfWeek, endOfWeek, startOfMonth, endOfMonth, isWithinInterval, eachDayOfInterval, getDay, isSameMonth, getDate, addDays, subDays, addWeeks, subWeeks, addMonths } from 'date-fns';
 import { id as localeId } from 'date-fns/locale';
@@ -15,6 +15,8 @@ import { Alert, AlertDescription, AlertTitle } from '@/components/ui/alert';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { useToast } from '@/hooks/use-toast';
 import { Textarea } from '@/components/ui/textarea';
+import { usePathname } from 'next/navigation';
+import Link from 'next/link';
 
 type CalendarEvent = {
     id: string | null | undefined;
@@ -325,40 +327,57 @@ export default function CalendarPage() {
   }, [fetchEvents]);
 
 
-    const handleSendToWhatsApp = () => {
-        if (!filterDate || events.length === 0) {
-            toast({
-                variant: 'destructive',
-                title: "Tidak Ada Jadwal",
-                description: `Tidak ada kegiatan yang dijadwalkan untuk ${viewMode === 'harian' ? 'hari ini.' : 'periode ini.'}`
-            });
-            return;
-        }
+  const handleSendToWhatsApp = () => {
+      if (!filterDate || events.length === 0) {
+          toast({
+              variant: 'destructive',
+              title: "Tidak Ada Jadwal",
+              description: `Tidak ada kegiatan yang dijadwalkan untuk ${viewMode === 'harian' ? 'hari ini.' : 'periode ini.'}`
+          });
+          return;
+      }
 
-        const headerDate = format(filterDate, 'EEEE, dd MMMM yyyy', { locale: localeId });
-        let message = `*JADWAL KEGIATAN - ${headerDate.toUpperCase()}*\n\n`;
+      let header;
+      if (viewMode === 'harian') {
+        header = format(filterDate, 'EEEE, dd MMMM yyyy', { locale: localeId }).toUpperCase();
+      } else if (viewMode === 'mingguan') {
+        const start = startOfWeek(filterDate, { weekStartsOn: 1 });
+        const end = endOfWeek(filterDate, { weekStartsOn: 1 });
+        const startFormat = format(start, 'dd MMM', { locale: localeId });
+        const endFormat = format(end, 'dd MMM yyyy', { locale: localeId });
+        header = `MINGGU INI (${startFormat} - ${endFormat})`.toUpperCase();
+      } else { // bulanan
+        header = format(filterDate, 'MMMM yyyy', { locale: localeId }).toUpperCase();
+      }
 
-        events.forEach((event, index) => {
-            const title = event.summary || '(Tanpa Judul)';
-            const time = formatEventDisplay(event.start, event.end, event.isAllDay);
-            const location = event.location;
-            const disposisi = extractDisposisi(event.description);
 
-            message += `*${index + 1}. ${title}*\n`;
-            message += `- ⏰ *Waktu:* ${time}\n`;
-            if (location) {
-                message += `- 📍 *Lokasi:* ${location}\n`;
-            }
-            if (disposisi && disposisi !== '-') {
-                message += `- ✍️ *Disposisi:* ${disposisi}\n`;
-            }
-            message += '\n';
-        });
+      let message = `*JADWAL KEGIATAN - ${header}*\n\n`;
 
-        message += "Mohon untuk segera ditindaklanjuti. Jika ada ralat atau tambahan, harap sampaikan.";
-        setWhatsAppMessage(message);
-        setIsWhatsAppModalOpen(true);
-    };
+      events.forEach((event, index) => {
+          const title = event.summary || '(Tanpa Judul)';
+          const time = formatEventDisplay(event.start, event.end, event.isAllDay);
+          const location = event.location;
+          const disposisi = extractDisposisi(event.description);
+          const eventDate = event.start ? format(parseISO(event.start), 'EEEE, dd MMM', { locale: localeId }) : 'Tanggal tidak valid';
+
+          message += `*${index + 1}. ${title}*\n`;
+          if (viewMode !== 'harian') {
+            message += `- 🗓️ *Tanggal:* ${eventDate}\n`;
+          }
+          message += `- ⏰ *Waktu:* ${time}\n`;
+          if (location) {
+              message += `- 📍 *Lokasi:* ${location}\n`;
+          }
+          if (disposisi && disposisi !== '-') {
+              message += `- ✍️ *Disposisi:* ${disposisi}\n`;
+          }
+          message += '\n';
+      });
+
+      message += "Mohon untuk segera ditindaklanjuti. Jika ada ralat atau tambahan, harap sampaikan.";
+      setWhatsAppMessage(message);
+      setIsWhatsAppModalOpen(true);
+  };
 
 
   const handleRefresh = () => {
@@ -457,7 +476,7 @@ export default function CalendarPage() {
                         <EventForm onSuccess={handleSuccess} />
                     </DialogContent>
                 </Dialog>
-                <Dialog open={isWhatsAppModalOpen} onOpenChange={setIsWhatsAppModalOpen}>
+                 <Dialog open={isWhatsAppModalOpen} onOpenChange={setIsWhatsAppModalOpen}>
                     <DialogTrigger asChild>
                         <Button className="bg-green-500 hover:bg-green-600 text-white" onClick={handleSendToWhatsApp}>
                             <WhatsAppIcon />
