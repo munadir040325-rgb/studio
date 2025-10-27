@@ -344,7 +344,7 @@ export function EventForm({ onSuccess }: EventFormProps) {
             name="summary"
             render={({ field }) => (
               <FormItem>
-                <FormLabel>Judul Kegiatan</FormLabel>
+                <FormLabel>Judul Kegiatan (Wajib)</FormLabel>
                 <FormControl>
                   <Textarea
                     placeholder="e.g., Rapat Koordinasi Staf terkait..."
@@ -362,7 +362,7 @@ export function EventForm({ onSuccess }: EventFormProps) {
               name="startDateTime"
               render={({ field }) => (
                   <FormItem className="flex flex-col">
-                  <FormLabel>Waktu Mulai</FormLabel>
+                  <FormLabel>Waktu Mulai (Wajib)</FormLabel>
                   <Popover>
                       <PopoverTrigger asChild>
                       <FormControl>
@@ -408,7 +408,7 @@ export function EventForm({ onSuccess }: EventFormProps) {
               name="endDateTime"
               render={({ field }) => (
                   <FormItem className="flex flex-col">
-                  <FormLabel>Waktu Selesai</FormLabel>
+                  <FormLabel>Waktu Selesai (Wajib)</FormLabel>
                   <Popover>
                       <PopoverTrigger asChild>
                       <FormControl>
@@ -486,7 +486,7 @@ export function EventForm({ onSuccess }: EventFormProps) {
             name="attachmentUrl"
             render={() => (
               <FormItem>
-                <FormLabel>Lampiran Undangan/Surat Tugas</FormLabel>
+                <FormLabel>Lampiran Undangan/Surat Tugas (Opsional)</FormLabel>
                 {attachmentUrl ? (
                   <div className='flex items-center justify-between gap-2 text-sm p-2 bg-muted rounded-md'>
                       <a href={attachmentUrl} target='_blank' rel='noopener noreferrer' className="flex items-center gap-2 overflow-hidden hover:underline">
@@ -518,7 +518,7 @@ export function EventForm({ onSuccess }: EventFormProps) {
                   </div>
                 )}
                 <FormDescription>
-                      File akan diunggah ke Google Drive setelah Anda memberikan izin.
+                      File akan diunggah ke Google Drive. Kosongkan jika tidak ada lampiran.
                   </FormDescription>
                 <FormMessage />
               </FormItem>
@@ -537,3 +537,5 @@ export function EventForm({ onSuccess }: EventFormProps) {
     </>
   );
 }
+
+    
