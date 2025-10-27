@@ -52,16 +52,11 @@ function areCredentialsConfigured() {
 
 function getFormattedPrivateKey(key?: string): string | undefined {
     if (!key) return undefined;
-    try {
-        // Attempt to parse the key as JSON to handle cases where it's a JSON string literal (e.g., "...\n...")
-        // Then replace the literal \n with actual newlines.
-        return JSON.parse(`"${key}"`);
-    } catch {
-        // If it fails, it's likely already in a usable format (or an invalid one).
-        // Fallback to the original implementation for broader compatibility.
-        return key.replace(/\\n/g, '\n');
-    }
+    // The key from environment variables often has escaped newlines (\\n).
+    // We must replace them with actual newline characters (\n).
+    return key.replace(/\\n/g, '\n');
 }
+
 
 export async function getGoogleAuth(scopes: string | string[]) {
   if (!areCredentialsConfigured()) {
