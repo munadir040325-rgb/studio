@@ -25,7 +25,6 @@ import { id } from 'date-fns/locale';
 import { createCalendarEvent } from '@/ai/flows/calendar-flow';
 import { useToast } from '@/hooks/use-toast';
 import { useState, useEffect } from 'react';
-import { gapi } from 'gapi-script';
 
 const DRIVE_FOLDER_ID = '1ozMzvJUBgy9h0bq4HXXxN0aPkPW4duCH';
 
@@ -68,11 +67,12 @@ export function EventForm({ onSuccess }: EventFormProps) {
   useEffect(() => {
     const CLIENT_ID = process.env.NEXT_PUBLIC_GOOGLE_CLIENT_ID;
     const API_KEY = process.env.NEXT_PUBLIC_GOOGLE_API_KEY;
-    
+
     if (!CLIENT_ID || !API_KEY) {
       const errorMsg = "Kredensial Google API (CLIENT_ID/API_KEY) belum diatur di file .env Anda.";
+      console.error(errorMsg);
       setGapiError(errorMsg);
-      toast({
+       toast({
         variant: 'destructive',
         title: 'Kesalahan Konfigurasi',
         description: errorMsg,
@@ -80,30 +80,45 @@ export function EventForm({ onSuccess }: EventFormProps) {
       });
       return;
     }
-    
-    const start = () => {
-      gapi.client.init({
-        apiKey: API_KEY,
-        clientId: CLIENT_ID,
-        scope: 'https://www.googleapis.com/auth/drive.file',
-      }).then(() => {
-        setIsGapiLoaded(true);
-      }, (error: any) => {
-        console.error("Error initializing gapi client:", error);
-        const errorMsg = 'Tidak dapat terhubung ke layanan Google. Periksa konsol untuk detail.';
+
+    import('gapi-script')
+      .then((gapiModule) => {
+        const { gapi } = gapiModule;
+        const start = () => {
+          gapi.client.init({
+            apiKey: API_KEY,
+            clientId: CLIENT_ID,
+            scope: 'https://www.googleapis.com/auth/drive.file',
+          }).then(() => {
+            setIsGapiLoaded(true);
+          }, (error: any) => {
+            console.error("Error initializing gapi client:", error);
+            const errorMsg = 'Tidak dapat terhubung ke layanan Google. Periksa konsol untuk detail.';
+            setGapiError(errorMsg);
+            toast({
+              variant: 'destructive',
+              title: 'Gagal Inisialisasi Google API',
+              description: errorMsg,
+            });
+          });
+        };
+        gapi.load('client:auth2', start);
+      })
+      .catch(error => {
+        console.error("Failed to load gapi-script", error);
+        const errorMsg = "Gagal memuat pustaka Google API. Periksa koneksi internet Anda.";
         setGapiError(errorMsg);
         toast({
-          variant: 'destructive',
-          title: 'Gagal Inisialisasi Google API',
+          variant: "destructive",
+          title: "Kesalahan Pustaka",
           description: errorMsg,
         });
       });
-    };
-    gapi.load('client:auth2', start);
   }, [toast]);
 
 
   const uploadFileToDrive = async (file: File): Promise<string> => {
+    const { gapi } = await import('gapi-script');
     return new Promise(async (resolve, reject) => {
       if (!isGapiLoaded) {
         reject(new Error("Google API client is not loaded yet."));
@@ -471,6 +486,5 @@ export function EventForm({ onSuccess }: EventFormProps) {
     </Form>
   );
 }
-
 
     
