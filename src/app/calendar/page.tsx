@@ -170,7 +170,7 @@ const WeeklyView = ({ events, baseDate, onEventClick }: { events: CalendarEvent[
                     const dayKey = format(day, 'yyyy-MM-dd');
                     const dayEvents = eventsByDay.get(dayKey) || [];
                     return (
-                        <div key={dayKey} className="relative h-48 border-l border-b p-2 overflow-auto no-scrollbar first:border-l-0">
+                        <div key={dayKey} className="relative min-h-[12rem] border-l border-b p-2 overflow-auto no-scrollbar first:border-l-0">
                             <span className={cn(
                                 "font-semibold",
                                 isSameDay(day, new Date()) ? "text-primary font-bold" : "text-muted-foreground"
@@ -220,7 +220,7 @@ const MonthlyView = ({ events, baseDate, onEventClick }: { events: CalendarEvent
                     const dayEvents = eventsByDay.get(dayKey) || [];
                     return (
                         <div key={dayKey} className={cn(
-                            "relative h-32 border-l border-b p-2 overflow-auto no-scrollbar",
+                            "relative min-h-[8rem] border-l border-b p-2 overflow-auto no-scrollbar",
                             (getDay(day) % 7 === 1) ? "border-l-0" : "" // First day of week (Monday)
                         )}>
                             <span className={cn(
@@ -587,3 +587,5 @@ export default function CalendarPage() {
     </div>
   );
 }
+
+    
