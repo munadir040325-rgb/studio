@@ -3,7 +3,7 @@
 import { zodResolver } from '@hookform/resolvers/zod';
 import { useForm } from 'react-hook-form';
 import { z } from 'zod';
-import { Button, buttonVariants } from '@/components/ui/button';
+import { Button } from '@/components/ui/button';
 import {
   Form,
   FormControl,
@@ -108,12 +108,18 @@ export function EventForm({ onSuccess }: EventFormProps) {
     if (!CLIENT_ID) return;
     
     const { google } = window as any;
-    tokenClient.current = google.accounts.oauth2.initTokenClient({
-      client_id: CLIENT_ID,
-      scope: 'https://www.googleapis.com/auth/drive.file',
-      callback: '', 
-    });
-    setIsGisLoaded(true);
+    if (google?.accounts?.oauth2) {
+      tokenClient.current = google.accounts.oauth2.initTokenClient({
+        client_id: CLIENT_ID,
+        scope: 'https://www.googleapis.com/auth/drive.file',
+        callback: '', // Callback is handled in the promise
+      });
+      setIsGisLoaded(true);
+    } else {
+        const errorMsg = "Google Identity Services library tidak termuat dengan benar."
+        setGapiError(errorMsg);
+        console.error(errorMsg);
+    }
   };
   
   const requestAccessToken = (): Promise<string> => {
@@ -131,6 +137,7 @@ export function EventForm({ onSuccess }: EventFormProps) {
           resolve(tokenResponse.access_token);
         }
       };
+      
       // Prompt for consent to ensure the user sees the auth flow.
       client.requestAccessToken({ prompt: 'consent' });
     });
@@ -139,6 +146,9 @@ export function EventForm({ onSuccess }: EventFormProps) {
   const uploadFileToDrive = async (file: File, accessToken: string): Promise<string> => {
     const { gapi } = window as any;
     
+    // Set the access token for this gapi client session
+    gapi.client.setToken({ access_token: accessToken });
+
     const metadata = {
         name: file.name,
         mimeType: file.type,
@@ -205,24 +215,43 @@ export function EventForm({ onSuccess }: EventFormProps) {
     return fileDetails.webViewLink;
   }
 
-  const handleUploadClick = () => {
-      fileInputRef.current?.click();
+  const handleUploadClick = async () => {
+    if (!isReady || isUploading || gapiError) return;
+
+    toast({ description: "Meminta izin Google untuk mengunggah..." });
+    try {
+        // This is now the first step, directly triggered by user click.
+        const accessToken = await requestAccessToken();
+        
+        // If permission is granted, programmatically click the hidden file input
+        fileInputRef.current?.setAttribute('data-access-token', accessToken);
+        fileInputRef.current?.click();
+    } catch (error: any) {
+        console.error("Authorization failed:", error);
+        toast({
+            variant: 'destructive',
+            title: 'Izin Ditolak',
+            description: error.message,
+        });
+    }
   }
 
   const handleFileChange = async (event: React.ChangeEvent<HTMLInputElement>) => {
       const file = event.target.files?.[0];
-      if (!file) return;
+      const accessToken = event.target.getAttribute('data-access-token');
+
+      if (!file || !accessToken) {
+        // If file input was somehow triggered without an access token, do nothing.
+        if (fileInputRef.current) fileInputRef.current.value = "";
+        return;
+      }
 
       setIsUploading(true);
       setAttachmentName(file.name);
-      toast({ description: "Meminta izin Google untuk mengunggah..." });
+      toast({ description: `Mengunggah ${file.name}...` });
       
       try {
-          const accessToken = await requestAccessToken();
-          toast({ description: `Mengunggah ${file.name}...` });
-          
           const publicUrl = await uploadFileToDrive(file, accessToken);
-          
           form.setValue('attachmentUrl', publicUrl);
           toast({ title: "Berhasil!", description: `${file.name} telah diunggah.` });
 
@@ -239,7 +268,10 @@ export function EventForm({ onSuccess }: EventFormProps) {
       } finally {
           setIsUploading(false);
           // Reset file input to allow re-uploading the same file
-          if(fileInputRef.current) fileInputRef.current.value = "";
+          if(fileInputRef.current) {
+            fileInputRef.current.value = "";
+            fileInputRef.current.removeAttribute('data-access-token');
+          }
       }
   }
 
