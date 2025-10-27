@@ -9,10 +9,10 @@ import { Label } from '@/components/ui/label';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { Command, CommandEmpty, CommandGroup, CommandInput, CommandItem, CommandList } from '@/components/ui/command';
 import { Popover, PopoverContent, PopoverTrigger } from '@/components/ui/popover';
-import { Check, ChevronsUpDown, Loader2, UploadCloud, File as FileIcon, X, Trash2, Paperclip } from 'lucide-react';
+import { Check, ChevronsUpDown, Loader2, UploadCloud, Trash2, Paperclip } from 'lucide-react';
 import { useToast } from '@/hooks/use-toast';
 import { cn } from '@/lib/utils';
-import { parseISO, format } from 'date-fns';
+import { parseISO } from 'date-fns';
 import useSWR from 'swr';
 import Script from 'next/script';
 
@@ -31,7 +31,7 @@ const fetcher = (url: string) => fetch(url).then(res => {
     return res.json();
 });
 
-const FileList = ({ files, onRemove }: { files: File[], onRemove: (index: number) => void }) => (
+const FileList = ({ files, onRemove, isUploading }: { files: File[], onRemove: (index: number) => void, isUploading: boolean }) => (
     <div className="space-y-2 mt-2">
         {files.map((file, index) => (
             <div key={index} className="flex items-center justify-between text-sm p-2 bg-muted rounded-md">
@@ -39,7 +39,7 @@ const FileList = ({ files, onRemove }: { files: File[], onRemove: (index: number
                     <Paperclip className="h-4 w-4 flex-shrink-0" />
                     <span className="truncate" title={file.name}>{file.name}</span>
                 </div>
-                <Button type="button" variant="ghost" size="icon" className="h-6 w-6 flex-shrink-0" onClick={() => onRemove(index)}>
+                <Button type="button" variant="ghost" size="icon" className="h-6 w-6 flex-shrink-0" onClick={() => onRemove(index)} disabled={isUploading}>
                     <Trash2 className="h-4 w-4 text-red-500" />
                     <span className="sr-only">Hapus file</span>
                 </Button>
@@ -68,6 +68,10 @@ export default function UploadPage() {
   const [fotoFiles, setFotoFiles] = useState<File[]>([]);
   const [notulenFile, setNotulenFile] = useState<File | null>(null);
   const [materiFiles, setMateriFiles] = useState<File[]>([]);
+
+  const fotoInputRef = useRef<HTMLInputElement>(null);
+  const notulenInputRef = useRef<HTMLInputElement>(null);
+  const materiInputRef = useRef<HTMLInputElement>(null);
 
   const { data: eventsData, error: eventsError, isLoading: isLoadingEvents } = useSWR('/api/events', fetcher);
   const { data: bagianData, error: bagianError } = useSWR('/api/sheets', fetcher);
@@ -115,8 +119,36 @@ export default function UploadPage() {
         if (resp.error) reject(new Error(`Gagal mendapatkan izin: ${resp.error_description || resp.error}`));
         else resolve(resp.access_token);
       };
+      // This is what shows the popup
       tokenClient.current.requestAccessToken({ prompt: 'consent' });
     });
+  };
+
+  const handleAuthorizeAndPick = async (pickerRef: React.RefObject<HTMLInputElement>) => {
+    if (!isGisLoaded || isSubmitting || gapiError) return;
+
+    // If we already have a token, just open the file dialog.
+    if (accessTokenRef.current) {
+        pickerRef.current?.click();
+        return;
+    }
+
+    toast({ description: "Meminta izin Google..." });
+    try {
+        const token = await requestAccessToken();
+        accessTokenRef.current = token;
+        toast({ title: "Izin diberikan!", description: "Anda sekarang dapat memilih file." });
+        // After successful auth, automatically trigger the file input
+        pickerRef.current?.click();
+    } catch (error: any) {
+        console.error("Authorization failed:", error);
+        accessTokenRef.current = null;
+        toast({
+            variant: 'destructive',
+            title: 'Izin Ditolak',
+            description: error.message,
+        });
+    }
   };
 
   const getOrCreateFolder = async (name: string, parentId: string): Promise<string> => {
@@ -170,9 +202,9 @@ export default function UploadPage() {
     toast({ description: "Memulai proses unggah..." });
 
     try {
+        // This check is now redundant because handleAuthorizeAndPick ensures we have a token
         if (!accessTokenRef.current) {
-            const token = await requestAccessToken();
-            accessTokenRef.current = token;
+            throw new Error("Sesi izin Google tidak valid. Coba otorisasi ulang.");
         }
 
         if (!ROOT_FOLDER_ID) throw new Error("ROOT_FOLDER_ID belum diatur.");
@@ -217,36 +249,44 @@ export default function UploadPage() {
     }
   };
 
-  const handleFileChange = (setter: React.Dispatch<React.SetStateAction<any>>, multiple: boolean) => async (e: React.ChangeEvent<HTMLInputElement>) => {
+  const handleFileChange = (setter: React.Dispatch<React.SetStateAction<any>>, multiple: boolean) => (e: React.ChangeEvent<HTMLInputElement>) => {
     if (!e.target.files) return;
 
-    if (!accessTokenRef.current) {
-        try {
-            const token = await requestAccessToken();
-            accessTokenRef.current = token;
-            toast({ title: "Izin diberikan!", description: "Anda sekarang dapat memilih file." });
-        } catch (error: any) {
-            toast({ variant: 'destructive', title: 'Izin Ditolak', description: error.message });
-            e.target.value = ""; // clear file input
-            return;
-        }
-    }
-    
     if (multiple) {
       setter((prev: File[]) => [...prev, ...Array.from(e.target.files!)]);
     } else {
       setter(e.target.files[0] || null);
     }
   };
-
-  const FileInputTrigger = ({ files, label, singleFile }: { files: File[], label: string, singleFile?: boolean }) => (
-    <Button type="button" variant="outline" className="w-full justify-start font-normal cursor-pointer">
-        <label htmlFor={singleFile ? "notulen-upload" : label.includes("Foto") ? "foto-upload" : "materi-upload"} className="flex items-center gap-2 text-sm text-muted-foreground w-full cursor-pointer">
-            <UploadCloud className="h-4 w-4" />
-            <span>{files.length > 0 ? `${files.length} file dipilih` : label}</span>
-        </label>
-    </Button>
+  
+  const FileUploadButton = ({ pickerRef, label, files, isSingle, isUploading, isDisabled }: { pickerRef: React.RefObject<HTMLInputElement>, label: string, files: File[], isSingle?: boolean, isUploading: boolean, isDisabled: boolean }) => (
+    <div>
+      <Button type="button" variant="outline" className="w-full justify-start font-normal" onClick={() => handleAuthorizeAndPick(pickerRef)} disabled={isDisabled || isUploading}>
+          <UploadCloud className="h-4 w-4 mr-2" />
+          <span>{files.length > 0 ? `${files.length} file dipilih` : label}</span>
+      </Button>
+      <Input 
+        id={pickerRef.current?.id}
+        ref={pickerRef}
+        type="file" 
+        className="hidden" 
+        multiple={!isSingle} 
+        accept={
+          pickerRef === fotoInputRef ? "image/*" : 
+          pickerRef === notulenInputRef ? ".pdf,.doc,.docx" : 
+          "*"
+        }
+        onChange={handleFileChange(
+          pickerRef === fotoInputRef ? setFotoFiles : 
+          pickerRef === notulenInputRef ? setNotulenFile : 
+          setMateriFiles, 
+          !isSingle
+        )}
+        disabled={isDisabled || isUploading}
+      />
+    </div>
   );
+
 
   return (
     <div className="flex flex-col gap-6">
@@ -331,24 +371,21 @@ export default function UploadPage() {
             <div className="grid grid-cols-1 lg:grid-cols-3 gap-4">
                 <div className="grid gap-2">
                     <Label htmlFor="foto-upload">Upload Foto Kegiatan</Label>
-                    <FileInputTrigger files={fotoFiles} label="Pilih foto..." />
-                    <Input id="foto-upload" type="file" className="hidden" multiple accept="image/*" onChange={handleFileChange(setFotoFiles, true)} disabled={!isGisLoaded || !!gapiError} />
+                     <FileUploadButton pickerRef={fotoInputRef} label="Pilih foto..." files={fotoFiles} isUploading={isSubmitting} isDisabled={!isGisLoaded || !!gapiError} />
                     <p className="text-xs text-muted-foreground">Bisa unggah lebih dari satu file gambar.</p>
-                    <FileList files={fotoFiles} onRemove={(index) => setFotoFiles(files => files.filter((_, i) => i !== index))} />
+                    <FileList files={fotoFiles} onRemove={(index) => setFotoFiles(files => files.filter((_, i) => i !== index))} isUploading={isSubmitting}/>
                 </div>
                 <div className="grid gap-2">
                     <Label htmlFor="notulen-upload">Upload Notulen/Laporan</Label>
-                    <FileInputTrigger files={notulenFile ? [notulenFile] : []} label="Pilih file..." singleFile />
-                    <Input id="notulen-upload" type="file" className="hidden" accept=".pdf,.doc,.docx" onChange={handleFileChange(setNotulenFile, false)} disabled={!isGisLoaded || !!gapiError} />
+                    <FileUploadButton pickerRef={notulenInputRef} label="Pilih file..." files={notulenFile ? [notulenFile] : []} isSingle isUploading={isSubmitting} isDisabled={!isGisLoaded || !!gapiError}/>
                     <p className="text-xs text-muted-foreground">Hanya satu file (PDF/DOCX).</p>
-                    {notulenFile && <FileList files={[notulenFile]} onRemove={() => setNotulenFile(null)} />}
+                    {notulenFile && <FileList files={[notulenFile]} onRemove={() => setNotulenFile(null)} isUploading={isSubmitting} />}
                 </div>
                 <div className="grid gap-2">
                     <Label htmlFor="materi-upload">Upload Materi</Label>
-                    <FileInputTrigger files={materiFiles} label="Pilih file..." />
-                    <Input id="materi-upload" type="file" className="hidden" multiple onChange={handleFileChange(setMateriFiles, true)} disabled={!isGisLoaded || !!gapiError}/>
+                    <FileUploadButton pickerRef={materiInputRef} label="Pilih file..." files={materiFiles} isUploading={isSubmitting} isDisabled={!isGisLoaded || !!gapiError}/>
                     <p className="text-xs text-muted-foreground">Bisa unggah file jenis apa pun.</p>
-                     <FileList files={materiFiles} onRemove={(index) => setMateriFiles(files => files.filter((_, i) => i !== index))} />
+                     <FileList files={materiFiles} onRemove={(index) => setMateriFiles(files => files.filter((_, i) => i !== index))} isUploading={isSubmitting}/>
                 </div>
             </div>
              <div className="flex justify-end mt-4">
@@ -363,3 +400,5 @@ export default function UploadPage() {
     </div>
   );
 }
+
+    
