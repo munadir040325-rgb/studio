@@ -61,6 +61,7 @@ export function EventForm({ onSuccess }: EventFormProps) {
     isReady,
     isUploading,
     error: driveError,
+    requestAccessToken,
     authorizeAndUpload,
   } = useGoogleDriveAuth({ folderId: DRIVE_FOLDER_ID });
 
@@ -75,8 +76,17 @@ export function EventForm({ onSuccess }: EventFormProps) {
     },
   });
 
-  const handleUploadClick = () => {
-    fileInputRef.current?.click();
+  const handleUploadClick = async () => {
+    try {
+        await requestAccessToken(); // First, get permission
+        fileInputRef.current?.click(); // Then, open file picker
+    } catch (error: any) {
+        toast({
+            variant: 'destructive',
+            title: 'Izin Gagal',
+            description: error.message || 'Gagal mendapatkan izin untuk mengakses Google Drive.',
+        });
+    }
   }
 
   const handleFileChange = async (event: React.ChangeEvent<HTMLInputElement>) => {
@@ -85,6 +95,7 @@ export function EventForm({ onSuccess }: EventFormProps) {
 
       form.setValue('attachmentName', file.name);
       
+      // We already have the token from handleUploadClick, so this should be quick
       const result = await authorizeAndUpload([file]);
 
       if (result.error) {

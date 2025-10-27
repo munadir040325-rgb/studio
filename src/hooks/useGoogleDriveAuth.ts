@@ -1,7 +1,6 @@
 'use client';
 
 import { useState, useEffect, useRef, useCallback } from 'react';
-import Script from 'next/script';
 import { useToast } from './use-toast';
 
 const API_KEY = process.env.NEXT_PUBLIC_GOOGLE_API_KEY;
@@ -71,6 +70,7 @@ export const useGoogleDriveAuth = ({ folderId }: UseGoogleDriveAuthProps) => {
 
     const requestAccessToken = useCallback((): Promise<string> => {
         return new Promise((resolve, reject) => {
+            // If we have a token, just resolve it. In a real app, you'd check for expiration.
             if (accessTokenRef.current) {
                 return resolve(accessTokenRef.current);
             }
@@ -88,12 +88,12 @@ export const useGoogleDriveAuth = ({ folderId }: UseGoogleDriveAuthProps) => {
                     resolve(resp.access_token);
                 }
             };
+            // This is the call that opens the popup.
             client.requestAccessToken({ prompt: 'consent' });
         });
     }, []);
 
-    const uploadFile = useCallback(async (file: File, targetFolderId: string): Promise<{ fileId: string; webViewLink: string; name: string }> => {
-        const token = await requestAccessToken();
+    const uploadFile = useCallback(async (file: File, targetFolderId: string, token: string): Promise<{ fileId: string; webViewLink: string; name: string }> => {
         const metadata = { name: file.name, parents: [targetFolderId] };
         const form = new FormData();
         form.append('metadata', new Blob([JSON.stringify(metadata)], { type: 'application/json' }));
@@ -110,21 +110,20 @@ export const useGoogleDriveAuth = ({ folderId }: UseGoogleDriveAuthProps) => {
             throw new Error(`Gagal mengunggah ${file.name}: ${body.error?.message}`);
         }
         return body;
-    }, [requestAccessToken]);
+    }, []);
 
     // Simplified version for single folder upload
     const authorizeAndUpload = async (files: File[]): Promise<UploadResult> => {
         setIsUploading(true);
         try {
             if (!folderId) throw new Error("ID Folder tujuan tidak ada.");
-
-            toast({ description: `Memulai unggahan ${files.length} file...` });
-            const uploadPromises = files.map(file => uploadFile(file, folderId));
+            const token = await requestAccessToken();
+            toast({ description: `Mengunggah ${files.length} file...` });
+            
+            const uploadPromises = files.map(file => uploadFile(file, folderId, token));
             const results = await Promise.all(uploadPromises);
-            toast({ title: 'Berhasil!', description: 'Semua file telah diunggah.' });
             
             // Make files public
-            const token = await requestAccessToken();
             for (const result of results) {
                  await fetch(`https://www.googleapis.com/drive/v3/files/${result.fileId}/permissions`, {
                     method: 'POST',
@@ -132,6 +131,7 @@ export const useGoogleDriveAuth = ({ folderId }: UseGoogleDriveAuthProps) => {
                     body: JSON.stringify({ role: 'reader', type: 'anyone' }),
                 });
             }
+            toast({ title: 'Berhasil!', description: 'Semua file telah diunggah.' });
 
             return { links: results };
         } catch (e: any) {
@@ -172,7 +172,7 @@ export const useGoogleDriveAuth = ({ folderId }: UseGoogleDriveAuthProps) => {
 
             for (const sub of subfolders) {
                 const subFolderId = await getOrCreateFolder(sub.folderName, kegiatanFolderId);
-                await Promise.all(sub.files.map(file => uploadFile(file, subFolderId)));
+                await Promise.all(sub.files.map(file => uploadFile(file, subFolderId, token)));
             }
 
             const kegiatanFolderLinkRes = await fetch(`https://www.googleapis.com/drive/v3/files/${kegiatanFolderId}?fields=webViewLink`, {
@@ -195,6 +195,7 @@ export const useGoogleDriveAuth = ({ folderId }: UseGoogleDriveAuthProps) => {
         isReady: isGisLoaded && !error,
         isUploading,
         error,
+        requestAccessToken, // Expose this function
         authorizeAndUpload,
         uploadToSubfolders,
     };

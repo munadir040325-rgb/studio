@@ -58,6 +58,7 @@ export default function UploadPage() {
     isReady,
     isUploading,
     error: driveError,
+    requestAccessToken,
     uploadToSubfolders,
   } = useGoogleDriveAuth({ folderId: ROOT_FOLDER_ID });
 
@@ -80,9 +81,18 @@ export default function UploadPage() {
   
   const events: CalendarEvent[] = eventsData?.items.sort((a: CalendarEvent, b: CalendarEvent) => parseISO(b.start).getTime() - parseISO(a.start).getTime()) || [];
 
-  const handleAuthorizeAndPick = (pickerRef: React.RefObject<HTMLInputElement>) => {
+  const handleAuthorizeAndPick = async (pickerRef: React.RefObject<HTMLInputElement>) => {
     if (!isReady || isUploading || driveError) return;
-    pickerRef.current?.click();
+    try {
+        await requestAccessToken();
+        pickerRef.current?.click();
+    } catch (error: any) {
+        toast({
+            variant: 'destructive',
+            title: 'Izin Gagal',
+            description: error.message || 'Gagal mendapatkan izin untuk mengakses Google Drive.',
+        });
+    }
   };
   
   const handleSubmit = async (e: React.FormEvent) => {
