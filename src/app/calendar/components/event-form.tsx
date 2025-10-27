@@ -54,6 +54,7 @@ export function EventForm({ onSuccess }: EventFormProps) {
   const { toast } = useToast();
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [isGapiLoaded, setIsGapiLoaded] = useState(false);
+  const [gapiError, setGapiError] = useState<string | null>(null);
 
   const form = useForm<z.infer<typeof formSchema>>({
     resolver: zodResolver(formSchema),
@@ -69,7 +70,14 @@ export function EventForm({ onSuccess }: EventFormProps) {
     const API_KEY = process.env.NEXT_PUBLIC_GOOGLE_API_KEY;
     
     if (!CLIENT_ID || !API_KEY) {
-      console.error("Google API credentials are not set in .env file.");
+      const errorMsg = "Kredensial Google API (CLIENT_ID/API_KEY) belum diatur di file .env Anda.";
+      setGapiError(errorMsg);
+      toast({
+        variant: 'destructive',
+        title: 'Kesalahan Konfigurasi',
+        description: errorMsg,
+        duration: Infinity,
+      });
       return;
     }
     
@@ -83,10 +91,12 @@ export function EventForm({ onSuccess }: EventFormProps) {
         setIsGapiLoaded(true);
       }, (error: any) => {
         console.error("Error initializing gapi client:", error);
+        const errorMsg = 'Tidak dapat terhubung ke layanan Google. Periksa konsol untuk detail.';
+        setGapiError(errorMsg);
         toast({
           variant: 'destructive',
           title: 'Gagal Inisialisasi Google API',
-          description: 'Tidak dapat terhubung ke layanan Google. Silakan coba lagi nanti.'
+          description: errorMsg,
         });
       });
     };
@@ -115,12 +125,12 @@ export function EventForm({ onSuccess }: EventFormProps) {
       }
       
       const reader = new FileReader();
-      reader.readAsArrayBuffer(file);
+      reader.readAsBinaryString(file);
       reader.onload = async () => {
         const fileContent = reader.result;
         const boundary = '-------314159265358979323846';
         const delimiter = "\r\n--" + boundary + "\r\n";
-        const close_delim = "\r-n--" + boundary + "--";
+        const close_delim = "\r\n--" + boundary + "--";
 
         const metadata = {
           name: file.name,
@@ -134,9 +144,9 @@ export function EventForm({ onSuccess }: EventFormProps) {
           JSON.stringify(metadata) +
           delimiter +
           'Content-Type: ' + file.type + '\r\n' +
+          'Content-Transfer-Encoding: base64\r\n' +
           '\r\n' +
-          // We need to process the ArrayBuffer to a raw string
-          String.fromCharCode.apply(null, Array.from(new Uint8Array(fileContent as ArrayBuffer))) +
+          btoa(fileContent as string) +
           close_delim;
         
         try {
@@ -158,7 +168,6 @@ export function EventForm({ onSuccess }: EventFormProps) {
             return;
           }
 
-          // Important: Make the file publically viewable
           await gapi.client.drive.permissions.create({
               fileId: uploadedFile.id,
               requestBody: {
@@ -244,6 +253,13 @@ export function EventForm({ onSuccess }: EventFormProps) {
   };
 
   const attachmentFile = form.watch('attachment');
+  
+  const getButtonText = () => {
+    if (gapiError) return "Konfigurasi Error";
+    if (isSubmitting) return "Menyimpan...";
+    if (!isGapiLoaded) return "Memuat Google API...";
+    return "Simpan Kegiatan";
+  }
 
   return (
     <Form {...form}>
@@ -438,12 +454,15 @@ export function EventForm({ onSuccess }: EventFormProps) {
 
 
         <div className="flex justify-end">
-            <Button type="submit" disabled={isSubmitting || !isGapiLoaded}>
+            <Button type="submit" disabled={isSubmitting || !isGapiLoaded || !!gapiError}>
             {isSubmitting && <Loader2 className="mr-2 h-4 w-4 animate-spin" />}
-            {isSubmitting ? "Menyimpan..." : !isGapiLoaded ? "Memuat Google API..." : "Simpan Kegiatan"}
+            {getButtonText()}
             </Button>
         </div>
       </form>
     </Form>
   );
 }
+
+
+    
