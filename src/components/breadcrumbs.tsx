@@ -3,7 +3,7 @@
 import { usePathname } from 'next/navigation';
 import Link from 'next/link';
 import { ChevronRight, Home } from 'lucide-react';
-import { Fragment, useEffect, useState } from 'react';
+import { Fragment } from 'react';
 
 // Fungsi untuk mengubah segmen path menjadi judul yang mudah dibaca
 const formatSegment = (segment: string) => {
@@ -36,24 +36,13 @@ const formatSegment = (segment: string) => {
 
 export function Breadcrumbs() {
   const path = usePathname();
-  const [segments, setSegments] = useState<string[]>([]);
-  const [isClient, setIsClient] = useState(false);
-
-  useEffect(() => {
-    setSegments(path.split('/').filter(Boolean));
-    setIsClient(true);
-  }, [path]);
-
-  if (!isClient) {
-    // Render null atau placeholder di server untuk menghindari mismatch
-    return null;
-  }
+  const segments = path.split('/').filter(Boolean);
   
   const breadcrumbSegments = ['home', ...segments];
 
   return (
     <nav aria-label="Breadcrumb" className="hidden flex-1 md:flex">
-      <ol className="flex min-w-0 flex-1 items-center space-x-1 text-sm text-muted-foreground">
+      <ol className="flex min-w-0 flex-1 items-center space-x-1 whitespace-nowrap text-sm text-muted-foreground">
         {breadcrumbSegments.map((segment, index) => {
           const isFirst = index === 0;
           const isLast = index === breadcrumbSegments.length - 1;
