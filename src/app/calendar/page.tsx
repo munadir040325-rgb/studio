@@ -284,6 +284,7 @@ export default function CalendarPage() {
   const [selectedEvent, setSelectedEvent] = useState<CalendarEvent | null>(null);
   const [dayToShow, setDayToShow] = useState<Date | null>(null);
   const { toast } = useToast();
+  const [cleanDescription, setCleanDescription] = useState('');
 
   useEffect(() => {
     // Initialize filterDate on the client side to avoid hydration errors
@@ -441,22 +442,26 @@ export default function CalendarPage() {
       return '';
   }
 
+  useEffect(() => {
+    if (selectedEvent?.description) {
+      // DOMPurify can only run on the client
+      const sanitized = DOMPurify.sanitize(selectedEvent.description, { USE_PROFILES: { html: true } });
+      const tempDiv = document.createElement('div');
+      tempDiv.innerHTML = sanitized;
+      tempDiv.querySelectorAll('a').forEach(a => a.parentElement?.remove());
+      const textOnly = tempDiv.textContent || '';
+      setCleanDescription(textOnly.replace(/📍\s*Disposisi:.*(\r\n|\n|\r)/im, '').trim());
+    } else {
+      setCleanDescription('');
+    }
+  }, [selectedEvent]);
+
   const eventsByDay = useMemo(() => groupEventsByDay(events), [events]);
   const dailyEvents = dayToShow ? eventsByDay.get(format(dayToShow, 'yyyy-MM-dd')) || [] : [];
   
   const invitationLink = selectedEvent ? extractAttachmentLink(selectedEvent.description, 'Lampiran Undangan') : null;
   const resultLink = selectedEvent ? extractAttachmentLink(selectedEvent.description, 'Link Hasil Kegiatan') : null;
   
-  const getCleanDescription = (description: string | null | undefined) => {
-    if (!description) return '';
-    const sanitized = DOMPurify.sanitize(description, { USE_PROFILES: { html: true } });
-    const tempDiv = document.createElement('div');
-    tempDiv.innerHTML = sanitized;
-    // Remove all a tags and the disposisi line
-    tempDiv.querySelectorAll('a').forEach(a => a.parentElement?.remove());
-    const textOnly = tempDiv.textContent || '';
-    return textOnly.replace(/📍\s*Disposisi:.*(\r\n|\n|\r)/im, '').trim();
-  }
 
   return (
     <div className="flex flex-col gap-6 w-full">
@@ -628,10 +633,10 @@ export default function CalendarPage() {
                   </div>
                 )}
                 
-                {getCleanDescription(selectedEvent.description) && (
+                {cleanDescription && (
                   <div className="flex items-start pt-4 border-t">
                     <Info className="mr-3 h-5 w-5 flex-shrink-0 text-muted-foreground" />
-                    <p className="text-foreground whitespace-pre-wrap">{getCleanDescription(selectedEvent.description)}</p>
+                    <p className="text-foreground whitespace-pre-wrap">{cleanDescription}</p>
                   </div>
                 )}
               </div>
@@ -677,5 +682,3 @@ export default function CalendarPage() {
     </div>
   );
 }
-
-    
