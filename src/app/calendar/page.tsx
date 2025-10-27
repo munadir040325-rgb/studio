@@ -5,9 +5,9 @@ import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardFooter, CardHeader, CardTitle } from '@/components/ui/card';
 import { Popover, PopoverContent, PopoverTrigger } from '@/components/ui/popover';
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger, DialogFooter, DialogDescription } from '@/components/ui/dialog';
-import { Calendar as CalendarIcon, ExternalLink, PlusCircle, RefreshCw, MapPin, Clock, ChevronLeft, ChevronRight, FileSignature, Copy, Info, Link as LinkIcon, File as FileIcon, FileText, FileImage, FileSpreadsheet, FileVideo, FolderArchive } from 'lucide-react';
+import { Calendar as CalendarIcon, ExternalLink, PlusCircle, RefreshCw, MapPin, Clock, ChevronLeft, ChevronRight, FileSignature, Copy, Info } from 'lucide-react';
 import { Calendar } from '@/components/ui/calendar';
-import { format, parseISO, isSameDay, startOfDay, endOfDay, startOfWeek, endOfWeek, startOfMonth, endOfMonth, isWithinInterval, eachDayOfInterval, getDay, isSameMonth, getDate, addDays, subDays, addWeeks, subMonths } from 'date-fns';
+import { format, parseISO, isSameDay, startOfDay, endOfDay, startOfWeek, endOfWeek, startOfMonth, endOfMonth, isWithinInterval, eachDayOfInterval, getDay, isSameMonth, getDate, addDays, subDays, addWeeks, subMonths, addMonths } from 'date-fns';
 import { id as localeId } from 'date-fns/locale';
 import { cn } from '@/lib/utils';
 import { EventForm } from './components/event-form';
@@ -15,6 +15,7 @@ import { Alert, AlertDescription, AlertTitle } from '@/components/ui/alert';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { useToast } from '@/hooks/use-toast';
 import { Textarea } from '@/components/ui/textarea';
+import { getFileIcon } from '@/lib/utils';
 
 type CalendarEvent = {
     id: string | null | undefined;
@@ -99,33 +100,6 @@ const extractDisposisi = (description: string | null | undefined): string => {
 
     return '-';
 };
-
-const getFileIcon = (fileName: string) => {
-    const extension = fileName.split('.').pop()?.toLowerCase();
-    if (!extension) return <FileIcon className="mr-3 h-5 w-5 flex-shrink-0 text-muted-foreground" />;
-
-    if (['jpg', 'jpeg', 'png', 'gif', 'bmp', 'svg'].includes(extension)) {
-        return <FileImage className="mr-3 h-5 w-5 flex-shrink-0 text-muted-foreground" />;
-    }
-    if (['pdf'].includes(extension)) {
-        return <FileText className="mr-3 h-5 w-5 flex-shrink-0 text-red-500" />;
-    }
-    if (['doc', 'docx'].includes(extension)) {
-        return <FileText className="mr-3 h-5 w-5 flex-shrink-0 text-blue-500" />;
-    }
-    if (['xls', 'xlsx'].includes(extension)) {
-        return <FileSpreadsheet className="mr-3 h-5 w-5 flex-shrink-0 text-green-500" />;
-    }
-    if (['ppt', 'pptx'].includes(extension)) {
-        return <FileVideo className="mr-3 h-5 w-5 flex-shrink-0 text-orange-500" />;
-    }
-    if (['zip', 'rar', '7z'].includes(extension)) {
-        return <FolderArchive className="mr-3 h-5 w-5 flex-shrink-0 text-yellow-500" />;
-    }
-
-    return <FileIcon className="mr-3 h-5 w-5 flex-shrink-0 text-muted-foreground" />;
-};
-
 
 const EventCard = ({ event }: { event: CalendarEvent }) => (
   <Card key={event.id} className="flex flex-col">
@@ -307,7 +281,7 @@ export default function CalendarPage() {
   const [events, setEvents] = useState<CalendarEvent[]>([]);
   const [isLoading, setIsLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
-  const [filterDate, setFilterDate] = useState<Date | undefined>(new Date());
+  const [filterDate, setFilterDate] = useState<Date | undefined>(undefined);
   const [isFormOpen, setIsFormOpen] = useState(false);
   const [viewMode, setViewMode] = useState<'harian' | 'mingguan' | 'bulanan'>('harian');
   const [isWhatsAppModalOpen, setIsWhatsAppModalOpen] = useState(false);
@@ -315,6 +289,11 @@ export default function CalendarPage() {
   const [selectedEvent, setSelectedEvent] = useState<CalendarEvent | null>(null);
   const [dayToShow, setDayToShow] = useState<Date | null>(null);
   const { toast } = useToast();
+
+  useEffect(() => {
+    // Initialize filterDate on the client side to avoid hydration errors
+    setFilterDate(new Date());
+  }, []);
 
   const fetchEvents = useCallback(async () => {
     if (!filterDate) return;
@@ -375,8 +354,10 @@ export default function CalendarPage() {
   }, [filterDate, viewMode]);
 
   useEffect(() => {
-    fetchEvents();
-  }, [fetchEvents]);
+    if (filterDate) { // Only fetch events if filterDate is set
+        fetchEvents();
+    }
+  }, [fetchEvents, filterDate]);
 
 
   const handleSendToWhatsApp = () => {
