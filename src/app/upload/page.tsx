@@ -16,6 +16,7 @@ import { parseISO, format } from 'date-fns';
 import { id as localeId } from 'date-fns/locale';
 import useSWR from 'swr';
 import Script from 'next/script';
+import { updateCalendarEvent } from '@/ai/flows/calendar-flow';
 
 const ROOT_FOLDER_ID = process.env.NEXT_PUBLIC_DRIVE_FOLDER_ID_HASIL;
 
@@ -159,7 +160,7 @@ export default function UploadPage() {
 
   const getOrCreateFolder = async (name: string, parentId: string): Promise<string> => {
     const q = `'${parentId}' in parents and name='${name}' and mimeType='application/vnd.google-apps.folder' and trashed=false`;
-    const res = await fetch(`https://www.googleapis.com/drive/v3/files?q=${encodeURIComponent(q)}&fields=files(id)`, {
+    const res = await fetch(`https://www.googleapis.com/drive/v3/files?q=${encodeURIComponent(q)}&fields=files(id,webViewLink)`, {
         headers: { 'Authorization': `Bearer ${accessTokenRef.current}` }
     });
     const body = await res.json();
@@ -175,6 +176,18 @@ export default function UploadPage() {
     if (!createRes.ok) throw new Error(`Gagal membuat folder '${name}': ${createBody.error?.message}`);
     return createBody.id;
   }
+  
+  const getFolderLink = async (folderId: string): Promise<string> => {
+    const res = await fetch(`https://www.googleapis.com/drive/v3/files/${folderId}?fields=webViewLink`, {
+        headers: { 'Authorization': `Bearer ${accessTokenRef.current}` }
+    });
+    const body = await res.json();
+    if (!res.ok || !body.webViewLink) {
+        console.error("Gagal mendapatkan link folder:", body);
+        throw new Error("Gagal mendapatkan link folder dari Google Drive.");
+    }
+    return body.webViewLink;
+  };
   
   const uploadFile = async (file: File, folderId: string) => {
       const metadata = { name: file.name, parents: [folderId] };
@@ -239,9 +252,18 @@ export default function UploadPage() {
             }
         }
         
+        toast({ description: "Mengunggah file..." });
         await Promise.all(uploadPromises);
-
         toast({ title: 'Berhasil!', description: 'Semua file telah berhasil diunggah ke Google Drive.' });
+        
+        toast({ description: "Memperbarui acara di kalender..." });
+        const kegiatanFolderLink = await getFolderLink(kegiatanFolderId);
+        await updateCalendarEvent({
+            eventId: selectedEvent.id,
+            resultFolderUrl: kegiatanFolderLink
+        });
+        toast({ title: 'Berhasil!', description: 'Link hasil kegiatan telah ditambahkan ke acara kalender.' });
+
         // Reset form
         setSelectedEvent(null);
         setSelectedBagian('');
@@ -251,7 +273,7 @@ export default function UploadPage() {
 
     } catch (error: any) {
         console.error("Upload process failed:", error);
-        toast({ variant: 'destructive', title: 'Gagal Mengunggah', description: error.message });
+        toast({ variant: 'destructive', title: 'Proses Gagal', description: error.message });
     } finally {
         setIsSubmitting(false);
     }

@@ -5,9 +5,9 @@ import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardFooter, CardHeader, CardTitle } from '@/components/ui/card';
 import { Popover, PopoverContent, PopoverTrigger } from '@/components/ui/popover';
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger, DialogFooter, DialogDescription } from '@/components/ui/dialog';
-import { Calendar as CalendarIcon, ExternalLink, PlusCircle, RefreshCw, MapPin, Clock, ChevronLeft, ChevronRight, FileSignature, Copy, Info } from 'lucide-react';
+import { Calendar as CalendarIcon, ExternalLink, PlusCircle, RefreshCw, MapPin, Clock, ChevronLeft, ChevronRight, FileSignature, Copy, Info, Link as LinkIcon } from 'lucide-react';
 import { Calendar } from '@/components/ui/calendar';
-import { format, parseISO, isSameDay, startOfDay, endOfDay, startOfWeek, endOfWeek, startOfMonth, endOfMonth, isWithinInterval, eachDayOfInterval, getDay, isSameMonth, getDate, addDays, subDays, addWeeks, subWeeks, addMonths } from 'date-fns';
+import { format, parseISO, isSameDay, startOfDay, endOfDay, startOfWeek, endOfWeek, startOfMonth, endOfMonth, isWithinInterval, eachDayOfInterval, getDay, isSameMonth, getDate, addDays, subDays, addWeeks, subMonths } from 'date-fns';
 import { id as localeId } from 'date-fns/locale';
 import { cn } from '@/lib/utils';
 import { EventForm } from './components/event-form';
@@ -64,6 +64,19 @@ const formatEventDisplay = (startStr: string | null | undefined, endStr: string 
         return 'Waktu tidak valid';
     }
 };
+
+const extractLink = (description: string | null | undefined, linkTextStart: string): string | null => {
+    if (!description) {
+        return null;
+    }
+    const linkIndex = description.indexOf(linkTextStart);
+    if (linkIndex === -1) {
+        return null;
+    }
+    const urlStartIndex = linkIndex + linkTextStart.length;
+    const urlEndIndex = description.indexOf('\n', urlStartIndex);
+    return urlEndIndex === -1 ? description.substring(urlStartIndex).trim() : description.substring(urlStartIndex, urlEndIndex).trim();
+}
 
 const extractDisposisi = (description: string | null | undefined): string => {
     if (!description) {
@@ -426,6 +439,8 @@ export default function CalendarPage() {
 
   const eventsByDay = useMemo(() => groupEventsByDay(events), [events]);
   const dailyEvents = dayToShow ? eventsByDay.get(format(dayToShow, 'yyyy-MM-dd')) || [] : [];
+  const invitationLink = selectedEvent ? extractLink(selectedEvent.description, 'Lampiran Surat Tugas/Undangan: ') : null;
+  const resultLink = selectedEvent ? extractLink(selectedEvent.description, 'Lihat Hasil Kegiatan di Google Drive: ') : null;
 
 
   return (
@@ -574,16 +589,36 @@ export default function CalendarPage() {
                     <span className="text-foreground">{selectedEvent.location}</span>
                   </div>
                 )}
-                {selectedEvent.description && (
-                  <div className="flex items-start">
-                    <Info className="mr-3 h-5 w-5 flex-shrink-0 text-muted-foreground" />
-                    <p className="text-foreground whitespace-pre-wrap">{selectedEvent.description}</p>
-                  </div>
-                )}
+                
                 <div className="flex items-start">
                   <FileSignature className="mr-3 h-5 w-5 flex-shrink-0 text-muted-foreground" />
                   <span className="text-foreground">Disposisi: {extractDisposisi(selectedEvent.description)}</span>
                 </div>
+                
+                {invitationLink && (
+                    <div className="flex items-start">
+                        <LinkIcon className="mr-3 h-5 w-5 flex-shrink-0 text-muted-foreground" />
+                        <a href={invitationLink} target="_blank" rel="noopener noreferrer" className="text-blue-600 hover:underline">
+                            Lihat Lampiran Undangan
+                        </a>
+                    </div>
+                )}
+                
+                {resultLink && (
+                    <div className="flex items-start">
+                        <LinkIcon className="mr-3 h-5 w-5 flex-shrink-0 text-muted-foreground" />
+                        <a href={resultLink} target="_blank" rel="noopener noreferrer" className="text-blue-600 hover:underline">
+                            Lihat Hasil Kegiatan
+                        </a>
+                    </div>
+                )}
+                
+                {selectedEvent.description && (
+                  <div className="flex items-start pt-4 border-t">
+                    <Info className="mr-3 h-5 w-5 flex-shrink-0 text-muted-foreground" />
+                    <p className="text-foreground whitespace-pre-wrap">{selectedEvent.description}</p>
+                  </div>
+                )}
               </div>
               <DialogFooter>
                 {selectedEvent.htmlLink && (
@@ -627,3 +662,4 @@ export default function CalendarPage() {
     </div>
   );
 }
+

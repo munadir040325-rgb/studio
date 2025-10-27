@@ -46,6 +46,13 @@ const createEventInputSchema = z.object({
 
 export type CreateEventInput = z.infer<typeof createEventInputSchema>;
 
+const updateEventInputSchema = z.object({
+  eventId: z.string(),
+  resultFolderUrl: z.string().url(),
+});
+
+export type UpdateEventInput = z.infer<typeof updateEventInputSchema>;
+
 function areCredentialsConfigured() {
     return process.env.GOOGLE_CLIENT_EMAIL && process.env.GOOGLE_PRIVATE_KEY;
 }
@@ -123,10 +130,72 @@ export const createCalendarEventFlow = ai.defineFlow(
   }
 );
 
+export const updateCalendarEventFlow = ai.defineFlow(
+    {
+      name: 'updateCalendarEventFlow',
+      inputSchema: updateEventInputSchema,
+      outputSchema: calendarEventSchema,
+    },
+    async (input) => {
+        if (!calendarId) {
+            throw new Error("ID Kalender (NEXT_PUBLIC_CALENDAR_ID) belum diatur di environment variables.");
+        }
+        
+        const auth = await getGoogleAuth(['https://www.googleapis.com/auth/calendar']);
+        if (!auth) {
+            throw new Error("Tidak dapat memperbarui kegiatan: Kredensial Google Calendar (Service Account) belum diatur.");
+        }
+        const calendar = google.calendar({ version: 'v3', auth });
+
+        try {
+            // 1. Get the existing event
+            const existingEvent = await calendar.events.get({
+                calendarId: calendarId,
+                eventId: input.eventId,
+            });
+
+            if (!existingEvent.data) {
+                throw new Error("Kegiatan yang akan diperbarui tidak ditemukan.");
+            }
+
+            // 2. Prepare the new description
+            let description = existingEvent.data.description || '';
+            const resultLinkText = `\n\nLihat Hasil Kegiatan di Google Drive: ${input.resultFolderUrl}`;
+            
+            // Avoid adding duplicate links
+            if (!description.includes(input.resultFolderUrl)) {
+                description += resultLinkText;
+            }
+
+            // 3. Update the event with the new description
+            const response = await calendar.events.patch({
+                calendarId: calendarId,
+                eventId: input.eventId,
+                requestBody: {
+                    description: description.trim(),
+                },
+            });
+
+            return response.data as CalendarEvent;
+
+        } catch (error: any) {
+            console.error("Error updating Google Calendar event:", error);
+            throw new Error(`Gagal memperbarui kegiatan di Google Calendar: ${error.message}`);
+        }
+    }
+);
+
 
 export async function createCalendarEvent(input: CreateEventInput): Promise<CalendarEvent> {
     if (!areCredentialsConfigured()) {
       throw new Error("Kredensial Google Service Account (GOOGLE_CLIENT_EMAIL, GOOGLE_PRIVATE_KEY) belum dikonfigurasi di file .env Anda.");
     }
     return createCalendarEventFlow(input);
+}
+
+export async function updateCalendarEvent(input: UpdateEventInput): Promise<CalendarEvent> {
+    if (!areCredentialsConfigured()) {
+      throw new Error("Kredensial Google Service Account (GOOGLE_CLIENT_EMAIL, GOOGLE_PRIVATE_KEY) belum dikonfigurasi di file .env Anda.");
+    }
+    return updateCalendarEventFlow(input);
 }
