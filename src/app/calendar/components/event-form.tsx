@@ -90,6 +90,7 @@ export function EventForm({ onSuccess }: EventFormProps) {
 
   const handleGapiLoad = async () => {
     const { gapi } = window as any;
+    if (!gapi) return;
     gapi.load('client', async () => {
       try {
         await gapi.client.init({
@@ -219,6 +220,12 @@ export function EventForm({ onSuccess }: EventFormProps) {
   const handleAuthorizeClick = async () => {
     if (!isReady || isUploading || gapiError) return;
 
+    // If we already have a token, just open the file dialog.
+    if (accessTokenRef.current) {
+        fileInputRef.current?.click();
+        return;
+    }
+
     toast({ description: "Meminta izin Google..." });
     try {
         const token = await requestAccessToken();
@@ -244,22 +251,16 @@ export function EventForm({ onSuccess }: EventFormProps) {
           return;
       }
       
-      // Check if we have a token. If not, try to get one.
+      // We should have a token from handleAuthorizeClick, but check just in case.
       let token = accessTokenRef.current;
       if (!token) {
-          toast({ description: "Meminta izin Google untuk mengunggah..." });
-          try {
-              token = await requestAccessToken();
-              accessTokenRef.current = token;
-          } catch (error: any) {
-              toast({
-                  variant: 'destructive',
-                  title: 'Izin Diperlukan',
-                  description: 'Izin Google diperlukan untuk mengunggah file. Silakan coba lagi.',
-              });
-              if(fileInputRef.current) fileInputRef.current.value = "";
-              return;
-          }
+          toast({
+              variant: 'destructive',
+              title: 'Sesi Hilang',
+              description: 'Sesi izin Google tidak ditemukan. Silakan coba klik tombol unggah lagi.',
+          });
+          if(fileInputRef.current) fileInputRef.current.value = "";
+          return;
       }
 
       setIsUploading(true);
