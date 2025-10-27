@@ -179,7 +179,7 @@ const WeeklyView = ({ events, baseDate, onEventClick }: { events: CalendarEvent[
                             </span>
                             <div className="mt-1 space-y-1">
                                 {dayEvents.slice(0, 4).map(event => (
-                                    <button key={event.id} onClick={() => onEventClick(event)} className="w-full text-left bg-primary/20 hover:bg-primary/30 text-primary-foreground p-1 rounded-md text-xs truncate">
+                                    <button key={event.id} onClick={() => onEventClick(event)} className="w-full text-left bg-primary/80 hover:bg-primary/90 text-white p-1 rounded-md text-xs leading-tight">
                                         {event.summary}
                                     </button>
                                 ))}
@@ -232,7 +232,7 @@ const MonthlyView = ({ events, baseDate, onEventClick }: { events: CalendarEvent
                             </span>
                              <div className="mt-1 space-y-1">
                                 {dayEvents.slice(0, 2).map(event => (
-                                    <button key={event.id} onClick={() => onEventClick(event)} className="w-full text-left bg-accent/80 hover:bg-accent/90 text-accent-foreground p-1 rounded-md text-xs truncate">
+                                    <button key={event.id} onClick={() => onEventClick(event)} className="w-full text-left bg-accent hover:bg-accent/90 text-white p-1 rounded-md text-xs leading-tight">
                                         {event.summary}
                                     </button>
                                 ))}
