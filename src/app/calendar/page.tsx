@@ -3,10 +3,9 @@
 import { useState, useEffect, useCallback, useMemo } from 'react';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardFooter, CardHeader, CardTitle } from '@/components/ui/card';
-import { Input } from '@/components/ui/input';
 import { Popover, PopoverContent, PopoverTrigger } from '@/components/ui/popover';
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger } from '@/components/ui/dialog';
-import { Calendar as CalendarIcon, ExternalLink, PlusCircle, RefreshCw, MapPin, Clock, ChevronLeft, ChevronRight, FileSignature } from 'lucide-react';
+import { Calendar as CalendarIcon, ExternalLink, PlusCircle, RefreshCw, MapPin, Clock, ChevronLeft, ChevronRight, FileSignature, MessageSquare } from 'lucide-react';
 import { Calendar } from '@/components/ui/calendar';
 import { format, parseISO, isSameDay, startOfDay, endOfDay, startOfWeek, endOfWeek, startOfMonth, endOfMonth, isWithinInterval, eachDayOfInterval, getDay, isSameMonth, getDate, addDays, subDays, addWeeks, subWeeks, addMonths, subMonths } from 'date-fns';
 import { id as localeId } from 'date-fns/locale';
@@ -286,7 +285,12 @@ export default function CalendarPage() {
   }, [fetchEvents]);
 
  const filteredEvents = useMemo(() => {
-    if (!filterDate) return [];
+    let searchFilteredEvents = allEvents.filter(event => 
+        (event.summary || '').toLowerCase().includes(searchTerm.toLowerCase()) ||
+        (event.location || '').toLowerCase().includes(searchTerm.toLowerCase())
+    );
+
+    if (!filterDate) return searchFilteredEvents;
 
     let interval;
     const now = filterDate;
@@ -299,17 +303,13 @@ export default function CalendarPage() {
         interval = { start: startOfWeek(now, { weekStartsOn: 1 }), end: endOfWeek(now, { weekStartsOn: 1 }) };
         break;
       case 'bulanan':
-        // For monthly view, we pass all events and let the component handle filtering
-        const searchFiltered = allEvents.filter(event => 
-            (event.summary || '').toLowerCase().includes(searchTerm.toLowerCase()) ||
-            (event.location || '').toLowerCase().includes(searchTerm.toLowerCase())
-        );
-        return searchFiltered;
+        // For monthly view, we only filter by search term, not date range
+        return searchFilteredEvents;
       default:
         interval = { start: startOfDay(now), end: endOfDay(now) };
     }
 
-    const eventsInInterval = allEvents.filter(event => {
+    const eventsInInterval = searchFilteredEvents.filter(event => {
       if (!event.start) return false;
       try {
         const eventStart = parseISO(event.start);
@@ -323,12 +323,7 @@ export default function CalendarPage() {
       }
     });
 
-    const searchFilteredEvents = eventsInInterval.filter(event => 
-      (event.summary || '').toLowerCase().includes(searchTerm.toLowerCase()) ||
-      (event.location || '').toLowerCase().includes(searchTerm.toLowerCase())
-    );
-
-    return searchFilteredEvents;
+    return eventsInInterval;
 
   }, [allEvents, filterDate, viewMode, searchTerm]);
 
@@ -370,7 +365,7 @@ export default function CalendarPage() {
   return (
     <div className="flex flex-col gap-6 w-full">
         {/* Top Navigation & Controls */}
-        <div className="flex flex-wrap items-center justify-between gap-4 p-2 rounded-lg bg-card border">
+        <div className="flex flex-col items-center md:flex-row md:items-center md:justify-between gap-4 p-2 rounded-lg bg-card border">
             {/* Left Side: Date Navigator */}
             <div className='flex items-center gap-2'>
                 <Button variant="ghost" size="icon" onClick={() => handleDateChange(-1)}>
@@ -385,7 +380,7 @@ export default function CalendarPage() {
             </div>
             
             {/* Right Side: Actions */}
-            <div className="flex items-center gap-2 flex-wrap">
+            <div className="flex items-center gap-2 flex-wrap justify-center">
                 <Tabs value={viewMode} onValueChange={(value) => setViewMode(value as any)}>
                     <TabsList>
                         <TabsTrigger value="harian">Harian</TabsTrigger>
@@ -393,11 +388,11 @@ export default function CalendarPage() {
                         <TabsTrigger value="bulanan">Bulanan</TabsTrigger>
                     </TabsList>
                 </Tabs>
-                 <Button variant="outline" onClick={handleRefresh} disabled={isLoading} size="icon">
+                <Button variant="outline" onClick={handleRefresh} disabled={isLoading} size="icon">
                     <RefreshCw className={cn("h-4 w-4", isLoading && "animate-spin")} />
                     <span className="sr-only">Muat Ulang</span>
                 </Button>
-                 <Popover>
+                <Popover>
                     <PopoverTrigger asChild>
                         <Button variant="outline" size='icon'>
                            <CalendarIcon className="h-4 w-4" />
@@ -413,7 +408,7 @@ export default function CalendarPage() {
                         />
                     </PopoverContent>
                 </Popover>
-                 <Dialog open={isFormOpen} onOpenChange={setIsFormOpen}>
+                <Dialog open={isFormOpen} onOpenChange={setIsFormOpen}>
                     <DialogTrigger asChild>
                         <Button>
                             <PlusCircle className="mr-2 h-4 w-4" />
@@ -426,8 +421,9 @@ export default function CalendarPage() {
                         </DialogHeader>
                         <EventForm onSuccess={handleSuccess} />
                     </DialogContent>
-                 </Dialog>
+                </Dialog>
                 <Button className="bg-green-500 hover:bg-green-600 text-white">
+                     <MessageSquare className="mr-2 h-4 w-4" />
                     Kirim ke WhatsApp
                 </Button>
             </div>
