@@ -96,6 +96,7 @@ export function EventForm({ onSuccess }: EventFormProps) {
         await gapi.client.init({
             apiKey: process.env.NEXT_PUBLIC_GOOGLE_API_KEY,
         });
+        await gapi.client.load('drive', 'v3');
         setIsGapiLoaded(true);
       } catch (error: any) {
          const errorMsg = `Gagal menginisialisasi Google API Client: ${error.message}`;
@@ -146,11 +147,6 @@ export function EventForm({ onSuccess }: EventFormProps) {
   };
 
   const uploadFileToDrive = async (file: File, accessToken: string): Promise<string> => {
-    const { gapi } = window as any;
-    
-    // Set the access token for this gapi client session
-    gapi.client.setToken({ access_token: accessToken });
-
     const metadata = {
         name: file.name,
         mimeType: file.type,
