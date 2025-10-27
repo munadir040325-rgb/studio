@@ -639,7 +639,7 @@ export default function CalendarPage() {
                 
                 {resultLink && (
                     <div className="flex items-center">
-                        <FolderArchive className="mr-3 h-5 w-5 flex-shrink-0 text-yellow-500" />
+                        {getFileIcon(resultLink.name)}
                         <a href={resultLink.url} target="_blank" rel="noopener noreferrer" className="text-blue-600 hover:underline truncate">
                             {resultLink.name}
                         </a>
