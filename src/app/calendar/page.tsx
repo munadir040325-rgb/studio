@@ -252,31 +252,59 @@ const MonthlyView = ({ events, baseDate }: { events: CalendarEvent[], baseDate: 
 
 
 export default function CalendarPage() {
-  const [allEvents, setAllEvents] = useState<CalendarEvent[]>([]);
+  const [events, setEvents] = useState<CalendarEvent[]>([]);
   const [isLoading, setIsLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
   const [filterDate, setFilterDate] = useState<Date | undefined>(new Date());
-  const [searchTerm, setSearchTerm] = useState('');
   const [isFormOpen, setIsFormOpen] = useState(false);
   const [viewMode, setViewMode] = useState<'harian' | 'mingguan' | 'bulanan'>('harian');
   const [isWhatsAppModalOpen, setIsWhatsAppModalOpen] = useState(false);
   const [whatsAppMessage, setWhatsAppMessage] = useState('');
   const { toast } = useToast();
 
-
   const fetchEvents = useCallback(async () => {
+    if (!filterDate) return;
+
     setIsLoading(true);
     setError(null);
+
+    let startDate: Date;
+    let endDate: Date;
+
+    switch (viewMode) {
+      case 'harian':
+        startDate = startOfDay(filterDate);
+        endDate = endOfDay(filterDate);
+        break;
+      case 'mingguan':
+        startDate = startOfWeek(filterDate, { weekStartsOn: 1 });
+        endDate = endOfWeek(filterDate, { weekStartsOn: 1 });
+        break;
+      case 'bulanan':
+        startDate = startOfMonth(filterDate);
+        endDate = endOfMonth(filterDate);
+        break;
+      default:
+        return;
+    }
+
+    const startStr = format(startDate, 'yyyy-MM-dd');
+    const endStr = format(endDate, 'yyyy-MM-dd');
+
     try {
-      // Fetch a wide range of events once, and filter on the client
-      const response = await fetch(`/api/events`);
+      const response = await fetch(`/api/events?start=${startStr}&end=${endStr}`);
       const data = await response.json();
 
       if (!response.ok) {
         throw new Error(data.error || 'Gagal mengambil data dari server.');
       }
       
-      setAllEvents(data.items || []);
+      const sortedEvents = (data.items || []).sort((a: CalendarEvent, b: CalendarEvent) => {
+        if (!a.start || !b.start) return 0;
+        return parseISO(a.start).getTime() - parseISO(b.start).getTime();
+      });
+
+      setEvents(sortedEvents);
     } catch (e: any) {
       console.error("Error fetching calendar events:", e);
       let friendlyMessage = e.message || 'Gagal memuat kegiatan dari kalender.';
@@ -286,69 +314,19 @@ export default function CalendarPage() {
         friendlyMessage = "Kalender tidak ditemukan atau belum dibagikan ke email Service Account. Pastikan ID Kalender benar dan izin telah diberikan.";
       }
       setError(friendlyMessage);
-      setAllEvents([]);
+      setEvents([]);
     } finally {
       setIsLoading(false);
     }
-  }, []);
+  }, [filterDate, viewMode]);
 
   useEffect(() => {
     fetchEvents();
   }, [fetchEvents]);
 
- const filteredEvents = useMemo(() => {
-    let searchFilteredEvents = allEvents.filter(event => 
-        (event.summary || '').toLowerCase().includes(searchTerm.toLowerCase()) ||
-        (event.location || '').toLowerCase().includes(searchTerm.toLowerCase())
-    );
-
-    if (!filterDate) return searchFilteredEvents;
-
-    let interval;
-    const now = filterDate;
-
-    switch (viewMode) {
-      case 'harian':
-        interval = { start: startOfDay(now), end: endOfDay(now) };
-        break;
-      case 'mingguan':
-        interval = { start: startOfWeek(now, { weekStartsOn: 1 }), end: endOfWeek(now, { weekStartsOn: 1 }) };
-        break;
-      case 'bulanan':
-        // For monthly view, we only filter by search term, not date range
-        return searchFilteredEvents;
-      default:
-        interval = { start: startOfDay(now), end: endOfDay(now) };
-    }
-
-    const eventsInInterval = searchFilteredEvents.filter(event => {
-      if (!event.start) return false;
-      try {
-        const eventStart = parseISO(event.start);
-        const eventEnd = event.end ? ( event.isAllDay ? new Date(parseISO(event.end).getTime() - 1) : parseISO(event.end) ) : eventStart;
-        
-        return isWithinInterval(eventStart, interval) || 
-               isWithinInterval(eventEnd, interval) ||
-               (eventStart < interval.start && eventEnd > interval.end);
-      } catch {
-        return false;
-      }
-    });
-
-    // Sort events in daily and weekly view by start time
-    if (viewMode === 'harian' || viewMode === 'mingguan') {
-        return eventsInInterval.sort((a, b) => {
-            if (!a.start || !b.start) return 0;
-            return parseISO(a.start).getTime() - parseISO(b.start).getTime();
-        });
-    }
-
-    return eventsInInterval;
-
-  }, [allEvents, filterDate, viewMode, searchTerm]);
 
     const handleSendToWhatsApp = () => {
-        if (!filterDate || filteredEvents.length === 0) {
+        if (!filterDate || events.length === 0) {
             toast({
                 variant: 'destructive',
                 title: "Tidak Ada Jadwal",
@@ -360,7 +338,7 @@ export default function CalendarPage() {
         const headerDate = format(filterDate, 'EEEE, dd MMMM yyyy', { locale: localeId });
         let message = `*JADWAL KEGIATAN - ${headerDate.toUpperCase()}*\n\n`;
 
-        filteredEvents.forEach((event, index) => {
+        events.forEach((event, index) => {
             const title = event.summary || '(Tanpa Judul)';
             const time = formatEventDisplay(event.start, event.end, event.isAllDay);
             const location = event.location;
@@ -420,8 +398,8 @@ export default function CalendarPage() {
   return (
     <div className="flex flex-col gap-6 w-full">
         {/* Top Navigation & Controls */}
-        <div className="flex flex-col md:flex-row md:items-center md:justify-between gap-4 p-2 rounded-lg bg-card border">
-             {/* Left Side: Date Navigator */}
+        <div className="flex flex-col items-center gap-4 rounded-lg border bg-card p-2 md:flex-row md:items-center md:justify-between">
+            {/* Left Side: Date Navigator */}
              <div className='flex items-center gap-2'>
                 <Button variant="ghost" size="icon" onClick={() => handleDateChange(-1)}>
                     <ChevronLeft className="h-5 w-5" />
@@ -435,9 +413,9 @@ export default function CalendarPage() {
             </div>
             
             {/* Right Side: Actions */}
-            <div className="flex items-center gap-2 flex-wrap justify-center">
-                <Tabs value={viewMode} onValueChange={(value) => setViewMode(value as any)} className='w-full md:w-auto'>
-                    <TabsList className='grid w-full grid-cols-3'>
+            <div className="flex flex-wrap items-center justify-center gap-2">
+                <Tabs value={viewMode} onValueChange={(value) => setViewMode(value as any)}>
+                    <TabsList>
                         <TabsTrigger value="harian">Harian</TabsTrigger>
                         <TabsTrigger value="mingguan">Mingguan</TabsTrigger>
                         <TabsTrigger value="bulanan">Bulanan</TabsTrigger>
@@ -526,19 +504,19 @@ export default function CalendarPage() {
                  <TabsContent value="harian" className="mt-0">
                      <div className="flex flex-col gap-4">
                         <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
-                            {filteredEvents.map(event => event.id && <EventCard event={event} key={event.id} />)}
+                            {events.map(event => event.id && <EventCard event={event} key={event.id} />)}
                         </div>
                     </div>
                 </TabsContent>
                 <TabsContent value="mingguan" className="mt-0">
-                   {filterDate && <WeeklyView events={allEvents} baseDate={filterDate} />}
+                   {filterDate && <WeeklyView events={events} baseDate={filterDate} />}
                 </TabsContent>
                  <TabsContent value="bulanan" className="mt-0">
-                    {filterDate && <MonthlyView events={allEvents} baseDate={filterDate} />}
+                    {filterDate && <MonthlyView events={events} baseDate={filterDate} />}
                 </TabsContent>
             </Tabs>
             
-          {filteredEvents.length === 0 && viewMode === 'harian' && (
+          {events.length === 0 && viewMode === 'harian' && (
               <div className="text-center py-12 text-muted-foreground bg-muted/50 rounded-lg">
                 <p>Tidak ada kegiatan yang ditemukan untuk filter yang dipilih.</p>
                 <p className="text-sm">Coba pilih tanggal lain atau reset filter.</p>
@@ -549,3 +527,5 @@ export default function CalendarPage() {
     </div>
   );
 }
+
+    
