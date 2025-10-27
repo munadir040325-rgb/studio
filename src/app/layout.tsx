@@ -13,17 +13,16 @@ import {
   SidebarInset,
 } from '@/components/ui/sidebar';
 import {
-  Calendar,
-  Upload,
-  Settings,
-  Book,
+  CalendarDays,
+  FileUp,
+  SlidersHorizontal,
 } from 'lucide-react';
 import Link from 'next/link';
 import { AppHeader } from '@/components/app-header';
 import { FirebaseClientProvider } from '@/firebase';
 
 export const metadata: Metadata = {
-  title: 'SPPD Manager',
+  title: 'Calender App',
   description: 'Aplikasi web SPPD integrasi Google Sheets dan Calendar',
 };
 
@@ -46,20 +45,20 @@ export default function RootLayout({
             <Sidebar>
               <SidebarHeader>
                 <div className="flex items-center gap-2 p-2">
-                  <Book className="w-6 h-6 text-primary" />
-                  <span className="text-lg font-semibold">SPPD Manager</span>
+                  <CalendarDays className="w-7 h-7 text-primary" />
+                  <span className="text-lg font-semibold">Calender App</span>
                 </div>
               </SidebarHeader>
               <SidebarContent>
                 <SidebarMenu>
                   <SidebarMenuItem>
-                    <SidebarMenuButton asChild>
-                      <Link href="/calendar"><Calendar />Kalender</Link>
+                    <SidebarMenuButton asChild size="lg">
+                      <Link href="/calendar"><CalendarDays />Kalender</Link>
                     </SidebarMenuButton>
                   </SidebarMenuItem>
                   <SidebarMenuItem>
-                    <SidebarMenuButton asChild>
-                      <Link href="/upload"><Upload />Upload Lampiran</Link>
+                    <SidebarMenuButton asChild size="lg">
+                      <Link href="/upload"><FileUp />Upload Lampiran</Link>
                     </SidebarMenuButton>
                   </SidebarMenuItem>
                 </SidebarMenu>
@@ -67,8 +66,8 @@ export default function RootLayout({
               <SidebarFooter>
                 <SidebarMenu>
                   <SidebarMenuItem>
-                    <SidebarMenuButton asChild>
-                      <Link href="/settings"><Settings />Pengaturan</Link>
+                    <SidebarMenuButton asChild size="lg">
+                      <Link href="/settings"><SlidersHorizontal />Pengaturan</Link>
                     </SidebarMenuButton>
                   </SidebarMenuItem>
                 </SidebarMenu>
