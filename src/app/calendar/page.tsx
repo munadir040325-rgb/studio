@@ -4,8 +4,8 @@ import { useState, useEffect, useCallback, useMemo, Fragment } from 'react';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardFooter, CardHeader, CardTitle } from '@/components/ui/card';
 import { Popover, PopoverContent, PopoverTrigger } from '@/components/ui/popover';
-import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger, DialogFooter } from '@/components/ui/dialog';
-import { Calendar as CalendarIcon, ExternalLink, PlusCircle, RefreshCw, MapPin, Clock, ChevronLeft, ChevronRight, FileSignature, Copy } from 'lucide-react';
+import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger, DialogFooter, DialogDescription } from '@/components/ui/dialog';
+import { Calendar as CalendarIcon, ExternalLink, PlusCircle, RefreshCw, MapPin, Clock, ChevronLeft, ChevronRight, FileSignature, Copy, Info } from 'lucide-react';
 import { Calendar } from '@/components/ui/calendar';
 import { format, parseISO, isSameDay, startOfDay, endOfDay, startOfWeek, endOfWeek, startOfMonth, endOfMonth, isWithinInterval, eachDayOfInterval, getDay, isSameMonth, getDate, addDays, subDays, addWeeks, subWeeks, addMonths } from 'date-fns';
 import { id as localeId } from 'date-fns/locale';
@@ -148,7 +148,7 @@ const groupEventsByDay = (events: CalendarEvent[]) => {
 };
 
 
-const WeeklyView = ({ events, baseDate }: { events: CalendarEvent[], baseDate: Date }) => {
+const WeeklyView = ({ events, baseDate, onEventClick }: { events: CalendarEvent[], baseDate: Date, onEventClick: (event: CalendarEvent) => void }) => {
     const weekDays = eachDayOfInterval({
         start: startOfWeek(baseDate, { weekStartsOn: 1 }),
         end: endOfWeek(baseDate, { weekStartsOn: 1 }),
@@ -170,7 +170,7 @@ const WeeklyView = ({ events, baseDate }: { events: CalendarEvent[], baseDate: D
                     const dayKey = format(day, 'yyyy-MM-dd');
                     const dayEvents = eventsByDay.get(dayKey) || [];
                     return (
-                        <div key={dayKey} className="relative h-40 border-l border-b p-2 overflow-hidden first:border-l-0">
+                        <div key={dayKey} className="relative h-48 border-l border-b p-2 overflow-auto no-scrollbar first:border-l-0">
                             <span className={cn(
                                 "font-semibold",
                                 isSameDay(day, new Date()) ? "text-primary font-bold" : "text-muted-foreground"
@@ -178,14 +178,14 @@ const WeeklyView = ({ events, baseDate }: { events: CalendarEvent[], baseDate: D
                                 {format(day, 'd')}
                             </span>
                             <div className="mt-1 space-y-1">
-                                {dayEvents.slice(0, 3).map(event => (
-                                    <div key={event.id} className="bg-primary/20 text-primary-foreground p-1 rounded-md text-xs truncate">
+                                {dayEvents.slice(0, 4).map(event => (
+                                    <button key={event.id} onClick={() => onEventClick(event)} className="w-full text-left bg-primary/20 hover:bg-primary/30 text-primary-foreground p-1 rounded-md text-xs truncate">
                                         {event.summary}
-                                    </div>
+                                    </button>
                                 ))}
-                                {dayEvents.length > 3 && (
+                                {dayEvents.length > 4 && (
                                     <div className="text-xs text-muted-foreground mt-1">
-                                        + {dayEvents.length - 3} lainnya
+                                        + {dayEvents.length - 4} lainnya
                                     </div>
                                 )}
                             </div>
@@ -197,7 +197,7 @@ const WeeklyView = ({ events, baseDate }: { events: CalendarEvent[], baseDate: D
     );
 }
 
-const MonthlyView = ({ events, baseDate }: { events: CalendarEvent[], baseDate: Date }) => {
+const MonthlyView = ({ events, baseDate, onEventClick }: { events: CalendarEvent[], baseDate: Date, onEventClick: (event: CalendarEvent) => void }) => {
     const startOfMonthDate = startOfMonth(baseDate);
     const endOfMonthDate = endOfMonth(baseDate);
     const calendarStart = startOfWeek(startOfMonthDate, { weekStartsOn: 1 });
@@ -220,7 +220,7 @@ const MonthlyView = ({ events, baseDate }: { events: CalendarEvent[], baseDate: 
                     const dayEvents = eventsByDay.get(dayKey) || [];
                     return (
                         <div key={dayKey} className={cn(
-                            "relative h-32 border-l border-b p-2 overflow-hidden",
+                            "relative h-32 border-l border-b p-2 overflow-auto no-scrollbar",
                             (getDay(day) % 7 === 1) ? "border-l-0" : "" // First day of week (Monday)
                         )}>
                             <span className={cn(
@@ -232,9 +232,9 @@ const MonthlyView = ({ events, baseDate }: { events: CalendarEvent[], baseDate: 
                             </span>
                              <div className="mt-1 space-y-1">
                                 {dayEvents.slice(0, 2).map(event => (
-                                    <div key={event.id} className="bg-accent/20 text-accent-foreground p-1 rounded-md text-xs truncate">
+                                    <button key={event.id} onClick={() => onEventClick(event)} className="w-full text-left bg-accent/80 hover:bg-accent/90 text-accent-foreground p-1 rounded-md text-xs truncate">
                                         {event.summary}
-                                    </div>
+                                    </button>
                                 ))}
                                 {dayEvents.length > 2 && (
                                     <div className="text-xs text-muted-foreground mt-1">
@@ -260,6 +260,7 @@ export default function CalendarPage() {
   const [viewMode, setViewMode] = useState<'harian' | 'mingguan' | 'bulanan'>('harian');
   const [isWhatsAppModalOpen, setIsWhatsAppModalOpen] = useState(false);
   const [whatsAppMessage, setWhatsAppMessage] = useState('');
+  const [selectedEvent, setSelectedEvent] = useState<CalendarEvent | null>(null);
   const { toast } = useToast();
 
   const fetchEvents = useCallback(async () => {
@@ -526,10 +527,10 @@ export default function CalendarPage() {
                     </div>
                 </TabsContent>
                 <TabsContent value="mingguan" className="mt-0">
-                   {filterDate && <WeeklyView events={events} baseDate={filterDate} />}
+                   {filterDate && <WeeklyView events={events} baseDate={filterDate} onEventClick={setSelectedEvent} />}
                 </TabsContent>
                  <TabsContent value="bulanan" className="mt-0">
-                    {filterDate && <MonthlyView events={events} baseDate={filterDate} />}
+                    {filterDate && <MonthlyView events={events} baseDate={filterDate} onEventClick={setSelectedEvent} />}
                 </TabsContent>
             </Tabs>
             
@@ -541,6 +542,48 @@ export default function CalendarPage() {
             )}
         </>
       )}
+
+      {/* Event Detail Modal */}
+      <Dialog open={!!selectedEvent} onOpenChange={(isOpen) => !isOpen && setSelectedEvent(null)}>
+        <DialogContent className="sm:max-w-lg">
+          {selectedEvent && (
+            <>
+              <DialogHeader>
+                <DialogTitle className="text-xl">{selectedEvent.summary}</DialogTitle>
+                <DialogDescription>{formatEventDisplay(selectedEvent.start, selectedEvent.end, selectedEvent.isAllDay)}</DialogDescription>
+              </DialogHeader>
+              <div className="space-y-4 py-4 text-sm">
+                {selectedEvent.location && (
+                  <div className="flex items-start">
+                    <MapPin className="mr-3 h-5 w-5 flex-shrink-0 text-muted-foreground" />
+                    <span className="text-foreground">{selectedEvent.location}</span>
+                  </div>
+                )}
+                {selectedEvent.description && (
+                  <div className="flex items-start">
+                    <Info className="mr-3 h-5 w-5 flex-shrink-0 text-muted-foreground" />
+                    <p className="text-foreground whitespace-pre-wrap">{selectedEvent.description}</p>
+                  </div>
+                )}
+                <div className="flex items-start">
+                  <FileSignature className="mr-3 h-5 w-5 flex-shrink-0 text-muted-foreground" />
+                  <span className="text-foreground">Disposisi: {extractDisposisi(selectedEvent.description)}</span>
+                </div>
+              </div>
+              <DialogFooter>
+                {selectedEvent.htmlLink && (
+                  <Button variant="outline" asChild>
+                    <a href={selectedEvent.htmlLink} target="_blank" rel="noopener noreferrer">
+                      <ExternalLink className="mr-2 h-4 w-4" />
+                      Lihat di Google Calendar
+                    </a>
+                  </Button>
+                )}
+              </DialogFooter>
+            </>
+          )}
+        </DialogContent>
+      </Dialog>
     </div>
   );
 }
