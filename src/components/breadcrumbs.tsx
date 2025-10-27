@@ -13,7 +13,7 @@ const formatSegment = (segment: string) => {
   const customFormats: { [key: string]: string } = {
     'sppd': 'SPPD',
     'spj': 'SPJ',
-    'master': 'Master',
+    'master': 'Master Data',
     'employees': 'Pegawai',
     'signatures': 'Tanda Tangan',
     'letterheads': 'Kop Surat'
@@ -34,27 +34,40 @@ export function Breadcrumbs() {
   const segments = pathname.split('/').filter(Boolean);
 
   // Handle case for root or dashboard
-  if (segments.length === 0 || (segments.length === 1 && segments[0] === 'dashboard')) {
+  if (segments.length === 0 || (segments.length === 1 && (segments[0] === 'dashboard' || segments[0] === 'calendar'))) {
+    let rootLabel = 'Dashboard';
+    if (segments[0] === 'calendar') {
+        rootLabel = 'Kalender';
+    }
     return (
         <nav aria-label="Breadcrumb" className="hidden flex-1 md:flex">
             <ol className="flex items-center space-x-1 text-sm text-muted-foreground">
                 <li>
-                    <span className="font-medium text-foreground">Dashboard</span>
+                    <span className="font-medium text-foreground">{rootLabel}</span>
                 </li>
             </ol>
         </nav>
     );
   }
+  
+  const baseHref = segments[0] === 'dashboard' || segments[0] === 'calendar' ? '/' + segments[0] : '/dashboard';
+  const baseLabel = segments[0] === 'dashboard' || segments[0] === 'calendar' ? formatSegment(segments[0]) : 'Home';
+
 
   return (
     <nav aria-label="Breadcrumb" className="hidden flex-1 md:flex">
       <ol className="flex items-center space-x-1 text-sm text-muted-foreground">
         <li>
-          <Link href="/dashboard" className="hover:text-foreground">
-            Home
+          <Link href={baseHref} className="hover:text-foreground">
+            {baseLabel}
           </Link>
         </li>
         {segments.map((segment, index) => {
+          // Skip the first segment if it's the base
+          if (index === 0 && (segment === 'dashboard' || segment === 'calendar')) {
+            return null;
+          }
+            
           const href = `/${segments.slice(0, index + 1).join('/')}`;
           const isLast = index === segments.length - 1;
           
