@@ -97,7 +97,8 @@ export default function UploadPage() {
     if (!CLIENT_ID) return;
     
     try {
-        tokenClient.current = (window as any).google.accounts.oauth2.initTokenClient({
+        const { google } = window as any;
+        tokenClient.current = google.accounts.oauth2.initTokenClient({
             client_id: CLIENT_ID,
             scope: 'https://www.googleapis.com/auth/drive.file',
             callback: '', // Callback is handled in the promise
@@ -112,12 +113,14 @@ export default function UploadPage() {
   
   const requestAccessToken = (): Promise<string> => {
     return new Promise((resolve, reject) => {
-      if (!tokenClient.current) {
+      const client = tokenClient.current;
+      if (!client) {
         return reject(new Error("Google Identity Services client not initialized."));
       }
 
-      tokenClient.current.callback = (resp: any) => {
+      client.callback = (resp: any) => {
         if (resp.error) {
+          console.error("Google Access Token Error:", resp.error, resp.error_description);
           reject(new Error(`Gagal mendapatkan izin: ${resp.error_description || resp.error}`));
         } else {
           resolve(resp.access_token);
@@ -125,7 +128,7 @@ export default function UploadPage() {
       };
       
       // This is what shows the popup
-      tokenClient.current.requestAccessToken({ prompt: 'consent' });
+      client.requestAccessToken({ prompt: 'consent' });
     });
   };
 
@@ -208,10 +211,10 @@ export default function UploadPage() {
 
     try {
         if (!accessTokenRef.current) {
-            toast({ description: "Meminta izin Google..." });
+             toast({ description: "Meminta izin Google..." });
             const token = await requestAccessToken();
             accessTokenRef.current = token;
-            toast({ title: "Izin diberikan!" });
+             toast({ title: "Izin diberikan!" });
         }
 
         if (!ROOT_FOLDER_ID) throw new Error("ROOT_FOLDER_ID belum diatur.");
