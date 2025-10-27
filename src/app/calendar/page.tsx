@@ -12,7 +12,6 @@ import { Calendar } from '@/components/ui/calendar';
 import { format, parseISO, isSameDay, startOfDay, endOfDay, startOfWeek, endOfWeek, startOfMonth, endOfMonth, isWithinInterval, eachDayOfInterval, getDay, isSameMonth, getDate } from 'date-fns';
 import { id as localeId } from 'date-fns/locale';
 import { cn } from '@/lib/utils';
-import Link from 'next/link';
 import { EventForm } from './components/event-form';
 import { Alert, AlertDescription, AlertTitle } from '@/components/ui/alert';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
@@ -120,17 +119,23 @@ const groupEventsByDay = (events: CalendarEvent[]) => {
     const grouped = new Map<string, CalendarEvent[]>();
     events.forEach(event => {
         if (!event.start) return;
-        const start = startOfDay(parseISO(event.start));
-        const end = event.end ? startOfDay(parseISO(event.end)) : start;
-        const eventDurationDays = eachDayOfInterval({ start, end });
+        try {
+            const start = startOfDay(parseISO(event.start));
+            const end = event.end ? startOfDay(parseISO(event.end)) : start;
+            // For all-day events, the end date is exclusive. For multi-day all-day events, we need to include all days in between.
+            const inclusiveEnd = event.isAllDay && event.end ? new Date(parseISO(event.end).getTime() - 1) : end;
+            const eventDurationDays = eachDayOfInterval({ start, end: inclusiveEnd });
 
-        eventDurationDays.forEach(day => {
-            const dayKey = format(day, 'yyyy-MM-dd');
-            if (!grouped.has(dayKey)) {
-                grouped.set(dayKey, []);
-            }
-            grouped.get(dayKey)!.push(event);
-        });
+            eventDurationDays.forEach(day => {
+                const dayKey = format(day, 'yyyy-MM-dd');
+                if (!grouped.has(dayKey)) {
+                    grouped.set(dayKey, []);
+                }
+                grouped.get(dayKey)!.push(event);
+            });
+        } catch (e) {
+            console.error("Could not parse event dates", event);
+        }
     });
     return grouped;
 };
@@ -209,7 +214,7 @@ const MonthlyView = ({ events, baseDate }: { events: CalendarEvent[], baseDate: 
                     return (
                         <div key={dayKey} className={cn(
                             "relative h-32 border-l border-b p-2 overflow-hidden",
-                            (getDay(day) === 0) && "border-l-0" // sunday
+                            (getDay(day) % 7 === 1) ? "border-l-0" : "" // First day of week (Monday)
                         )}>
                             <span className={cn(
                                 "font-semibold",
@@ -308,12 +313,13 @@ export default function CalendarPage() {
       if (!event.start) return false;
       try {
         const eventStart = parseISO(event.start);
-        const eventEnd = event.end ? parseISO(event.end) : eventStart;
-        const inclusiveEventEnd = event.isAllDay ? new Date(eventEnd.getTime() - 1) : eventEnd;
-
+        // For all-day events, the end date is often exclusive. To make it inclusive for our check,
+        // we can subtract a millisecond or handle it based on isAllDay property.
+        const eventEnd = event.end ? ( event.isAllDay ? new Date(parseISO(event.end).getTime() - 1) : parseISO(event.end) ) : eventStart;
+        
         return isWithinInterval(eventStart, interval) || 
-               isWithinInterval(inclusiveEventEnd, interval) ||
-               (eventStart < interval.start && inclusiveEventEnd > interval.end);
+               isWithinInterval(eventEnd, interval) ||
+               (eventStart < interval.start && eventEnd > interval.end);
       } catch {
         return false;
       }
@@ -435,6 +441,13 @@ export default function CalendarPage() {
                 
                 <TabsContent value="harian">
                      <div className="flex flex-col gap-4">
+                        {filterDate && viewMode === 'harian' && (
+                            <div className="mb-4">
+                                <h2 className="text-xl font-semibold">
+                                    Jadwal Kegiatan: {format(filterDate, 'EEEE, dd MMMM yyyy', { locale: localeId })}
+                                </h2>
+                            </div>
+                        )}
                         {filteredEvents.map(event => event.id && <EventCard event={event} key={event.id} />)}
                     </div>
                 </TabsContent>
@@ -442,7 +455,7 @@ export default function CalendarPage() {
                     {filterDate && <WeeklyView events={filteredEvents} baseDate={filterDate} />}
                 </TabsContent>
                  <TabsContent value="bulanan">
-                    {filterDate && <MonthlyView events={filteredEvents} baseDate={filterDate} />}
+                    {filterDate && <MonthlyView events={allEvents} baseDate={filterDate} />}
                 </TabsContent>
             </Tabs>
             
