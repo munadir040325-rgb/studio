@@ -542,12 +542,12 @@ export default function CalendarPage() {
                 <Button variant="ghost" size="icon" onClick={() => handleDateChange(-1)}>
                     <ChevronLeft className="h-5 w-5" />
                 </Button>
-                 <Button variant="ghost" size="icon" onClick={() => handleDateChange(1)}>
-                    <ChevronRight className="h-5 w-5" />
-                </Button>
                 <span className="text-lg font-semibold text-center w-auto">
                     {getDateNavigatorLabel()}
                 </span>
+                 <Button variant="ghost" size="icon" onClick={() => handleDateChange(1)}>
+                    <ChevronRight className="h-5 w-5" />
+                </Button>
             </div>
             
             {/* Right Side: Actions */}
