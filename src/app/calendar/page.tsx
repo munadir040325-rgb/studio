@@ -4,16 +4,17 @@ import { useState, useEffect, useCallback, useMemo } from 'react';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardFooter, CardHeader, CardTitle } from '@/components/ui/card';
 import { Popover, PopoverContent, PopoverTrigger } from '@/components/ui/popover';
-import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger } from '@/components/ui/dialog';
-import { Calendar as CalendarIcon, ExternalLink, PlusCircle, RefreshCw, MapPin, Clock, ChevronLeft, ChevronRight, FileSignature, MessageSquare } from 'lucide-react';
+import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger, DialogFooter } from '@/components/ui/dialog';
+import { Calendar as CalendarIcon, ExternalLink, PlusCircle, RefreshCw, MapPin, Clock, ChevronLeft, ChevronRight, FileSignature, Copy } from 'lucide-react';
 import { Calendar } from '@/components/ui/calendar';
-import { format, parseISO, isSameDay, startOfDay, endOfDay, startOfWeek, endOfWeek, startOfMonth, endOfMonth, isWithinInterval, eachDayOfInterval, getDay, isSameMonth, getDate, addDays, subDays, addWeeks, subWeeks, addMonths, subMonths } from 'date-fns';
+import { format, parseISO, isSameDay, startOfDay, endOfDay, startOfWeek, endOfWeek, startOfMonth, endOfMonth, isWithinInterval, eachDayOfInterval, getDay, isSameMonth, getDate, addDays, subDays, addWeeks, subWeeks, addMonths } from 'date-fns';
 import { id as localeId } from 'date-fns/locale';
 import { cn } from '@/lib/utils';
 import { EventForm } from './components/event-form';
 import { Alert, AlertDescription, AlertTitle } from '@/components/ui/alert';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { useToast } from '@/hooks/use-toast';
+import { Textarea } from '@/components/ui/textarea';
 
 type CalendarEvent = {
     id: string | null | undefined;
@@ -258,6 +259,8 @@ export default function CalendarPage() {
   const [searchTerm, setSearchTerm] = useState('');
   const [isFormOpen, setIsFormOpen] = useState(false);
   const [viewMode, setViewMode] = useState<'harian' | 'mingguan' | 'bulanan'>('harian');
+  const [isWhatsAppModalOpen, setIsWhatsAppModalOpen] = useState(false);
+  const [whatsAppMessage, setWhatsAppMessage] = useState('');
   const { toast } = useToast();
 
 
@@ -374,8 +377,9 @@ export default function CalendarPage() {
             message += '\n';
         });
 
-        const encodedMessage = encodeURIComponent(message);
-        window.open(`https://api.whatsapp.com/send?text=${encodedMessage}`, '_blank');
+        message += "Mohon untuk segera ditindaklanjuti. Jika ada ralat atau tambahan, harap sampaikan.";
+        setWhatsAppMessage(message);
+        setIsWhatsAppModalOpen(true);
     };
 
 
@@ -416,24 +420,24 @@ export default function CalendarPage() {
   return (
     <div className="flex flex-col gap-6 w-full">
         {/* Top Navigation & Controls */}
-        <div className="flex flex-col md:flex-row items-center justify-center md:justify-between gap-4 p-2 rounded-lg bg-card border flex-wrap">
-            {/* Left Side: Date Navigator */}
-            <div className='flex items-center gap-2'>
+        <div className="flex flex-col md:flex-row md:items-center md:justify-between gap-4 p-2 rounded-lg bg-card border">
+             {/* Left Side: Date Navigator */}
+             <div className='flex items-center gap-2'>
                 <Button variant="ghost" size="icon" onClick={() => handleDateChange(-1)}>
                     <ChevronLeft className="h-5 w-5" />
                 </Button>
                  <Button variant="ghost" size="icon" onClick={() => handleDateChange(1)}>
                     <ChevronRight className="h-5 w-5" />
                 </Button>
-                <span className="text-lg font-semibold text-center w-auto hidden sm:block">
+                <span className="text-lg font-semibold text-center w-auto">
                     {getDateNavigatorLabel()}
                 </span>
             </div>
             
             {/* Right Side: Actions */}
             <div className="flex items-center gap-2 flex-wrap justify-center">
-                <Tabs value={viewMode} onValueChange={(value) => setViewMode(value as any)}>
-                    <TabsList>
+                <Tabs value={viewMode} onValueChange={(value) => setViewMode(value as any)} className='w-full md:w-auto'>
+                    <TabsList className='grid w-full grid-cols-3'>
                         <TabsTrigger value="harian">Harian</TabsTrigger>
                         <TabsTrigger value="mingguan">Mingguan</TabsTrigger>
                         <TabsTrigger value="bulanan">Bulanan</TabsTrigger>
@@ -475,15 +479,34 @@ export default function CalendarPage() {
                         <EventForm onSuccess={handleSuccess} />
                     </DialogContent>
                 </Dialog>
-                <Button className="bg-green-500 hover:bg-green-600 text-white" onClick={handleSendToWhatsApp}>
-                    <WhatsAppIcon />
-                    Kirim ke WhatsApp
-                </Button>
+                <Dialog open={isWhatsAppModalOpen} onOpenChange={setIsWhatsAppModalOpen}>
+                    <DialogTrigger asChild>
+                        <Button className="bg-green-500 hover:bg-green-600 text-white" onClick={handleSendToWhatsApp}>
+                            <WhatsAppIcon />
+                            Kirim Jadwal
+                        </Button>
+                    </DialogTrigger>
+                    <DialogContent>
+                        <DialogHeader>
+                            <DialogTitle>Format Pesan WhatsApp</DialogTitle>
+                        </DialogHeader>
+                        <Textarea
+                            readOnly
+                            value={whatsAppMessage}
+                            className="h-64 text-sm bg-muted/50"
+                        />
+                        <DialogFooter>
+                            <Button onClick={() => {
+                                navigator.clipboard.writeText(whatsAppMessage);
+                                toast({ title: "Teks disalin!", description: "Anda sekarang dapat menempelkannya di WhatsApp." });
+                            }}>
+                                <Copy className="mr-2 h-4 w-4" />
+                                Salin Teks
+                            </Button>
+                        </DialogFooter>
+                    </DialogContent>
+                </Dialog>
             </div>
-        </div>
-
-        <div className="block sm:hidden text-lg font-semibold text-center w-full -mt-4">
-            {getDateNavigatorLabel()}
         </div>
       
       {isLoading && <div className="text-center py-12 text-muted-foreground">Memuat kegiatan...</div>}
