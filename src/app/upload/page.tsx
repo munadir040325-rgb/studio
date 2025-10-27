@@ -12,7 +12,8 @@ import { Popover, PopoverContent, PopoverTrigger } from '@/components/ui/popover
 import { Check, ChevronsUpDown, Loader2, UploadCloud, Trash2, Paperclip } from 'lucide-react';
 import { useToast } from '@/hooks/use-toast';
 import { cn } from '@/lib/utils';
-import { parseISO } from 'date-fns';
+import { parseISO, format } from 'date-fns';
+import { id as localeId } from 'date-fns/locale';
 import useSWR from 'swr';
 import Script from 'next/script';
 
@@ -111,7 +112,7 @@ export default function UploadPage() {
     }
   };
   
-  const requestAccessToken = (): Promise<string> => {
+ const requestAccessToken = (): Promise<string> => {
     return new Promise((resolve, reject) => {
       const client = tokenClient.current;
       if (!client) {
@@ -127,7 +128,6 @@ export default function UploadPage() {
         }
       };
       
-      // This is what shows the popup
       client.requestAccessToken({ prompt: 'consent' });
     });
   };
@@ -135,7 +135,6 @@ export default function UploadPage() {
   const handleAuthorizeAndPick = async (pickerRef: React.RefObject<HTMLInputElement>) => {
     if (!isGisLoaded || isSubmitting || gapiError) return;
 
-    // If we already have a token, just open the file dialog.
     if (accessTokenRef.current) {
         pickerRef.current?.click();
         return;
@@ -146,7 +145,6 @@ export default function UploadPage() {
         const token = await requestAccessToken();
         accessTokenRef.current = token;
         toast({ title: "Izin diberikan!", description: "Anda sekarang dapat memilih file." });
-        // After successful auth, automatically trigger the file input
         pickerRef.current?.click();
     } catch (error: any) {
         console.error("Authorization failed:", error);
@@ -359,7 +357,12 @@ export default function UploadPage() {
                                         selectedEvent?.id === event.id ? "opacity-100" : "opacity-0"
                                         )}
                                     />
-                                    {event.summary}
+                                    <div className="flex flex-col">
+                                        <span>{event.summary}</span>
+                                        <span className="text-xs text-muted-foreground">
+                                            {format(parseISO(event.start), 'dd MMM yyyy', { locale: localeId })}
+                                        </span>
+                                    </div>
                                     </CommandItem>
                                 ))}
                                 </CommandGroup>
@@ -437,3 +440,5 @@ export default function UploadPage() {
     </div>
   );
 }
+
+    
