@@ -370,7 +370,7 @@ export default function CalendarPage() {
         </Dialog>
         
         {/* Top Navigation & Controls */}
-        <div className="flex justify-between items-center p-2 rounded-lg bg-card border">
+        <div className="flex flex-col sm:flex-row justify-between items-center gap-4 p-2 rounded-lg bg-card border">
             <div className="flex items-center gap-4">
                 <Tabs value={viewMode} onValueChange={(value) => setViewMode(value as any)}>
                     <TabsList>
@@ -382,10 +382,26 @@ export default function CalendarPage() {
             </div>
 
             <div className='flex items-center gap-2'>
+                <Button variant="outline" className="w-28" onClick={goToToday}>Hari Ini</Button>
                 <Button variant="ghost" size="icon" onClick={() => handleDateChange(-1)}>
                     <ChevronLeft className="h-5 w-5" />
                 </Button>
-                <Button variant="outline" className="w-28" onClick={goToToday}>Hari Ini</Button>
+                 <Popover>
+                    <PopoverTrigger asChild>
+                        <span className="text-lg font-semibold w-48 text-center cursor-pointer hover:text-primary">
+                             {getDateNavigatorLabel()}
+                        </span>
+                    </PopoverTrigger>
+                    <PopoverContent className="w-auto p-0">
+                        <Calendar
+                        locale={localeId}
+                        mode="single"
+                        selected={filterDate}
+                        onSelect={setFilterDate}
+                        initialFocus
+                        />
+                    </PopoverContent>
+                </Popover>
                 <Button variant="ghost" size="icon" onClick={() => handleDateChange(1)}>
                     <ChevronRight className="h-5 w-5" />
                 </Button>
@@ -418,29 +434,6 @@ export default function CalendarPage() {
                 />
             </div>
             <div className='flex items-center gap-2'>
-                <Popover>
-                <PopoverTrigger asChild>
-                    <Button
-                    variant={'outline'}
-                    className={cn(
-                        'w-[240px] justify-start text-left font-normal',
-                        !filterDate && 'text-muted-foreground'
-                    )}
-                    >
-                    <CalendarIcon className="mr-2 h-4 w-4" />
-                    {filterDate ? getDateNavigatorLabel() : <span>Pilih tanggal</span>}
-                    </Button>
-                </PopoverTrigger>
-                <PopoverContent className="w-auto p-0">
-                    <Calendar
-                    locale={localeId}
-                    mode="single"
-                    selected={filterDate}
-                    onSelect={setFilterDate}
-                    initialFocus
-                    />
-                </PopoverContent>
-                </Popover>
                  <Button className="bg-green-500 hover:bg-green-600 text-white">
                     <MessageSquare className="mr-2 h-4 w-4" />
                     Kirim ke WhatsApp
