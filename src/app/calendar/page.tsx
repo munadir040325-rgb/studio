@@ -5,8 +5,8 @@ import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardFooter, CardHeader, CardTitle } from '@/components/ui/card';
 import { Input } from '@/components/ui/input';
 import { Popover, PopoverContent, PopoverTrigger } from '@/components/ui/popover';
-import { Dialog, DialogContent, DialogHeader, DialogTitle } from '@/components/ui/dialog';
-import { Calendar as CalendarIcon, ExternalLink, PlusCircle, RefreshCw, Search, MapPin, Clock, ChevronLeft, ChevronRight, MessageSquare, FileSignature } from 'lucide-react';
+import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger } from '@/components/ui/dialog';
+import { Calendar as CalendarIcon, ExternalLink, PlusCircle, RefreshCw, Search, MapPin, Clock, ChevronLeft, ChevronRight, FileSignature } from 'lucide-react';
 import { Calendar } from '@/components/ui/calendar';
 import { format, parseISO, isSameDay, startOfDay, endOfDay, startOfWeek, endOfWeek, startOfMonth, endOfMonth, isWithinInterval, eachDayOfInterval, getDay, isSameMonth, getDate, addDays, subDays, addWeeks, subWeeks, addMonths, subMonths } from 'date-fns';
 import { id as localeId } from 'date-fns/locale';
@@ -250,7 +250,7 @@ export default function CalendarPage() {
   const [filterDate, setFilterDate] = useState<Date | undefined>(new Date());
   const [searchTerm, setSearchTerm] = useState('');
   const [isFormOpen, setIsFormOpen] = useState(false);
-  const [viewMode, setViewMode] = useState<'harian' | 'mingguan' | 'bulanan'>('harian');
+  const [viewMode, setViewMode] = useState<'harian' | 'mingguan' | 'bulanan'>('bulanan');
 
 
   const fetchEvents = useCallback(async () => {
@@ -362,57 +362,63 @@ export default function CalendarPage() {
 
   return (
     <div className="flex flex-col gap-6 w-full">
+       <Dialog open={isFormOpen} onOpenChange={setIsFormOpen}>
         {/* Top Navigation & Controls */}
-        <div className="flex flex-wrap items-center justify-center md:justify-between gap-4 p-2 rounded-lg bg-card border">
-             <div className="flex items-center gap-4">
-                <Tabs value={viewMode} onValueChange={(value) => setViewMode(value as any)} className="w-full sm:w-auto">
-                    <TabsList>
-                        <TabsTrigger value="harian">Harian</TabsTrigger>
-                        <TabsTrigger value="mingguan">Mingguan</TabsTrigger>
-                        <TabsTrigger value="bulanan">Bulanan</TabsTrigger>
-                    </TabsList>
-                </Tabs>
-             </div>
+        <div className="flex flex-col md:flex-row md:items-center md:justify-between gap-4 p-2 rounded-lg bg-card border">
 
-
-            <div className='flex items-center gap-2'>
-                 <Button variant="ghost" size="icon" onClick={() => handleDateChange(-1)}>
-                    <ChevronLeft className="h-5 w-5" />
-                </Button>
-                 <Popover>
-                  <PopoverTrigger asChild>
-                    <Button variant="outline" className="w-auto min-w-48 text-center hidden sm:flex">
-                        <span className="font-semibold">{getDateNavigatorLabel()}</span>
+            {/* Mobile: Top Row (Nav + Add), Desktop: Right side */}
+            <div className='flex items-center justify-between w-full md:w-auto'>
+                <div className='flex items-center gap-1'>
+                    <Button variant="ghost" size="icon" onClick={() => handleDateChange(-1)}>
+                        <ChevronLeft className="h-5 w-5" />
                     </Button>
-                  </PopoverTrigger>
-                  <PopoverContent className="w-auto p-0">
-                      <Calendar
-                      locale={localeId}
-                      mode="single"
-                      selected={filterDate}
-                      onSelect={(date) => setFilterDate(date)}
-                      initialFocus
-                      />
-                  </PopoverContent>
-                </Popover>
-                <Button variant="ghost" size="icon" onClick={() => handleDateChange(1)}>
-                    <ChevronRight className="h-5 w-5" />
-                </Button>
+                    <Button variant="ghost" size="icon" onClick={() => handleDateChange(1)}>
+                        <ChevronRight className="h-5 w-5" />
+                    </Button>
+                    <Popover>
+                        <PopoverTrigger asChild>
+                        <Button variant="outline" className="w-auto text-center font-semibold">
+                            {getDateNavigatorLabel()}
+                        </Button>
+                        </PopoverTrigger>
+                        <PopoverContent className="w-auto p-0">
+                            <Calendar
+                            locale={localeId}
+                            mode="single"
+                            selected={filterDate}
+                            onSelect={(date) => setFilterDate(date)}
+                            initialFocus
+                            />
+                        </PopoverContent>
+                    </Popover>
+                </div>
+                
+                <DialogTrigger asChild>
+                    <Button>
+                        <PlusCircle className="mr-2 h-4 w-4" />
+                        Tambah
+                    </Button>
+                </DialogTrigger>
             </div>
-            <Dialog open={isFormOpen} onOpenChange={setIsFormOpen}>
-                <DialogContent className="sm:max-w-2xl max-h-[90vh] overflow-y-auto no-scrollbar">
-                    <DialogHeader>
-                    <DialogTitle>Tambah Kegiatan Baru</DialogTitle>
-                    </DialogHeader>
-                    <EventForm onSuccess={handleSuccess} />
-                </DialogContent>
-                <Button onClick={() => setIsFormOpen(true)}>
-                    <PlusCircle className="mr-2 h-4 w-4" />
-                    Tambah
-                </Button>
-            </Dialog>
+            
+            {/* Mobile: Bottom Row (Tabs), Desktop: Left side */}
+            <Tabs value={viewMode} onValueChange={(value) => setViewMode(value as any)} className="w-full md:w-auto">
+                <TabsList className='w-full'>
+                    <TabsTrigger value="harian" className='flex-1'>Harian</TabsTrigger>
+                    <TabsTrigger value="mingguan" className='flex-1'>Mingguan</TabsTrigger>
+                    <TabsTrigger value="bulanan" className='flex-1'>Bulanan</TabsTrigger>
+                </TabsList>
+            </Tabs>
+
         </div>
 
+        <DialogContent className="sm:max-w-2xl max-h-[90vh] overflow-y-auto no-scrollbar">
+            <DialogHeader>
+            <DialogTitle>Tambah Kegiatan Baru</DialogTitle>
+            </DialogHeader>
+            <EventForm onSuccess={handleSuccess} />
+        </DialogContent>
+      </Dialog>
         {/* Filter Bar */}
         <div className="flex flex-col sm:flex-row gap-4 justify-between items-center">
              <div className="relative flex-1 w-full sm:w-auto">
@@ -425,8 +431,7 @@ export default function CalendarPage() {
                 />
             </div>
             <div className='flex items-center gap-2'>
-                 <Button className="bg-green-500 hover:bg-green-600 text-white">
-                    <MessageSquare className="mr-2 h-4 w-4" />
+                 <Button className="bg-green-500 hover:bg-green-600 text-white flex-1 sm:flex-none">
                     Kirim ke WhatsApp
                 </Button>
                 <Button variant="outline" onClick={handleRefresh} disabled={isLoading}>
@@ -459,7 +464,7 @@ export default function CalendarPage() {
                                 </h2>
                             </div>
                         )}
-                        <div className="flex flex-col gap-4">
+                        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
                             {filteredEvents.map(event => event.id && <EventCard event={event} key={event.id} />)}
                         </div>
                     </div>
