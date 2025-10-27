@@ -13,7 +13,7 @@ import { ai } from '@/ai/genkit';
 import { z } from 'zod';
 import { google } from 'googleapis';
 
-const calendarId = 'kecamatan.gandrungmangu2020@gmail.com';
+const calendarId = process.env.NEXT_PUBLIC_CALENDAR_ID;
 
 const calendarEventSchema = z.object({
   id: z.string().optional().nullable(),
@@ -71,6 +71,10 @@ export const createCalendarEventFlow = ai.defineFlow(
     outputSchema: calendarEventSchema,
   },
   async (input) => {
+    if (!calendarId) {
+        throw new Error("ID Kalender (NEXT_PUBLIC_CALENDAR_ID) belum diatur di environment variables.");
+    }
+      
     let finalDescription = input.description || '';
 
     // Append the link to the calendar event description

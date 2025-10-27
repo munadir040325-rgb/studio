@@ -55,7 +55,11 @@ export async function GET(req: NextRequest) {
     const { searchParams } = new URL(req.url);
     const start = searchParams.get("start"); // "YYYY-MM-DD"
     const end = searchParams.get("end");     // "YYYY-MM-DD" (opsional)
-    const calendarId = "kecamatan.gandrungmangu2020@gmail.com";
+    const calendarId = process.env.NEXT_PUBLIC_CALENDAR_ID;
+
+    if (!calendarId) {
+      return NextResponse.json({ error: "ID Kalender (NEXT_PUBLIC_CALENDAR_ID) belum diatur." }, { status: 500 });
+    }
 
     // Jika tidak ada tanggal filter, ambil rentang default (misal, 1 tahun)
     const today = new Date();
@@ -102,10 +106,11 @@ export async function GET(req: NextRequest) {
     });
   } catch (err: any) {
     let errorMessage = err?.message || String(err);
+    const calendarId = process.env.NEXT_PUBLIC_CALENDAR_ID;
     if (errorMessage.includes('client_email')) {
         errorMessage = 'Kredensial Google Service Account (client_email atau private_key) di file .env tidak valid atau kosong.';
     } else if (errorMessage.includes('not found')) {
-        errorMessage = `Kalender dengan ID 'kecamatan.gandrungmangu2020@gmail.com' tidak ditemukan atau belum dibagikan ke email Service Account.`;
+        errorMessage = `Kalender dengan ID '${calendarId}' tidak ditemukan atau belum dibagikan ke email Service Account.`;
     }
     return NextResponse.json({ error: errorMessage }, { status: 500 });
   }
