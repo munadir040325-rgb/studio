@@ -6,7 +6,7 @@ import { Card, CardContent, CardFooter, CardHeader, CardTitle } from '@/componen
 import { Input } from '@/components/ui/input';
 import { Popover, PopoverContent, PopoverTrigger } from '@/components/ui/popover';
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger } from '@/components/ui/dialog';
-import { Calendar as CalendarIcon, ExternalLink, PlusCircle, RefreshCw, Search, MapPin, Clock, ChevronLeft, ChevronRight, MessageSquare } from 'lucide-react';
+import { Calendar as CalendarIcon, ExternalLink, PlusCircle, RefreshCw, Search, MapPin, Clock, ChevronLeft, ChevronRight, MessageSquare, FileSignature } from 'lucide-react';
 import { Calendar } from '@/components/ui/calendar';
 import { format, parseISO, isSameDay, startOfDay, endOfDay, startOfWeek, endOfWeek, startOfMonth, endOfMonth, isWithinInterval, eachDayOfInterval, getDay, isSameMonth, getDate, addDays, subDays, addWeeks, subWeeks, addMonths, subMonths } from 'date-fns';
 import { id as localeId } from 'date-fns/locale';
@@ -319,8 +319,14 @@ export default function CalendarPage() {
       }
     });
 
-    return eventsInInterval;
-  }, [allEvents, filterDate, viewMode]);
+    const searchFilteredEvents = eventsInInterval.filter(event => 
+      (event.summary || '').toLowerCase().includes(searchTerm.toLowerCase()) ||
+      (event.location || '').toLowerCase().includes(searchTerm.toLowerCase())
+    );
+
+    return searchFilteredEvents;
+
+  }, [allEvents, filterDate, viewMode, searchTerm]);
 
 
   const handleRefresh = () => {
@@ -367,23 +373,24 @@ export default function CalendarPage() {
         
         {/* Top Navigation & Controls */}
         <div className="flex flex-col sm:flex-row justify-between items-center gap-4 p-2 rounded-lg bg-card border">
-            <div className="flex items-center gap-4">
-                <Tabs value={viewMode} onValueChange={(value) => setViewMode(value as any)}>
+             <div className="flex items-center gap-4">
+                <Tabs value={viewMode} onValueChange={(value) => setViewMode(value as any)} className="w-full">
                     <TabsList>
                         <TabsTrigger value="harian">Harian</TabsTrigger>
                         <TabsTrigger value="mingguan">Mingguan</TabsTrigger>
                         <TabsTrigger value="bulanan">Bulanan</TabsTrigger>
                     </TabsList>
                 </Tabs>
-            </div>
+             </div>
+
 
             <div className='flex items-center gap-2'>
-                <Button variant="ghost" size="icon" onClick={() => handleDateChange(-1)}>
+                 <Button variant="ghost" size="icon" onClick={() => handleDateChange(-1)}>
                     <ChevronLeft className="h-5 w-5" />
                 </Button>
-                <Popover>
+                 <Popover>
                   <PopoverTrigger asChild>
-                      <Button variant="outline" className="w-48 text-center">
+                      <Button variant="outline" className="w-48 text-center hidden sm:flex">
                           {getDateNavigatorLabel()}
                       </Button>
                   </PopoverTrigger>
@@ -392,9 +399,7 @@ export default function CalendarPage() {
                       locale={localeId}
                       mode="single"
                       selected={filterDate}
-                      onSelect={(date) => {
-                          setFilterDate(date);
-                      }}
+                      onSelect={(date) => setFilterDate(date)}
                       initialFocus
                       />
                   </PopoverContent>
@@ -479,3 +484,5 @@ export default function CalendarPage() {
     </div>
   );
 }
+
+    
