@@ -23,9 +23,9 @@ import { format } from 'date-fns';
 import { id } from 'date-fns/locale';
 import { createCalendarEvent } from '@/ai/flows/calendar-flow';
 import { useToast } from '@/hooks/use-toast';
-import { useState, useEffect, useRef } from 'react';
-import Script from 'next/script';
+import { useState, useRef } from 'react';
 import { getFileIcon } from '@/lib/utils';
+import { useGoogleDriveAuth } from '@/hooks/useGoogleDriveAuth';
 
 
 const DRIVE_FOLDER_ID = process.env.NEXT_PUBLIC_DRIVE_FOLDER_ID;
@@ -55,13 +55,14 @@ type EventFormProps = {
 export function EventForm({ onSuccess }: EventFormProps) {
   const { toast } = useToast();
   const [isSubmitting, setIsSubmitting] = useState(false);
-  const [isGisLoaded, setIsGisLoaded] = useState(false);
-  const [gapiError, setGapiError] = useState<string | null>(null);
-  const [isUploading, setIsUploading] = useState(false);
-  
-  const tokenClient = useRef<any>(null);
-  const accessTokenRef = useRef<string | null>(null);
   const fileInputRef = useRef<HTMLInputElement>(null);
+
+  const {
+    isReady,
+    isUploading,
+    error: driveError,
+    authorizeAndUpload,
+  } = useGoogleDriveAuth({ folderId: DRIVE_FOLDER_ID });
 
   const form = useForm<z.infer<typeof formSchema>>({
     resolver: zodResolver(formSchema),
@@ -74,199 +75,33 @@ export function EventForm({ onSuccess }: EventFormProps) {
     },
   });
 
-  useEffect(() => {
-    const API_KEY = process.env.NEXT_PUBLIC_GOOGLE_API_KEY;
-    const CLIENT_ID = process.env.NEXT_PUBLIC_GOOGLE_CLIENT_ID;
-    if (!API_KEY || !CLIENT_ID || !DRIVE_FOLDER_ID) {
-      const errorMsg = "Kredensial Google (API_KEY, CLIENT_ID, atau DRIVE_FOLDER_ID) belum diatur di .env.";
-      console.error(errorMsg);
-      setGapiError(errorMsg);
-      toast({
-        variant: 'destructive',
-        title: 'Kesalahan Konfigurasi',
-        description: errorMsg,
-        duration: Infinity,
-      });
-    }
-  }, [toast]);
-
-  const handleGisLoad = () => {
-    const CLIENT_ID = process.env.NEXT_PUBLIC_GOOGLE_CLIENT_ID;
-    if (!CLIENT_ID) return;
-    
-    const { google } = window as any;
-    if (google?.accounts?.oauth2) {
-      tokenClient.current = google.accounts.oauth2.initTokenClient({
-        client_id: CLIENT_ID,
-        scope: 'https://www.googleapis.com/auth/drive.file',
-        callback: '', // Callback is handled in the promise
-      });
-      setIsGisLoaded(true);
-    } else {
-        const errorMsg = "Google Identity Services library tidak termuat dengan benar."
-        setGapiError(errorMsg);
-        console.error(errorMsg);
-    }
-  };
-  
-  const requestAccessToken = (): Promise<string> => {
-    return new Promise((resolve, reject) => {
-      const client = tokenClient.current;
-      if (!client) {
-        return reject(new Error("Google Identity Services client not initialized."));
-      }
-
-      client.callback = (tokenResponse: any) => {
-        if (tokenResponse.error) {
-          console.error("Google Access Token Error:", tokenResponse.error, tokenResponse.error_description);
-          reject(new Error(`Gagal mendapatkan izin Google: ${tokenResponse.error_description || tokenResponse.error}`));
-        } else {
-          resolve(tokenResponse.access_token);
-        }
-      };
-      
-      client.requestAccessToken({ prompt: 'consent' });
-    });
-  };
-
-  const uploadFileToDrive = async (file: File, accessToken: string): Promise<string> => {
-    const metadata = {
-        name: file.name,
-        mimeType: file.type,
-        parents: [DRIVE_FOLDER_ID],
-    };
-
-    const form = new FormData();
-    form.append('metadata', new Blob([JSON.stringify(metadata)], { type: 'application/json' }));
-    form.append('file', file);
-    
-    const response = await fetch('https://www.googleapis.com/upload/drive/v3/files?uploadType=multipart', {
-        method: 'POST',
-        headers: {
-            Authorization: `Bearer ${accessToken}`,
-        },
-        body: form,
-    });
-    
-    const body = await response.json();
-
-    if (!response.ok) {
-        console.error("Google Drive API Error:", body);
-        throw new Error(`Gagal mengunggah file ke Google Drive: ${body.error?.message || 'Unknown error'}`);
-    }
-
-    const fileId = body.id;
-
-    // Make the file publicly readable
-    const permissionResponse = await fetch(`https://www.googleapis.com/drive/v3/files/${fileId}/permissions`, {
-        method: 'POST',
-        headers: {
-            Authorization: `Bearer ${accessToken}`,
-            'Content-Type': 'application/json',
-        },
-        body: JSON.stringify({
-            role: 'reader',
-            type: 'anyone',
-        }),
-    });
-
-    if (!permissionResponse.ok) {
-        console.error("Google Drive Permission Error:", await permissionResponse.json());
-        // Don't throw, just warn, as the file is uploaded but not public
-        toast({
-            variant: "destructive",
-            title: "Peringatan Izin",
-            description: "File berhasil diunggah tapi gagal membuatnya dapat diakses publik."
-        });
-    }
-
-    // Get the web view link
-    const fileDetailsResponse = await fetch(`https://www.googleapis.com/drive/v3/files/${fileId}?fields=webViewLink`, {
-        headers: {
-            Authorization: `Bearer ${accessToken}`,
-        },
-    });
-    
-    const fileDetails = await fileDetailsResponse.json();
-
-    if (!fileDetails.webViewLink) {
-        throw new Error("Gagal mendapatkan link publik untuk file yang diunggah.");
-    }
-    
-    return fileDetails.webViewLink;
-  }
-
-  const handleAuthorizeClick = async () => {
-    if (!isReady || isUploading || gapiError) return;
-
-    // If we already have a token, just open the file dialog.
-    if (accessTokenRef.current) {
-        fileInputRef.current?.click();
-        return;
-    }
-
-    toast({ description: "Meminta izin Google..." });
-    try {
-        const token = await requestAccessToken();
-        accessTokenRef.current = token;
-        toast({ title: "Izin diberikan!", description: "Anda sekarang dapat memilih file untuk diunggah." });
-        // After successful auth, automatically trigger the file input
-        fileInputRef.current?.click();
-    } catch (error: any) {
-        console.error("Authorization failed:", error);
-        accessTokenRef.current = null;
-        toast({
-            variant: 'destructive',
-            title: 'Izin Ditolak',
-            description: error.message,
-        });
-    }
+  const handleUploadClick = () => {
+    fileInputRef.current?.click();
   }
 
   const handleFileChange = async (event: React.ChangeEvent<HTMLInputElement>) => {
       const file = event.target.files?.[0];
+      if (!file) return;
 
-      if (!file) {
-          return;
-      }
-      
-      // We should have a token from handleAuthorizeClick, but check just in case.
-      let token = accessTokenRef.current;
-      if (!token) {
-          toast({
-              variant: 'destructive',
-              title: 'Sesi Hilang',
-              description: 'Sesi izin Google tidak ditemukan. Silakan coba klik tombol unggah lagi.',
-          });
-          if(fileInputRef.current) fileInputRef.current.value = "";
-          return;
-      }
-
-      setIsUploading(true);
       form.setValue('attachmentName', file.name);
-      toast({ description: `Mengunggah ${file.name}...` });
       
-      try {
-          const publicUrl = await uploadFileToDrive(file, token);
-          form.setValue('attachmentUrl', publicUrl);
-          toast({ title: "Berhasil!", description: `${file.name} telah diunggah.` });
+      const result = await authorizeAndUpload([file]);
 
-      } catch(error: any) {
-          console.error("Upload process failed:", error);
+      if (result.error) {
           toast({
               variant: 'destructive',
               title: 'Gagal Mengunggah',
-              description: error.message,
+              description: result.error,
           });
-          // Clear attachment if upload fails
           form.setValue('attachmentName', '');
           form.setValue('attachmentUrl', '');
-      } finally {
-          setIsUploading(false);
-          // Reset file input to allow re-uploading the same file
-          if(fileInputRef.current) {
-            fileInputRef.current.value = "";
-          }
+      } else if (result.links && result.links.length > 0) {
+          form.setValue('attachmentUrl', result.links[0].webViewLink);
+          toast({ title: "Berhasil!", description: `${file.name} telah diunggah.` });
+      }
+
+      if (fileInputRef.current) {
+        fileInputRef.current.value = "";
       }
   }
 
@@ -280,13 +115,18 @@ export function EventForm({ onSuccess }: EventFormProps) {
       const yearYY = format(now, 'yy');
       const timestamp = format(now, 'dd MMMM yyyy, HH:mm', { locale: id });
       
-      const prefix = `Giat_${monthName}_${yearYY}`;
       const userInput = values.description || '';
-      const formattedDescription = `${prefix}\n${userInput}\n\nDisimpan pada: ${timestamp}`;
+      
+      let descriptionParts = [];
+      descriptionParts.push(`Giat_${monthName}_${yearYY}`);
+      descriptionParts.push(userInput);
+      descriptionParts.push(`Disimpan pada: ${timestamp}`);
+
+      const finalDescription = descriptionParts.join('\n');
 
       await createCalendarEvent({
         summary: values.summary,
-        description: formattedDescription,
+        description: finalDescription,
         location: values.location,
         startDateTime: values.startDateTime.toISOString(),
         endDateTime: values.endDateTime.toISOString(),
@@ -333,12 +173,10 @@ export function EventForm({ onSuccess }: EventFormProps) {
     field.onChange(newDate);
   };
 
-  const attachmentUrl = form.watch('attachmentUrl');
   const attachmentName = form.watch('attachmentName');
-  const isReady = isGisLoaded;
   
   const getButtonText = () => {
-    if (gapiError) return "Konfigurasi Error";
+    if (driveError) return "Konfigurasi Error";
     if (isSubmitting) return "Menyimpan...";
     if (!isReady) return "Memuat Google API...";
     return "Simpan Kegiatan";
@@ -351,7 +189,6 @@ export function EventForm({ onSuccess }: EventFormProps) {
 
   return (
     <>
-      <Script src="https://accounts.google.com/gsi/client" async defer onLoad={handleGisLoad}></Script>
       <Form {...form}>
         <form onSubmit={form.handleSubmit(onSubmit)} className="space-y-6">
           <FormField
@@ -515,7 +352,7 @@ export function EventForm({ onSuccess }: EventFormProps) {
                   </div>
                 ) : (
                   <div>
-                    <Button type="button" variant="outline" onClick={handleAuthorizeClick} disabled={!isReady || isUploading || !!gapiError}>
+                    <Button type="button" variant="outline" onClick={handleUploadClick} disabled={!isReady || isUploading || !!driveError}>
                         {isUploading ? <Loader2 className="mr-2 h-4 w-4 animate-spin" /> : <UploadCloud className="mr-2 h-4 w-4" />}
                         {isUploading ? 'Mengunggah...' : 'Unggah Lampiran'}
                     </Button>
@@ -542,7 +379,7 @@ export function EventForm({ onSuccess }: EventFormProps) {
 
 
           <div className="flex justify-end">
-              <Button type="submit" disabled={!isReady || isSubmitting || isUploading || !!gapiError}>
+              <Button type="submit" disabled={!isReady || isSubmitting || isUploading || !!driveError}>
               {isSubmitting && <Loader2 className="mr-2 h-4 w-4 animate-spin" />}
               {getButtonText()}
               </Button>

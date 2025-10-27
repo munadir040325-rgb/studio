@@ -4,6 +4,9 @@ import * as React from "react"
 
 const MOBILE_BREAKPOINT = 768
 
+// This hook is safe for SSR because it initializes with `false` and only
+// checks the window width on the client-side after the component has mounted.
+// This avoids hydration mismatches.
 export function useIsMobile() {
   const [isMobile, setIsMobile] = React.useState(false);
 
@@ -26,5 +29,3 @@ export function useIsMobile() {
 
   return isMobile;
 }
-
-    
