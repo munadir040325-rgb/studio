@@ -132,6 +132,8 @@ export function EventForm({ onSuccess }: EventFormProps) {
         try {
           // Explicitly set the redirect_uri to match the one in Google Cloud Console
           await authInstance.signIn({
+            ux_mode: 'popup',
+            prompt: 'consent',
             redirect_uri: 'http://localhost:9002'
           });
         } catch (error) {
@@ -489,5 +491,3 @@ export function EventForm({ onSuccess }: EventFormProps) {
     </Form>
   );
 }
-
-    
