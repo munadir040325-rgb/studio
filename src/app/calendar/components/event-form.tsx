@@ -130,7 +130,10 @@ export function EventForm({ onSuccess }: EventFormProps) {
 
       if (!isSignedIn) {
         try {
-          await authInstance.signIn();
+          // Explicitly set the redirect_uri to match the one in Google Cloud Console
+          await authInstance.signIn({
+            redirect_uri: 'http://localhost:9002'
+          });
         } catch (error) {
            console.error("Google Sign-In Error:", error);
            reject(new Error("Login Google dibatalkan atau gagal."));
