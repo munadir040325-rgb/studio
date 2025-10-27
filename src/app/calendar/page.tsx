@@ -13,6 +13,7 @@ import { cn } from '@/lib/utils';
 import { EventForm } from './components/event-form';
 import { Alert, AlertDescription, AlertTitle } from '@/components/ui/alert';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
+import { Input } from '@/components/ui/input';
 
 type CalendarEvent = {
     id: string | null | undefined;
@@ -249,7 +250,7 @@ export default function CalendarPage() {
   const [filterDate, setFilterDate] = useState<Date | undefined>(new Date());
   const [searchTerm, setSearchTerm] = useState('');
   const [isFormOpen, setIsFormOpen] = useState(false);
-  const [viewMode, setViewMode] = useState<'harian' | 'mingguan' | 'bulanan'>('bulanan');
+  const [viewMode, setViewMode] = useState<'harian' | 'mingguan' | 'bulanan'>('harian');
 
 
   const fetchEvents = useCallback(async () => {
@@ -345,7 +346,7 @@ export default function CalendarPage() {
     else newDate = addMonths(filterDate, amount);
     setFilterDate(newDate);
   };
-  
+
   const getDateNavigatorLabel = () => {
       if (!filterDate) return '';
       if (viewMode === 'harian') return format(filterDate, 'PPP', { locale: localeId });
@@ -353,9 +354,9 @@ export default function CalendarPage() {
           const start = startOfWeek(filterDate, { weekStartsOn: 1 });
           const end = endOfWeek(filterDate, { weekStartsOn: 1 });
           if (start.getMonth() === end.getMonth()) {
-            return `${format(start, 'dd')} - ${format(end, 'dd MMMM yyyy')}`;
+            return `${format(start, 'dd')} - ${format(end, 'dd MMMM yyyy', { locale: localeId })}`;
           }
-          return `${format(start, 'dd MMM')} - ${format(end, 'dd MMM yyyy')}`;
+          return `${format(start, 'dd MMM')} - ${format(end, 'dd MMM yyyy', { locale: localeId })}`;
       }
       if (viewMode === 'bulanan') return format(filterDate, 'MMMM yyyy', { locale: localeId });
       return '';
@@ -365,7 +366,7 @@ export default function CalendarPage() {
   return (
     <div className="flex flex-col gap-6 w-full">
         {/* Top Navigation & Controls */}
-        <div className="flex flex-col items-center md:flex-row md:items-center md:justify-between gap-4 p-2 rounded-lg bg-card border">
+        <div className="flex flex-col items-center gap-4 p-2 rounded-lg bg-card border md:flex-row md:items-center md:justify-between">
             {/* Left Side: Date Navigator */}
             <div className='flex items-center gap-2'>
                 <Button variant="ghost" size="icon" onClick={() => handleDateChange(-1)}>
@@ -388,7 +389,7 @@ export default function CalendarPage() {
                         <TabsTrigger value="bulanan">Bulanan</TabsTrigger>
                     </TabsList>
                 </Tabs>
-                <Button variant="outline" onClick={handleRefresh} disabled={isLoading} size="icon">
+                 <Button variant="outline" onClick={handleRefresh} disabled={isLoading} size="icon">
                     <RefreshCw className={cn("h-4 w-4", isLoading && "animate-spin")} />
                     <span className="sr-only">Muat Ulang</span>
                 </Button>
