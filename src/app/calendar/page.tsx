@@ -96,6 +96,44 @@ const extractDisposisi = (description: string | null | undefined): string => {
     return '-';
 };
 
+const getCleanDescription = (description: string | null | undefined) => {
+    if (!description) return '';
+    let cleanText = description;
+
+    // Use a function that only runs on the client
+    const [sanitizedHtml, setSanitizedHtml] = useState('');
+
+    useEffect(() => {
+        // Sanitize on the client
+        const sanitized = DOMPurify.sanitize(description || '', { USE_PROFILES: { html: true } });
+        
+        // Remove known link/disposition patterns from the sanitized HTML
+        const tempDiv = document.createElement('div');
+        tempDiv.innerHTML = sanitized;
+        
+        // Remove attachment links and Giat prefix/suffix
+        const lines = tempDiv.innerHTML.split(/<br\s*\/?>/i);
+        const filteredLines = lines.filter(line => 
+            !line.match(/📍\s*Disposisi:/i) &&
+            !line.match(/Lampiran Undangan:/i) &&
+            !line.match(/Link Hasil Kegiatan:/i) &&
+            !line.match(/^Giat_\w+_\d+/i) &&
+            !line.match(/Disimpan pada:/i)
+        );
+
+        // Re-join and get text content
+        const finalHtml = filteredLines.join('\n').trim();
+        const textDiv = document.createElement('div');
+        textDiv.innerHTML = finalHtml;
+
+        setSanitizedHtml(textDiv.textContent || '');
+
+    }, [description]);
+    
+    return sanitizedHtml;
+};
+
+
 const EventCard = ({ event }: { event: CalendarEvent }) => (
   <Card key={event.id} className="flex flex-col">
       <CardHeader className="pb-4">
@@ -271,6 +309,69 @@ const MonthlyView = ({ events, baseDate, onEventClick, onDayClick }: { events: C
     );
 };
 
+const EventDetailContent = ({ event }: { event: CalendarEvent }) => {
+    const cleanDescription = getCleanDescription(event.description);
+    const invitationLink = extractAttachmentLink(event.description, 'Lampiran Undangan');
+    const resultLink = extractAttachmentLink(event.description, 'Link Hasil Kegiatan');
+
+    return (
+        <>
+            <DialogHeader>
+                <DialogTitle className="text-xl">{event.summary}</DialogTitle>
+                <DialogDescription>{formatEventDisplay(event.start, event.end, event.isAllDay)}</DialogDescription>
+            </DialogHeader>
+            <div className="space-y-4 py-4 text-sm">
+                {event.location && (
+                    <div className="flex items-start">
+                        <MapPin className="mr-3 h-5 w-5 flex-shrink-0 text-muted-foreground" />
+                        <span className="text-foreground">{event.location}</span>
+                    </div>
+                )}
+
+                <div className="flex items-start">
+                    <Pin className="mr-3 h-5 w-5 flex-shrink-0 text-red-500" />
+                    <span className="text-foreground">Disposisi: {extractDisposisi(event.description)}</span>
+                </div>
+
+                {(invitationLink || resultLink) && (
+                    <div className="space-y-2 pt-4 border-t">
+                        <h3 className="text-sm font-medium text-muted-foreground">Lampiran</h3>
+                        {invitationLink && (
+                            <a href={invitationLink.url} target="_blank" rel="noopener noreferrer" className="flex items-center gap-3 p-2 rounded-md hover:bg-muted">
+                                {getFileIcon(invitationLink.name)}
+                                <span className="text-blue-600 truncate">{invitationLink.name}</span>
+                            </a>
+                        )}
+                        {resultLink && (
+                            <a href={resultLink.url} target="_blank" rel="noopener noreferrer" className="flex items-center gap-3 p-2 rounded-md hover:bg-muted">
+                                {getFileIcon(resultLink.name)}
+                                <span className="text-blue-600 truncate">{resultLink.name}</span>
+                            </a>
+                        )}
+                    </div>
+                )}
+
+                {cleanDescription && (
+                    <div className="flex items-start pt-4 border-t">
+                        <Info className="mr-3 h-5 w-5 flex-shrink-0 text-muted-foreground" />
+                        <p className="text-foreground whitespace-pre-wrap">{cleanDescription}</p>
+                    </div>
+                )}
+            </div>
+            <DialogFooter>
+                {event.htmlLink && (
+                    <Button variant="outline" asChild>
+                        <a href={event.htmlLink} target="_blank" rel="noopener noreferrer">
+                            <ExternalLink className="mr-2 h-4 w-4" />
+                            Lihat di Google Calendar
+                        </a>
+                    </Button>
+                )}
+            </DialogFooter>
+        </>
+    );
+};
+
 
 export default function CalendarPage() {
   const [events, setEvents] = useState<CalendarEvent[]>([]);
@@ -284,7 +385,6 @@ export default function CalendarPage() {
   const [selectedEvent, setSelectedEvent] = useState<CalendarEvent | null>(null);
   const [dayToShow, setDayToShow] = useState<Date | null>(null);
   const { toast } = useToast();
-  const [cleanDescription, setCleanDescription] = useState('');
 
   useEffect(() => {
     // Initialize filterDate on the client side to avoid hydration errors
@@ -442,27 +542,9 @@ export default function CalendarPage() {
       return '';
   }
 
-  useEffect(() => {
-    if (selectedEvent?.description) {
-      // DOMPurify can only run on the client
-      const sanitized = DOMPurify.sanitize(selectedEvent.description, { USE_PROFILES: { html: true } });
-      const tempDiv = document.createElement('div');
-      tempDiv.innerHTML = sanitized;
-      tempDiv.querySelectorAll('a').forEach(a => a.parentElement?.remove());
-      const textOnly = tempDiv.textContent || '';
-      setCleanDescription(textOnly.replace(/📍\s*Disposisi:.*(\r\n|\n|\r)/im, '').trim());
-    } else {
-      setCleanDescription('');
-    }
-  }, [selectedEvent]);
-
   const eventsByDay = useMemo(() => groupEventsByDay(events), [events]);
   const dailyEvents = dayToShow ? eventsByDay.get(format(dayToShow, 'yyyy-MM-dd')) || [] : [];
   
-  const invitationLink = selectedEvent ? extractAttachmentLink(selectedEvent.description, 'Lampiran Undangan') : null;
-  const resultLink = selectedEvent ? extractAttachmentLink(selectedEvent.description, 'Link Hasil Kegiatan') : null;
-  
-
   return (
     <div className="flex flex-col gap-6 w-full">
         {/* Top Navigation & Controls */}
@@ -594,66 +676,12 @@ export default function CalendarPage() {
       )}
 
       {/* Event Detail Modal */}
-      <Dialog open={!!selectedEvent} onOpenChange={(isOpen) => !isOpen && setSelectedEvent(null)}>
-        <DialogContent className="sm:max-w-lg">
-          {selectedEvent && (
-            <>
-              <DialogHeader>
-                <DialogTitle className="text-xl">{selectedEvent.summary}</DialogTitle>
-                <DialogDescription>{formatEventDisplay(selectedEvent.start, selectedEvent.end, selectedEvent.isAllDay)}</DialogDescription>
-              </DialogHeader>
-              <div className="space-y-4 py-4 text-sm">
-                {selectedEvent.location && (
-                  <div className="flex items-start">
-                    <MapPin className="mr-3 h-5 w-5 flex-shrink-0 text-muted-foreground" />
-                    <span className="text-foreground">{selectedEvent.location}</span>
-                  </div>
-                )}
-                
-                <div className="flex items-start">
-                  <Pin className="mr-3 h-5 w-5 flex-shrink-0 text-red-500" />
-                  <span className="text-foreground">Disposisi: {extractDisposisi(selectedEvent.description)}</span>
-                </div>
-                
-                {(invitationLink || resultLink) && (
-                  <div className="space-y-2 pt-4 border-t">
-                      <h3 className="text-sm font-medium text-muted-foreground">Lampiran</h3>
-                      {invitationLink && (
-                          <a href={invitationLink.url} target="_blank" rel="noopener noreferrer" className="flex items-center gap-3 p-2 rounded-md hover:bg-muted">
-                              {getFileIcon(invitationLink.name)}
-                              <span className="text-blue-600 truncate">{invitationLink.name}</span>
-                          </a>
-                      )}
-                      {resultLink && (
-                          <a href={resultLink.url} target="_blank" rel="noopener noreferrer" className="flex items-center gap-3 p-2 rounded-md hover:bg-muted">
-                              {getFileIcon(resultLink.name)}
-                              <span className="text-blue-600 truncate">{resultLink.name}</span>
-                          </a>
-                      )}
-                  </div>
-                )}
-                
-                {cleanDescription && (
-                  <div className="flex items-start pt-4 border-t">
-                    <Info className="mr-3 h-5 w-5 flex-shrink-0 text-muted-foreground" />
-                    <p className="text-foreground whitespace-pre-wrap">{cleanDescription}</p>
-                  </div>
-                )}
-              </div>
-              <DialogFooter>
-                {selectedEvent.htmlLink && (
-                  <Button variant="outline" asChild>
-                    <a href={selectedEvent.htmlLink} target="_blank" rel="noopener noreferrer">
-                      <ExternalLink className="mr-2 h-4 w-4" />
-                      Lihat di Google Calendar
-                    </a>
-                  </Button>
-                )}
-              </DialogFooter>
-            </>
-          )}
-        </DialogContent>
-      </Dialog>
+        <Dialog open={!!selectedEvent} onOpenChange={(isOpen) => !isOpen && setSelectedEvent(null)}>
+            <DialogContent className="sm:max-w-lg">
+                {selectedEvent && <EventDetailContent event={selectedEvent} />}
+            </DialogContent>
+        </Dialog>
+
 
       {/* Day's Events Modal */}
       <Dialog open={!!dayToShow} onOpenChange={(isOpen) => !isOpen && setDayToShow(null)}>

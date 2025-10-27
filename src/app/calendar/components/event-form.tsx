@@ -274,9 +274,19 @@ export function EventForm({ onSuccess }: EventFormProps) {
     setIsSubmitting(true);
     try {
       toast({ description: "Menyimpan kegiatan ke Google Calendar..." });
+      
+      const now = new Date();
+      const monthName = format(now, 'MMMM', { locale: id });
+      const yearYY = format(now, 'yy');
+      const timestamp = format(now, 'dd MMMM yyyy, HH:mm', { locale: id });
+      
+      const prefix = `Giat_${monthName}_${yearYY}`;
+      const userInput = values.description || '';
+      const formattedDescription = `${prefix}\n${userInput}\n\nDisimpan pada: ${timestamp}`;
+
       await createCalendarEvent({
         summary: values.summary,
-        description: values.description,
+        description: formattedDescription,
         location: values.location,
         startDateTime: values.startDateTime.toISOString(),
         endDateTime: values.endDateTime.toISOString(),
