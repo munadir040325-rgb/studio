@@ -12,9 +12,13 @@ export function useIsMobile() {
       setIsMobile(window.innerWidth < MOBILE_BREAKPOINT);
     };
 
-    checkIsMobile(); // Check on mount
+    // Check on mount (only runs on client)
+    checkIsMobile();
+    
+    // Add event listener for window resize
     window.addEventListener('resize', checkIsMobile);
 
+    // Cleanup event listener on unmount
     return () => {
       window.removeEventListener('resize', checkIsMobile);
     };
