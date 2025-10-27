@@ -1,4 +1,3 @@
-
 'use client';
 
 import { zodResolver } from '@hookform/resolvers/zod';
@@ -133,8 +132,7 @@ export function EventForm({ onSuccess }: EventFormProps) {
           // Explicitly set the redirect_uri to match the one in Google Cloud Console
           await authInstance.signIn({
             ux_mode: 'popup',
-            prompt: 'consent',
-            redirect_uri: 'http://localhost:9002'
+            prompt: 'consent'
           });
         } catch (error) {
            console.error("Google Sign-In Error:", error);
@@ -144,9 +142,9 @@ export function EventForm({ onSuccess }: EventFormProps) {
       }
       
       const reader = new FileReader();
-      reader.readAsBinaryString(file);
+      reader.readAsDataURL(file);
       reader.onload = async () => {
-        const fileContent = reader.result;
+        const fileContentBase64 = (reader.result as string).split(',')[1];
         const boundary = '-------314159265358979323846';
         const delimiter = "\r\n--" + boundary + "\r\n";
         const close_delim = "\r\n--" + boundary + "--";
@@ -165,7 +163,7 @@ export function EventForm({ onSuccess }: EventFormProps) {
           'Content-Type: ' + file.type + '\r\n' +
           'Content-Transfer-Encoding: base64\r\n' +
           '\r\n' +
-          btoa(fileContent as string) +
+          fileContentBase64 +
           close_delim;
         
         try {
@@ -491,3 +489,4 @@ export function EventForm({ onSuccess }: EventFormProps) {
     </Form>
   );
 }
+    
