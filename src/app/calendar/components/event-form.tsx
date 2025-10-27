@@ -59,6 +59,7 @@ export function EventForm({ onSuccess }: EventFormProps) {
   const [attachmentName, setAttachmentName] = useState<string | null>(null);
   
   const tokenClient = useRef<any>(null);
+  const accessTokenRef = useRef<string | null>(null);
   const fileInputRef = useRef<HTMLInputElement>(null);
 
   const form = useForm<z.infer<typeof formSchema>>({
@@ -215,19 +216,19 @@ export function EventForm({ onSuccess }: EventFormProps) {
     return fileDetails.webViewLink;
   }
 
-  const handleUploadClick = async () => {
+  const handleAuthorizeClick = async () => {
     if (!isReady || isUploading || gapiError) return;
 
-    toast({ description: "Meminta izin Google untuk mengunggah..." });
+    toast({ description: "Meminta izin Google..." });
     try {
-        // This is now the first step, directly triggered by user click.
-        const accessToken = await requestAccessToken();
-        
-        // If permission is granted, programmatically click the hidden file input
-        fileInputRef.current?.setAttribute('data-access-token', accessToken);
+        const token = await requestAccessToken();
+        accessTokenRef.current = token;
+        toast({ title: "Izin diberikan!", description: "Anda sekarang dapat memilih file untuk diunggah." });
+        // After successful auth, automatically trigger the file input
         fileInputRef.current?.click();
     } catch (error: any) {
         console.error("Authorization failed:", error);
+        accessTokenRef.current = null;
         toast({
             variant: 'destructive',
             title: 'Izin Ditolak',
@@ -238,12 +239,27 @@ export function EventForm({ onSuccess }: EventFormProps) {
 
   const handleFileChange = async (event: React.ChangeEvent<HTMLInputElement>) => {
       const file = event.target.files?.[0];
-      const accessToken = event.target.getAttribute('data-access-token');
 
-      if (!file || !accessToken) {
-        // If file input was somehow triggered without an access token, do nothing.
-        if (fileInputRef.current) fileInputRef.current.value = "";
-        return;
+      if (!file) {
+          return;
+      }
+      
+      // Check if we have a token. If not, try to get one.
+      let token = accessTokenRef.current;
+      if (!token) {
+          toast({ description: "Meminta izin Google untuk mengunggah..." });
+          try {
+              token = await requestAccessToken();
+              accessTokenRef.current = token;
+          } catch (error: any) {
+              toast({
+                  variant: 'destructive',
+                  title: 'Izin Diperlukan',
+                  description: 'Izin Google diperlukan untuk mengunggah file. Silakan coba lagi.',
+              });
+              if(fileInputRef.current) fileInputRef.current.value = "";
+              return;
+          }
       }
 
       setIsUploading(true);
@@ -251,7 +267,7 @@ export function EventForm({ onSuccess }: EventFormProps) {
       toast({ description: `Mengunggah ${file.name}...` });
       
       try {
-          const publicUrl = await uploadFileToDrive(file, accessToken);
+          const publicUrl = await uploadFileToDrive(file, token);
           form.setValue('attachmentUrl', publicUrl);
           toast({ title: "Berhasil!", description: `${file.name} telah diunggah.` });
 
@@ -270,7 +286,6 @@ export function EventForm({ onSuccess }: EventFormProps) {
           // Reset file input to allow re-uploading the same file
           if(fileInputRef.current) {
             fileInputRef.current.value = "";
-            fileInputRef.current.removeAttribute('data-access-token');
           }
       }
   }
@@ -509,7 +524,7 @@ export function EventForm({ onSuccess }: EventFormProps) {
                   </div>
                 ) : (
                   <div>
-                    <Button type="button" variant="outline" onClick={handleUploadClick} disabled={!isReady || isUploading || !!gapiError}>
+                    <Button type="button" variant="outline" onClick={handleAuthorizeClick} disabled={!isReady || isUploading || !!gapiError}>
                         {isUploading ? <Loader2 className="mr-2 h-4 w-4 animate-spin" /> : <UploadCloud className="mr-2 h-4 w-4" />}
                         {isUploading ? 'Mengunggah...' : 'Unggah Lampiran'}
                     </Button>
