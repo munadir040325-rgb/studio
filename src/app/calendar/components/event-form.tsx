@@ -40,7 +40,7 @@ const formSchema = z.object({
   endDateTime: z.date({
     required_error: 'Tanggal & waktu selesai harus diisi.',
   }),
-  attachmentUrl: z.string().url().optional(),
+  attachmentUrl: z.string().url().optional().or(z.literal('')),
 });
 
 
@@ -330,7 +330,7 @@ export function EventForm({ onSuccess }: EventFormProps) {
   }
 
   const handleRemoveAttachment = () => {
-      form.setValue('attachmentUrl', undefined);
+      form.setValue('attachmentUrl', '');
       setAttachmentName(null);
   }
 
@@ -537,5 +537,3 @@ export function EventForm({ onSuccess }: EventFormProps) {
     </>
   );
 }
-
-    
