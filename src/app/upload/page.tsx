@@ -13,10 +13,12 @@ import { Check, ChevronsUpDown, Loader2, UploadCloud } from 'lucide-react';
 import { useToast } from '@/hooks/use-toast';
 import { employees } from '@/lib/data';
 import { cn } from '@/lib/utils';
+import { parseISO } from 'date-fns';
 
 type CalendarEvent = {
   id: string;
   summary: string;
+  start: string;
 };
 
 type Employee = {
@@ -32,6 +34,7 @@ export default function UploadPage() {
 
   // Form state
   const [selectedEvent, setSelectedEvent] = useState('');
+  const [openEvent, setOpenEvent] = useState(false);
   const [selectedBagian, setSelectedBagian] = useState('');
   const [selectedPegawai, setSelectedPegawai] = useState('');
   const [openPegawai, setOpenPegawai] = useState(false);
@@ -50,7 +53,15 @@ export default function UploadPage() {
         if (!response.ok) {
           throw new Error(data.error || 'Gagal mengambil daftar kegiatan.');
         }
-        setEvents(data.items || []);
+        // Sort events by start date, most recent first
+        const sortedEvents = (data.items || []).sort((a: CalendarEvent, b: CalendarEvent) => {
+            try {
+                return parseISO(b.start).getTime() - parseISO(a.start).getTime();
+            } catch (e) {
+                return 0; // Keep original order if dates are invalid
+            }
+        });
+        setEvents(sortedEvents);
       } catch (error: any) {
         toast({
           variant: 'destructive',
@@ -138,16 +149,52 @@ export default function UploadPage() {
             <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
               <div className="grid gap-2">
                 <Label htmlFor="kegiatan">Pilih Kegiatan</Label>
-                <Select value={selectedEvent} onValueChange={setSelectedEvent} required>
-                  <SelectTrigger disabled={isLoadingEvents}>
-                    <SelectValue placeholder={isLoadingEvents ? "Memuat kegiatan..." : "Pilih dari kalender"} />
-                  </SelectTrigger>
-                  <SelectContent>
-                    {!isLoadingEvents && events.map((event) => (
-                      <SelectItem key={event.id} value={event.id}>{event.summary}</SelectItem>
-                    ))}
-                  </SelectContent>
-                </Select>
+                <Popover open={openEvent} onOpenChange={setOpenEvent}>
+                    <PopoverTrigger asChild>
+                        <Button
+                        variant="outline"
+                        role="combobox"
+                        aria-expanded={openEvent}
+                        className="w-full justify-between"
+                        disabled={isLoadingEvents}
+                        >
+                        {isLoadingEvents 
+                            ? "Memuat kegiatan..." 
+                            : selectedEvent
+                            ? events.find((event) => event.id === selectedEvent)?.summary
+                            : "Pilih kegiatan..."}
+                        <ChevronsUpDown className="ml-2 h-4 w-4 shrink-0 opacity-50" />
+                        </Button>
+                    </PopoverTrigger>
+                    <PopoverContent className="w-[--radix-popover-trigger-width] p-0">
+                        <Command>
+                            <CommandInput placeholder="Cari kegiatan..." />
+                            <CommandList>
+                                <CommandEmpty>Kegiatan tidak ditemukan.</CommandEmpty>
+                                <CommandGroup>
+                                {events.map((event) => (
+                                    <CommandItem
+                                    key={event.id}
+                                    value={event.summary}
+                                    onSelect={() => {
+                                        setSelectedEvent(event.id);
+                                        setOpenEvent(false);
+                                    }}
+                                    >
+                                    <Check
+                                        className={cn(
+                                        "mr-2 h-4 w-4",
+                                        selectedEvent === event.id ? "opacity-100" : "opacity-0"
+                                        )}
+                                    />
+                                    {event.summary}
+                                    </CommandItem>
+                                ))}
+                                </CommandGroup>
+                            </CommandList>
+                        </Command>
+                    </PopoverContent>
+                </Popover>
               </div>
               <div className="grid gap-2">
                 <Label htmlFor="bagian">Pilih Bagian</Label>
