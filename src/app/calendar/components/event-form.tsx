@@ -88,20 +88,20 @@ export function EventForm({ onSuccess }: EventFormProps) {
     }
   }, [toast]);
 
-  const handleGapiLoad = async () => {
+  const handleGapiLoad = () => {
     const { gapi } = window as any;
     if (!gapi) return;
     gapi.load('client', async () => {
       try {
         await gapi.client.init({
-            apiKey: process.env.NEXT_PUBLIC_GOOGLE_API_KEY,
+          apiKey: process.env.NEXT_PUBLIC_GOOGLE_API_KEY,
         });
         await gapi.client.load('drive', 'v3');
         setIsGapiLoaded(true);
       } catch (error: any) {
-         const errorMsg = `Gagal menginisialisasi Google API Client: ${error.message}`;
-         console.error(errorMsg, error);
-         setGapiError(errorMsg);
+        const errorMsg = `Gagal menginisialisasi Google API Client: ${error.message}`;
+        console.error(errorMsg, error);
+        setGapiError(errorMsg);
       }
     });
   };
