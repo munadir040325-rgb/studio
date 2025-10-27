@@ -86,7 +86,6 @@ export function EventForm({ onSuccess }: EventFormProps) {
         apiKey: API_KEY,
         clientId: CLIENT_ID,
         scope: 'https://www.googleapis.com/auth/drive.file',
-        discoveryDocs: ['https://www.googleapis.com/discovery/v1/apis/drive/v3/rest'],
       }).then(() => {
         setIsGapiLoaded(true);
       }, (error: any) => {
@@ -150,7 +149,7 @@ export function EventForm({ onSuccess }: EventFormProps) {
           close_delim;
         
         try {
-          const request = gapi.client.request({
+          const uploadRequest = gapi.client.request({
             path: '/upload/drive/v3/files',
             method: 'POST',
             params: { uploadType: 'multipart' },
@@ -160,32 +159,41 @@ export function EventForm({ onSuccess }: EventFormProps) {
             body: multipartRequestBody,
           });
 
-          const response = await request;
-          const uploadedFile = JSON.parse(response.body);
+          const uploadResponse = await uploadRequest;
+          const uploadedFile = JSON.parse(uploadResponse.body);
           
           if (!uploadedFile.id) {
             reject(new Error("Upload failed, file ID not returned."));
             return;
           }
 
-          await gapi.client.drive.permissions.create({
-              fileId: uploadedFile.id,
-              requestBody: {
+          // Make the file publicly readable
+          const permissionRequest = gapi.client.request({
+              path: `/drive/v3/files/${uploadedFile.id}/permissions`,
+              method: 'POST',
+              body: {
                   role: 'reader',
                   type: 'anyone'
               }
           });
-
-          const fileWithLink = await gapi.client.drive.files.get({
-              fileId: uploadedFile.id,
-              fields: 'webViewLink'
+          await permissionRequest;
+          
+          // Get the public web view link
+          const fileDetailsRequest = gapi.client.request({
+             path: `/drive/v3/files/${uploadedFile.id}`,
+             method: 'GET',
+             params: { fields: 'webViewLink' }
           });
+          
+          const fileDetailsResponse = await fileDetailsRequest;
+          const fileWithLink = JSON.parse(fileDetailsResponse.body);
 
-          resolve(fileWithLink.result.webViewLink as string);
+          resolve(fileWithLink.webViewLink as string);
 
         } catch (error: any) {
           console.error("Google Drive Upload Error:", error);
-          reject(new Error(`Gagal mengunggah file ke Google Drive: ${error?.result?.error?.message || error.message}`));
+          const errorMessage = error?.result?.error?.message || error.message || 'Unknown error occurred.';
+          reject(new Error(`Gagal mengunggah file ke Google Drive: ${errorMessage}`));
         }
       };
       reader.onerror = error => reject(error);
