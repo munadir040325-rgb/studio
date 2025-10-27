@@ -9,9 +9,9 @@ import { Label } from '@/components/ui/label';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { Command, CommandEmpty, CommandGroup, CommandInput, CommandItem, CommandList } from '@/components/ui/command';
 import { Popover, PopoverContent, PopoverTrigger } from '@/components/ui/popover';
-import { Check, ChevronsUpDown, Loader2, UploadCloud, Trash2, Paperclip } from 'lucide-react';
+import { Check, ChevronsUpDown, Loader2, UploadCloud, Trash2 } from 'lucide-react';
 import { useToast } from '@/hooks/use-toast';
-import { cn } from '@/lib/utils';
+import { cn, getFileIcon } from '@/lib/utils';
 import { parseISO, format } from 'date-fns';
 import { id as localeId } from 'date-fns/locale';
 import useSWR from 'swr';
@@ -38,7 +38,7 @@ const FileList = ({ files, onRemove, isUploading }: { files: File[], onRemove: (
         {files.map((file, index) => (
             <div key={index} className="flex items-center justify-between text-sm p-2 bg-muted rounded-md">
                 <div className="flex items-center gap-2 overflow-hidden">
-                    <Paperclip className="h-4 w-4 flex-shrink-0" />
+                    {getFileIcon(file.name)}
                     <span className="truncate" title={file.name}>{file.name}</span>
                 </div>
                 <Button type="button" variant="ghost" size="icon" className="h-6 w-6 flex-shrink-0" onClick={() => onRemove(index)} disabled={isUploading}>

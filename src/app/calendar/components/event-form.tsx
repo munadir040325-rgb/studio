@@ -17,7 +17,7 @@ import { Input } from '@/components/ui/input';
 import { Textarea } from '@/components/ui/textarea';
 import { Popover, PopoverContent, PopoverTrigger } from '@/components/ui/popover';
 import { Calendar } from '@/components/ui/calendar';
-import { CalendarIcon, Loader2, Paperclip, X, UploadCloud } from 'lucide-react';
+import { CalendarIcon, Loader2, UploadCloud, Trash2 } from 'lucide-react';
 import { cn } from '@/lib/utils';
 import { format } from 'date-fns';
 import { id } from 'date-fns/locale';
@@ -25,6 +25,8 @@ import { createCalendarEvent } from '@/ai/flows/calendar-flow';
 import { useToast } from '@/hooks/use-toast';
 import { useState, useEffect, useRef } from 'react';
 import Script from 'next/script';
+import { getFileIcon } from '@/lib/utils';
+
 
 const DRIVE_FOLDER_ID = process.env.NEXT_PUBLIC_DRIVE_FOLDER_ID;
 
@@ -490,14 +492,14 @@ export function EventForm({ onSuccess }: EventFormProps) {
             render={() => (
               <FormItem>
                 <FormLabel>Lampiran Undangan/Surat Tugas (Opsional)</FormLabel>
-                {attachmentUrl ? (
-                  <div className='flex items-center justify-between gap-2 text-sm p-2 bg-muted rounded-md'>
-                      <a href={attachmentUrl} target='_blank' rel='noopener noreferrer' className="flex items-center gap-2 overflow-hidden hover:underline">
-                          <Paperclip className="h-4 w-4 flex-shrink-0" />
-                          <span className='truncate'>{attachmentName || 'Lihat Lampiran'}</span>
-                      </a>
+                {attachmentName ? (
+                  <div className='flex items-center justify-between text-sm p-2 bg-muted rounded-md'>
+                      <div className="flex items-center gap-2 overflow-hidden">
+                          {getFileIcon(attachmentName)}
+                          <span className='truncate' title={attachmentName}>{attachmentName}</span>
+                      </div>
                       <Button type="button" variant="ghost" size="icon" className='h-6 w-6 flex-shrink-0' onClick={handleRemoveAttachment} disabled={isUploading}>
-                          <X className='h-4 w-4'/>
+                          <Trash2 className='h-4 w-4 text-red-500'/>
                           <span className="sr-only">Hapus file</span>
                       </Button>
                   </div>
