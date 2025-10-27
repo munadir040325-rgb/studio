@@ -1,3 +1,4 @@
+
 'use client';
 
 import { useState, useEffect, useCallback, useMemo } from 'react';
@@ -178,8 +179,9 @@ export default function CalendarPage() {
     } catch (e: any) {
       console.error("Error fetching calendar events:", e);
       let friendlyMessage = e.message || 'Gagal memuat kegiatan dari kalender.';
-      if (friendlyMessage.includes("client_email") || friendlyMessage.includes("private_key")) {
-        friendlyMessage = "Kredensial Google Service Account (di file .env) sepertinya belum diatur atau tidak valid. Silakan periksa kembali.";
+      // Check for specific error messages to provide better user feedback
+      if (friendlyMessage.includes("client_email") || friendlyMessage.includes("private_key") || friendlyMessage.includes("DECODER")) {
+        friendlyMessage = "Kredensial Google Service Account (di file .env) sepertinya belum diatur, tidak valid, atau salah format. Silakan periksa kembali.";
       } else if (friendlyMessage.includes("not found")) {
         friendlyMessage = "Kalender tidak ditemukan atau belum dibagikan ke email Service Account. Pastikan ID Kalender benar dan izin telah diberikan.";
       }
@@ -196,11 +198,20 @@ export default function CalendarPage() {
 
   const filteredEvents = useMemo(() => {
     if (!filterDate) return [];
-    const selectedDay = toYYYYMMDD(filterDate);
     
+    // This will filter events that are happening on the selected day, including multi-day events
     return events.filter(event => {
-        const eventDate = getDatePartFromISO(event.start);
-        return eventDate === selectedDay;
+        if (!event.start) return false;
+        try {
+            const startDate = parseISO(getDatePartFromISO(event.start)!);
+            const endDate = event.end ? parseISO(getDatePartFromISO(event.end)!) : startDate;
+            // For all-day events, the end date is exclusive, so we might need to adjust
+            const inclusiveEndDate = event.isAllDay ? new Date(endDate.getTime() - 1) : endDate;
+
+            return filterDate >= startDate && filterDate <= inclusiveEndDate;
+        } catch {
+            return false;
+        }
     });
   }, [events, filterDate]);
 
@@ -378,5 +389,3 @@ export default function CalendarPage() {
     </div>
   );
 }
-
-    
