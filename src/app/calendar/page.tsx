@@ -148,7 +148,7 @@ const groupEventsByDay = (events: CalendarEvent[]) => {
 };
 
 
-const WeeklyView = ({ events, baseDate, onEventClick }: { events: CalendarEvent[], baseDate: Date, onEventClick: (event: CalendarEvent) => void }) => {
+const WeeklyView = ({ events, baseDate, onEventClick, onDayClick }: { events: CalendarEvent[], baseDate: Date, onEventClick: (event: CalendarEvent) => void, onDayClick: (day: Date) => void; }) => {
     const weekDays = eachDayOfInterval({
         start: startOfWeek(baseDate, { weekStartsOn: 1 }),
         end: endOfWeek(baseDate, { weekStartsOn: 1 }),
@@ -169,8 +169,9 @@ const WeeklyView = ({ events, baseDate, onEventClick }: { events: CalendarEvent[
                 {weekDays.map(day => {
                     const dayKey = format(day, 'yyyy-MM-dd');
                     const dayEvents = eventsByDay.get(dayKey) || [];
+                    const maxEventsToShow = 4;
                     return (
-                        <div key={dayKey} className="relative min-h-[12rem] border-l border-b p-2 overflow-auto no-scrollbar first:border-l-0">
+                        <div key={dayKey} className="relative min-h-[12rem] border-r p-2 overflow-auto no-scrollbar first:border-l-0">
                             <span className={cn(
                                 "font-semibold",
                                 isSameDay(day, new Date()) ? "text-primary font-bold" : "text-muted-foreground"
@@ -178,15 +179,15 @@ const WeeklyView = ({ events, baseDate, onEventClick }: { events: CalendarEvent[
                                 {format(day, 'd')}
                             </span>
                             <div className="mt-1 space-y-1">
-                                {dayEvents.slice(0, 4).map(event => (
+                                {dayEvents.slice(0, maxEventsToShow).map(event => (
                                     <button key={event.id} onClick={() => onEventClick(event)} className="w-full text-left bg-primary/80 hover:bg-primary/90 text-white p-1 rounded-md text-xs leading-tight">
                                         {event.summary}
                                     </button>
                                 ))}
-                                {dayEvents.length > 4 && (
-                                    <div className="text-xs text-muted-foreground mt-1">
-                                        + {dayEvents.length - 4} lainnya
-                                    </div>
+                                {dayEvents.length > maxEventsToShow && (
+                                    <button onClick={() => onDayClick(day)} className="text-xs text-primary hover:underline mt-1 w-full text-left">
+                                        + {dayEvents.length - maxEventsToShow} lainnya
+                                    </button>
                                 )}
                             </div>
                         </div>
@@ -197,7 +198,7 @@ const WeeklyView = ({ events, baseDate, onEventClick }: { events: CalendarEvent[
     );
 }
 
-const MonthlyView = ({ events, baseDate, onEventClick }: { events: CalendarEvent[], baseDate: Date, onEventClick: (event: CalendarEvent) => void }) => {
+const MonthlyView = ({ events, baseDate, onEventClick, onDayClick }: { events: CalendarEvent[], baseDate: Date, onEventClick: (event: CalendarEvent) => void, onDayClick: (day: Date) => void; }) => {
     const startOfMonthDate = startOfMonth(baseDate);
     const endOfMonthDate = endOfMonth(baseDate);
     const calendarStart = startOfWeek(startOfMonthDate, { weekStartsOn: 1 });
@@ -206,6 +207,7 @@ const MonthlyView = ({ events, baseDate, onEventClick }: { events: CalendarEvent
     const monthDays = eachDayOfInterval({ start: calendarStart, end: calendarEnd });
     const eventsByDay = useMemo(() => groupEventsByDay(events), [events]);
     const weekDayNames = ['Sen', 'Sel', 'Rab', 'Kam', 'Jum', 'Sab', 'Min'];
+    const maxEventsToShow = 2;
 
     return (
         <div className="border rounded-lg">
@@ -220,8 +222,8 @@ const MonthlyView = ({ events, baseDate, onEventClick }: { events: CalendarEvent
                     const dayEvents = eventsByDay.get(dayKey) || [];
                     return (
                         <div key={dayKey} className={cn(
-                            "relative min-h-[8rem] border-l border-b p-2 overflow-auto no-scrollbar",
-                            (getDay(day) % 7 === 1) ? "border-l-0" : "" // First day of week (Monday)
+                            "relative min-h-[8rem] border-r border-b p-2 overflow-auto no-scrollbar",
+                            (getDay(day) % 7 === 0) ? "border-r-0" : "" // Last day of week (Sunday)
                         )}>
                             <span className={cn(
                                 "font-semibold",
@@ -231,15 +233,15 @@ const MonthlyView = ({ events, baseDate, onEventClick }: { events: CalendarEvent
                                 {getDate(day)}
                             </span>
                              <div className="mt-1 space-y-1">
-                                {dayEvents.slice(0, 2).map(event => (
+                                {dayEvents.slice(0, maxEventsToShow).map(event => (
                                     <button key={event.id} onClick={() => onEventClick(event)} className="w-full text-left bg-accent hover:bg-accent/90 text-white p-1 rounded-md text-xs leading-tight">
                                         {event.summary}
                                     </button>
                                 ))}
-                                {dayEvents.length > 2 && (
-                                    <div className="text-xs text-muted-foreground mt-1">
-                                        + {dayEvents.length - 2} lainnya
-                                    </div>
+                                {dayEvents.length > maxEventsToShow && (
+                                     <button onClick={() => onDayClick(day)} className="text-xs text-primary hover:underline mt-1 w-full text-left">
+                                        + {dayEvents.length - maxEventsToShow} lainnya
+                                    </button>
                                 )}
                             </div>
                         </div>
@@ -261,6 +263,7 @@ export default function CalendarPage() {
   const [isWhatsAppModalOpen, setIsWhatsAppModalOpen] = useState(false);
   const [whatsAppMessage, setWhatsAppMessage] = useState('');
   const [selectedEvent, setSelectedEvent] = useState<CalendarEvent | null>(null);
+  const [dayToShow, setDayToShow] = useState<Date | null>(null);
   const { toast } = useToast();
 
   const fetchEvents = useCallback(async () => {
@@ -412,6 +415,9 @@ export default function CalendarPage() {
       return '';
   }
 
+  const eventsByDay = useMemo(() => groupEventsByDay(events), [events]);
+  const dailyEvents = dayToShow ? eventsByDay.get(format(dayToShow, 'yyyy-MM-dd')) || [] : [];
+
 
   return (
     <div className="flex flex-col gap-6 w-full">
@@ -527,10 +533,10 @@ export default function CalendarPage() {
                     </div>
                 </TabsContent>
                 <TabsContent value="mingguan" className="mt-0">
-                   {filterDate && <WeeklyView events={events} baseDate={filterDate} onEventClick={setSelectedEvent} />}
+                   {filterDate && <WeeklyView events={events} baseDate={filterDate} onEventClick={setSelectedEvent} onDayClick={setDayToShow} />}
                 </TabsContent>
                  <TabsContent value="bulanan" className="mt-0">
-                    {filterDate && <MonthlyView events={events} baseDate={filterDate} onEventClick={setSelectedEvent} />}
+                    {filterDate && <MonthlyView events={events} baseDate={filterDate} onEventClick={setSelectedEvent} onDayClick={setDayToShow} />}
                 </TabsContent>
             </Tabs>
             
@@ -584,8 +590,31 @@ export default function CalendarPage() {
           )}
         </DialogContent>
       </Dialog>
+
+      {/* Day's Events Modal */}
+      <Dialog open={!!dayToShow} onOpenChange={(isOpen) => !isOpen && setDayToShow(null)}>
+        <DialogContent className="sm:max-w-lg">
+            {dayToShow && (
+                <>
+                <DialogHeader>
+                    <DialogTitle>Jadwal untuk {format(dayToShow, 'EEEE, dd MMMM yyyy', { locale: localeId })}</DialogTitle>
+                </DialogHeader>
+                <div className="max-h-[60vh] overflow-y-auto py-4 space-y-3">
+                    {dailyEvents.length > 0 ? (
+                        dailyEvents.map(event => (
+                            <button key={event.id} onClick={() => { setDayToShow(null); setSelectedEvent(event); }} className="w-full text-left p-3 rounded-md hover:bg-muted transition-colors">
+                                <p className="font-semibold text-sm">{event.summary}</p>
+                                <p className="text-xs text-muted-foreground">{formatEventDisplay(event.start, event.end, event.isAllDay)}</p>
+                            </button>
+                        ))
+                    ) : (
+                        <p className="text-muted-foreground text-center">Tidak ada acara untuk hari ini.</p>
+                    )}
+                </div>
+                </>
+            )}
+        </DialogContent>
+      </Dialog>
     </div>
   );
 }
-
-    
