@@ -95,7 +95,12 @@ export const createCalendarEventFlow = ai.defineFlow(
 
     // Append the link to the calendar event description
     if (input.attachmentUrl && input.attachmentName) {
-        finalDescription += `\n\nLampiran Undangan: [${input.attachmentName}](${input.attachmentUrl})`;
+        const attachmentText = `Lampiran Undangan: [${input.attachmentName}](${input.attachmentUrl})`;
+        if (finalDescription) {
+            finalDescription += `\n\n${attachmentText}`;
+        } else {
+            finalDescription = attachmentText;
+        }
     }
 
     // Create the calendar event
@@ -161,11 +166,15 @@ export const updateCalendarEventFlow = ai.defineFlow(
 
             // 2. Prepare the new description
             let description = existingEvent.data.description || '';
-            const resultLinkText = `\n\nLink Hasil Kegiatan: [Folder Hasil](${input.resultFolderUrl})`;
+            const resultLinkText = `Link Hasil Kegiatan: [Folder Hasil](${input.resultFolderUrl})`;
             
             // Avoid adding duplicate links
             if (!description.includes(input.resultFolderUrl)) {
-                description += resultLinkText;
+                if (description) {
+                   description += `\n\n${resultLinkText}`;
+                } else {
+                   description = resultLinkText;
+                }
             }
 
             // 3. Update the event with the new description
