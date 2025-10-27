@@ -198,6 +198,15 @@ const WeeklyView = ({ events, baseDate, onEventClick, onDayClick }: { events: Ca
     );
 }
 
+const truncateTitle = (title: string | null | undefined, wordLimit: number): string => {
+    if (!title) return '';
+    const words = title.split(' ');
+    if (words.length > wordLimit) {
+        return words.slice(0, wordLimit).join(' ') + '...';
+    }
+    return title;
+};
+
 const MonthlyView = ({ events, baseDate, onEventClick, onDayClick }: { events: CalendarEvent[], baseDate: Date, onEventClick: (event: CalendarEvent) => void, onDayClick: (day: Date) => void; }) => {
     const startOfMonthDate = startOfMonth(baseDate);
     const endOfMonthDate = endOfMonth(baseDate);
@@ -235,7 +244,7 @@ const MonthlyView = ({ events, baseDate, onEventClick, onDayClick }: { events: C
                              <div className="mt-1 space-y-1">
                                 {dayEvents.slice(0, maxEventsToShow).map(event => (
                                     <button key={event.id} onClick={() => onEventClick(event)} className="w-full text-left bg-accent hover:bg-accent/90 text-white p-1 rounded-md text-xs leading-tight">
-                                        {event.summary}
+                                        {truncateTitle(event.summary, 3)}
                                     </button>
                                 ))}
                                 {dayEvents.length > maxEventsToShow && (
