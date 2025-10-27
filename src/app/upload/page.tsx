@@ -11,9 +11,10 @@ import { Command, CommandEmpty, CommandGroup, CommandInput, CommandItem, Command
 import { Popover, PopoverContent, PopoverTrigger } from '@/components/ui/popover';
 import { Check, ChevronsUpDown, Loader2, UploadCloud } from 'lucide-react';
 import { useToast } from '@/hooks/use-toast';
-import { employees } from '@/lib/data';
 import { cn } from '@/lib/utils';
 import { parseISO } from 'date-fns';
+import useSWR from 'swr';
+
 
 type CalendarEvent = {
   id: string;
@@ -21,10 +22,12 @@ type CalendarEvent = {
   start: string;
 };
 
-type Employee = {
-  id: string;
-  name: string;
-};
+const fetcher = (url: string) => fetch(url).then(res => {
+    if (!res.ok) {
+        throw new Error('Gagal mengambil data');
+    }
+    return res.json();
+});
 
 export default function UploadPage() {
   const { toast } = useToast();
@@ -36,13 +39,14 @@ export default function UploadPage() {
   const [selectedEvent, setSelectedEvent] = useState('');
   const [openEvent, setOpenEvent] = useState(false);
   const [selectedBagian, setSelectedBagian] = useState('');
-  const [selectedPegawai, setSelectedPegawai] = useState('');
-  const [openPegawai, setOpenPegawai] = useState(false);
 
   // File state
   const [fotoFiles, setFotoFiles] = useState<File[]>([]);
   const [notulenFile, setNotulenFile] = useState<File | null>(null);
   const [materiFiles, setMateriFiles] = useState<File[]>([]);
+
+  const { data: bagianData, error: bagianError } = useSWR('/api/sheets', fetcher);
+
 
   useEffect(() => {
     async function fetchEvents() {
@@ -74,6 +78,16 @@ export default function UploadPage() {
     }
     fetchEvents();
   }, [toast]);
+  
+  useEffect(() => {
+    if (bagianError) {
+        toast({
+            variant: 'destructive',
+            title: 'Gagal Memuat Opsi Bagian',
+            description: 'Tidak dapat mengambil data dari Google Sheet. Pastikan ID Sheet sudah benar.',
+        });
+    }
+  }, [bagianError, toast]);
 
   const handleFileChange = (setter: React.Dispatch<React.SetStateAction<any>>, multiple: boolean) => (e: React.ChangeEvent<HTMLInputElement>) => {
     if (e.target.files) {
@@ -87,7 +101,7 @@ export default function UploadPage() {
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
-    if (!selectedEvent || !selectedBagian || !selectedPegawai) {
+    if (!selectedEvent || !selectedBagian) {
       toast({
         variant: 'destructive',
         title: 'Form Belum Lengkap',
@@ -110,7 +124,6 @@ export default function UploadPage() {
     console.log({
         kegiatanId: selectedEvent,
         bagian: selectedBagian,
-        disposisiPegawaiId: selectedPegawai,
         foto: fotoFiles.map(f => f.name),
         notulen: notulenFile?.name,
         materi: materiFiles.map(f => f.name),
@@ -198,65 +211,17 @@ export default function UploadPage() {
               </div>
               <div className="grid gap-2">
                 <Label htmlFor="bagian">Pilih Bagian</Label>
-                <Select value={selectedBagian} onValueChange={setSelectedBagian} required>
+                <Select value={selectedBagian} onValueChange={setSelectedBagian} required disabled={!bagianData || !!bagianError}>
                   <SelectTrigger>
-                    <SelectValue placeholder="Pilih bagian" />
+                    <SelectValue placeholder={!bagianData ? "Memuat opsi..." : "Pilih bagian"} />
                   </SelectTrigger>
                   <SelectContent>
-                    <SelectItem value="umpeg">Umum & Kepegawaian (Umpeg)</SelectItem>
-                    <SelectItem value="keuangan">Keuangan</SelectItem>
-                    <SelectItem value="perencanaan">Perencanaan</SelectItem>
-                    <SelectItem value="lainnya">Lainnya</SelectItem>
+                    {bagianData?.values?.map((item: string, index: number) => (
+                        <SelectItem key={index} value={item}>{item}</SelectItem>
+                    ))}
                   </SelectContent>
                 </Select>
               </div>
-            </div>
-            
-            <div className="grid gap-2">
-                <Label>Disposisi</Label>
-                <Popover open={openPegawai} onOpenChange={setOpenPegawai}>
-                    <PopoverTrigger asChild>
-                        <Button
-                        variant="outline"
-                        role="combobox"
-                        aria-expanded={openPegawai}
-                        className="w-full justify-between"
-                        >
-                        {selectedPegawai
-                            ? employees.find((employee) => employee.id === selectedPegawai)?.name
-                            : "Pilih pegawai..."}
-                        <ChevronsUpDown className="ml-2 h-4 w-4 shrink-0 opacity-50" />
-                        </Button>
-                    </PopoverTrigger>
-                    <PopoverContent className="w-[--radix-popover-trigger-width] p-0">
-                        <Command>
-                            <CommandInput placeholder="Cari pegawai..." />
-                            <CommandList>
-                                <CommandEmpty>Pegawai tidak ditemukan.</CommandEmpty>
-                                <CommandGroup>
-                                {employees.map((employee) => (
-                                    <CommandItem
-                                    key={employee.id}
-                                    value={employee.name}
-                                    onSelect={() => {
-                                        setSelectedPegawai(employee.id);
-                                        setOpenPegawai(false);
-                                    }}
-                                    >
-                                    <Check
-                                        className={cn(
-                                        "mr-2 h-4 w-4",
-                                        selectedPegawai === employee.id ? "opacity-100" : "opacity-0"
-                                        )}
-                                    />
-                                    {employee.name}
-                                    </CommandItem>
-                                ))}
-                                </CommandGroup>
-                            </CommandList>
-                        </Command>
-                    </PopoverContent>
-                </Popover>
             </div>
 
             <div className="grid grid-cols-1 lg:grid-cols-3 gap-4">
