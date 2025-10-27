@@ -1,15 +1,14 @@
 'use client';
 
 import { useState, useEffect, useCallback, useMemo } from 'react';
-import { PageHeader } from '@/components/page-header';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardFooter, CardHeader, CardTitle } from '@/components/ui/card';
 import { Input } from '@/components/ui/input';
 import { Popover, PopoverContent, PopoverTrigger } from '@/components/ui/popover';
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger } from '@/components/ui/dialog';
-import { Calendar as CalendarIcon, ExternalLink, PlusCircle, RefreshCw, Search, MapPin, FileSignature, Clock } from 'lucide-react';
+import { Calendar as CalendarIcon, ExternalLink, PlusCircle, RefreshCw, Search, MapPin, FileSignature, Clock, ChevronLeft, ChevronRight, MessageSquare } from 'lucide-react';
 import { Calendar } from '@/components/ui/calendar';
-import { format, parseISO, isSameDay, startOfDay, endOfDay, startOfWeek, endOfWeek, startOfMonth, endOfMonth, isWithinInterval, eachDayOfInterval, getDay, isSameMonth, getDate } from 'date-fns';
+import { format, parseISO, isSameDay, startOfDay, endOfDay, startOfWeek, endOfWeek, startOfMonth, endOfMonth, isWithinInterval, eachDayOfInterval, getDay, isSameMonth, getDate, addDays, subDays, addWeeks, subWeeks, addMonths, subMonths } from 'date-fns';
 import { id as localeId } from 'date-fns/locale';
 import { cn } from '@/lib/utils';
 import { EventForm } from './components/event-form';
@@ -248,20 +247,17 @@ export default function CalendarPage() {
   const [allEvents, setAllEvents] = useState<CalendarEvent[]>([]);
   const [isLoading, setIsLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
-  const [filterDate, setFilterDate] = useState<Date | undefined>();
+  const [filterDate, setFilterDate] = useState<Date | undefined>(new Date());
   const [searchTerm, setSearchTerm] = useState('');
   const [isFormOpen, setIsFormOpen] = useState(false);
   const [viewMode, setViewMode] = useState<'harian' | 'mingguan' | 'bulanan'>('harian');
-
-  useEffect(() => {
-    setFilterDate(new Date());
-  }, []);
 
 
   const fetchEvents = useCallback(async () => {
     setIsLoading(true);
     setError(null);
     try {
+      // Fetch a wide range of events once, and filter on the client
       const response = await fetch(`/api/events`);
       const data = await response.json();
 
@@ -303,8 +299,8 @@ export default function CalendarPage() {
         interval = { start: startOfWeek(now, { weekStartsOn: 1 }), end: endOfWeek(now, { weekStartsOn: 1 }) };
         break;
       case 'bulanan':
-        interval = { start: startOfMonth(now), end: endOfMonth(now) };
-        break;
+        // For monthly view, we pass all events and let the component handle filtering
+        return allEvents;
       default:
         interval = { start: startOfDay(now), end: endOfDay(now) };
     }
@@ -313,8 +309,6 @@ export default function CalendarPage() {
       if (!event.start) return false;
       try {
         const eventStart = parseISO(event.start);
-        // For all-day events, the end date is often exclusive. To make it inclusive for our check,
-        // we can subtract a millisecond or handle it based on isAllDay property.
         const eventEnd = event.end ? ( event.isAllDay ? new Date(parseISO(event.end).getTime() - 1) : parseISO(event.end) ) : eventStart;
         
         return isWithinInterval(eventStart, interval) || 
@@ -325,21 +319,8 @@ export default function CalendarPage() {
       }
     });
 
-    if (!searchTerm) {
-        return eventsInInterval;
-    }
-    
-    return eventsInInterval.filter(event => {
-        const term = searchTerm.toLowerCase();
-        const summaryMatch = event.summary?.toLowerCase().includes(term);
-        const descriptionMatch = event.description?.toLowerCase().includes(term);
-        const locationMatch = event.location?.toLowerCase().includes(term);
-        const disposisi = extractDisposisi(event.description).toLowerCase();
-        const disposisiMatch = disposisi.includes(term);
-
-        return summaryMatch || descriptionMatch || locationMatch || disposisiMatch;
-    });
-  }, [allEvents, filterDate, searchTerm, viewMode]);
+    return eventsInInterval;
+  }, [allEvents, filterDate, viewMode]);
 
 
   const handleRefresh = () => {
@@ -350,74 +331,126 @@ export default function CalendarPage() {
     setIsFormOpen(false);
     fetchEvents();
   };
+  
+  const handleDateChange = (amount: number) => {
+    if (!filterDate) return;
+    let newDate;
+    if (viewMode === 'harian') newDate = addDays(filterDate, amount);
+    else if (viewMode === 'mingguan') newDate = addWeeks(filterDate, amount);
+    else newDate = addMonths(filterDate, amount);
+    setFilterDate(newDate);
+  };
+  
+  const goToToday = () => {
+      setFilterDate(new Date());
+  }
+
+  const getDateNavigatorLabel = () => {
+      if (!filterDate) return '';
+      if (viewMode === 'harian') return format(filterDate, 'PPP', { locale: localeId });
+      if (viewMode === 'mingguan') {
+          const start = startOfWeek(filterDate, { weekStartsOn: 1 });
+          const end = endOfWeek(filterDate, { weekStartsOn: 1 });
+          return `${format(start, 'dd MMM')} - ${format(end, 'dd MMM yyyy')}`;
+      }
+      if (viewMode === 'bulanan') return format(filterDate, 'MMMM yyyy', { locale: localeId });
+      return '';
+  }
+
 
   return (
     <div className="flex flex-col gap-6 w-full">
-      <PageHeader
-        title="Jadwal Kegiatan"
-        description="Lihat dan kelola jadwal kegiatan yang akan datang."
-      >
-        <div className="flex items-center gap-2">
-            <Button variant="outline" size="icon" onClick={handleRefresh} disabled={isLoading}>
-                <RefreshCw className={cn("h-4 w-4", isLoading && "animate-spin")} />
-                <span className="sr-only">Muat Ulang</span>
-            </Button>
-            <Dialog open={isFormOpen} onOpenChange={setIsFormOpen}>
-            <DialogTrigger asChild>
-                <Button>
-                <PlusCircle className="mr-2 h-4 w-4" />
-                Tambah Kegiatan
-                </Button>
-            </DialogTrigger>
+        <Dialog open={isFormOpen} onOpenChange={setIsFormOpen}>
             <DialogContent className="sm:max-w-2xl max-h-[90vh] overflow-y-auto no-scrollbar">
                 <DialogHeader>
                 <DialogTitle>Tambah Kegiatan Baru</DialogTitle>
                 </DialogHeader>
                 <EventForm onSuccess={handleSuccess} />
             </DialogContent>
+        </Dialog>
+        
+        {/* Top Navigation & Controls */}
+        <div className="flex justify-between items-center p-2 rounded-lg bg-card border">
+            <div className="flex items-center gap-4">
+                <Tabs value={viewMode} onValueChange={(value) => setViewMode(value as any)}>
+                    <TabsList>
+                        <TabsTrigger value="harian">Harian</TabsTrigger>
+                        <TabsTrigger value="mingguan">Mingguan</TabsTrigger>
+                        <TabsTrigger value="bulanan">Bulanan</TabsTrigger>
+                    </TabsList>
+                </Tabs>
+            </div>
+
+            <div className='flex items-center gap-2'>
+                <Button variant="ghost" size="icon" onClick={() => handleDateChange(-1)}>
+                    <ChevronLeft className="h-5 w-5" />
+                </Button>
+                <Button variant="outline" className="w-28" onClick={goToToday}>Hari Ini</Button>
+                <Button variant="ghost" size="icon" onClick={() => handleDateChange(1)}>
+                    <ChevronRight className="h-5 w-5" />
+                </Button>
+            </div>
+             <Dialog>
+                <DialogTrigger asChild>
+                    <Button>
+                    <PlusCircle className="mr-2 h-4 w-4" />
+                    Tambah
+                    </Button>
+                </DialogTrigger>
+                <DialogContent className="sm:max-w-2xl max-h-[90vh] overflow-y-auto no-scrollbar">
+                    <DialogHeader>
+                        <DialogTitle>Tambah Kegiatan Baru</DialogTitle>
+                    </DialogHeader>
+                    <EventForm onSuccess={handleSuccess} />
+                </DialogContent>
             </Dialog>
         </div>
-      </PageHeader>
 
-      <div className="flex flex-col md:flex-row gap-4">
-        <div className="relative flex-1">
-            <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
-            <Input 
-                placeholder="Cari nama, deskripsi, atau lokasi..." 
-                className="pl-10 w-full" 
-                value={searchTerm}
-                onChange={(e) => setSearchTerm(e.target.value)}
-            />
-        </div>
-        <div className='flex flex-col sm:flex-row gap-2 w-full md:w-auto'>
-            <Popover>
-            <PopoverTrigger asChild>
-                <Button
-                variant={'outline'}
-                className={cn(
-                    'w-full justify-start text-left font-normal md:w-[240px]',
-                    !filterDate && 'text-muted-foreground'
-                )}
-                >
-                <CalendarIcon className="mr-2 h-4 w-4" />
-                {filterDate ? format(filterDate, 'PPP', { locale: localeId }) : <span>Pilih tanggal</span>}
-                </Button>
-            </PopoverTrigger>
-            <PopoverContent className="w-auto p-0">
-                <Calendar
-                locale={localeId}
-                mode="single"
-                selected={filterDate}
-                onSelect={setFilterDate}
-                initialFocus
+        {/* Filter Bar */}
+        <div className="flex flex-col sm:flex-row gap-4 justify-between items-center">
+             <div className="relative flex-1 w-full sm:w-auto">
+                <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
+                <Input 
+                    placeholder="Cari kegiatan..." 
+                    className="pl-10 w-full" 
+                    value={searchTerm}
+                    onChange={(e) => setSearchTerm(e.target.value)}
                 />
-            </PopoverContent>
-            </Popover>
-            {filterDate || searchTerm ? (
-                <Button variant="ghost" onClick={() => { setFilterDate(new Date()); setSearchTerm('')}}>Reset</Button>
-            ) : null}
+            </div>
+            <div className='flex items-center gap-2'>
+                <Popover>
+                <PopoverTrigger asChild>
+                    <Button
+                    variant={'outline'}
+                    className={cn(
+                        'w-[240px] justify-start text-left font-normal',
+                        !filterDate && 'text-muted-foreground'
+                    )}
+                    >
+                    <CalendarIcon className="mr-2 h-4 w-4" />
+                    {filterDate ? getDateNavigatorLabel() : <span>Pilih tanggal</span>}
+                    </Button>
+                </PopoverTrigger>
+                <PopoverContent className="w-auto p-0">
+                    <Calendar
+                    locale={localeId}
+                    mode="single"
+                    selected={filterDate}
+                    onSelect={setFilterDate}
+                    initialFocus
+                    />
+                </PopoverContent>
+                </Popover>
+                 <Button className="bg-green-500 hover:bg-green-600 text-white">
+                    <MessageSquare className="mr-2 h-4 w-4" />
+                    Kirim ke WhatsApp
+                </Button>
+                <Button variant="outline" onClick={handleRefresh} disabled={isLoading}>
+                    <RefreshCw className={cn("h-4 w-4", isLoading && "animate-spin")} />
+                    <span className="sr-only">Muat Ulang</span>
+                </Button>
+            </div>
         </div>
-      </div>
       
       {isLoading && <div className="text-center py-12 text-muted-foreground">Memuat kegiatan...</div>}
 
@@ -433,34 +466,30 @@ export default function CalendarPage() {
       {!isLoading && !error && (
         <>
             <Tabs value={viewMode} onValueChange={(value) => setViewMode(value as any)} className="w-full">
-                <TabsList className="grid w-full grid-cols-3 max-w-[400px] mx-auto">
-                    <TabsTrigger value="harian">Harian</TabsTrigger>
-                    <TabsTrigger value="mingguan">Mingguan</TabsTrigger>
-                    <TabsTrigger value="bulanan">Bulanan</TabsTrigger>
-                </TabsList>
-                
-                <TabsContent value="harian">
+                 <TabsContent value="harian" className="mt-0">
                      <div className="flex flex-col gap-4">
                         {filterDate && viewMode === 'harian' && (
-                            <div className="mb-4">
+                            <div className="mb-2">
                                 <h2 className="text-xl font-semibold">
                                     Jadwal Kegiatan: {format(filterDate, 'EEEE, dd MMMM yyyy', { locale: localeId })}
                                 </h2>
                             </div>
                         )}
-                        {filteredEvents.map(event => event.id && <EventCard event={event} key={event.id} />)}
+                        <div className="flex flex-col gap-4">
+                            {filteredEvents.map(event => event.id && <EventCard event={event} key={event.id} />)}
+                        </div>
                     </div>
                 </TabsContent>
-                <TabsContent value="mingguan">
+                <TabsContent value="mingguan" className="mt-0">
                     {filterDate && <WeeklyView events={filteredEvents} baseDate={filterDate} />}
                 </TabsContent>
-                 <TabsContent value="bulanan">
+                 <TabsContent value="bulanan" className="mt-0">
                     {filterDate && <MonthlyView events={allEvents} baseDate={filterDate} />}
                 </TabsContent>
             </Tabs>
             
-          {filteredEvents.length === 0 && (
-              <div className="text-center py-12 text-muted-foreground">
+          {filteredEvents.length === 0 && viewMode === 'harian' && (
+              <div className="text-center py-12 text-muted-foreground bg-muted/50 rounded-lg">
                 <p>Tidak ada kegiatan yang ditemukan untuk filter yang dipilih.</p>
                 <p className="text-sm">Coba pilih tanggal lain atau reset filter.</p>
               </div>
