@@ -50,6 +50,19 @@ function areCredentialsConfigured() {
     return process.env.GOOGLE_CLIENT_EMAIL && process.env.GOOGLE_PRIVATE_KEY;
 }
 
+function getFormattedPrivateKey(key?: string): string | undefined {
+    if (!key) return undefined;
+    try {
+        // Attempt to parse the key as JSON to handle cases where it's a JSON string literal (e.g., "...\n...")
+        // Then replace the literal \n with actual newlines.
+        return JSON.parse(`"${key}"`);
+    } catch {
+        // If it fails, it's likely already in a usable format (or an invalid one).
+        // Fallback to the original implementation for broader compatibility.
+        return key.replace(/\\n/g, '\n');
+    }
+}
+
 export async function getGoogleAuth(scopes: string | string[]) {
   if (!areCredentialsConfigured()) {
       return null;
@@ -57,7 +70,7 @@ export async function getGoogleAuth(scopes: string | string[]) {
   const auth = new google.auth.GoogleAuth({
     credentials: {
       client_email: process.env.GOOGLE_CLIENT_EMAIL,
-      private_key: process.env.GOOGLE_PRIVATE_KEY?.replace(/\\n/g, '\n'),
+      private_key: getFormattedPrivateKey(process.env.GOOGLE_PRIVATE_KEY),
     },
     scopes: scopes,
   });
