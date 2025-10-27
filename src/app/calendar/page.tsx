@@ -10,7 +10,7 @@ import { Popover, PopoverContent, PopoverTrigger } from '@/components/ui/popover
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger } from '@/components/ui/dialog';
 import { Calendar as CalendarIcon, ExternalLink, PlusCircle, RefreshCw, Search, MapPin, FileSignature, Clock } from 'lucide-react';
 import { Calendar } from '@/components/ui/calendar';
-import { format, parseISO, isSameDay, startOfDay, endOfDay } from 'date-fns';
+import { format, parseISO, isSameDay, startOfDay, endOfDay, startOfWeek, endOfWeek, startOfMonth, endOfMonth, isWithinInterval } from 'date-fns';
 import { id } from 'date-fns/locale';
 import { cn } from '@/lib/utils';
 import Link from 'next/link';
@@ -29,10 +29,6 @@ type CalendarEvent = {
     isAllDay: boolean;
     htmlLink: string | null | undefined;
 }
-
-const toYYYYMMDD = (date: Date): string => {
-  return format(date, 'yyyy-MM-dd');
-};
 
 const formatEventDisplay = (startStr: string | null | undefined, endStr: string | null | undefined, isAllDay: boolean) => {
     if (!startStr) return 'Waktu tidak valid';
@@ -86,54 +82,6 @@ const extractDisposisi = (description: string | null | undefined): string => {
     return '-';
 };
 
-function WhatsAppScheduleView({ events, scheduleDate }: { events: CalendarEvent[], scheduleDate: Date | undefined }) {
-  const { toast } = useToast();
-
-  const generateScheduleText = useCallback(() => {
-    if (!scheduleDate || events.length === 0) return "Tidak ada jadwal untuk tanggal ini.";
-    
-    let text = `*JADWAL KEGIATAN*
-*${format(scheduleDate, 'EEEE, dd MMMM yyyy', { locale: id }).toUpperCase()}*\n`;
-
-    events.forEach((event, index) => {
-        const time = formatEventDisplay(event.start, event.end, event.isAllDay);
-        const disposisi = extractDisposisi(event.description);
-
-        text += `\n*${index + 1}. ${event.summary || '(Tanpa Judul)'}*
-   - Waktu: ${time}
-   - Tempat: ${event.location || '-'}
-   - Disposisi: ${disposisi || '-'}`;
-    });
-
-    text += "\n\nMohon ralat jika ada tambahan dari bagian lain";
-
-    return text;
-  }, [events, scheduleDate]);
-
-  const handleCopy = () => {
-    navigator.clipboard.writeText(generateScheduleText());
-    toast({
-      title: "Berhasil!",
-      description: "Jadwal kegiatan telah disalin ke clipboard.",
-    });
-  };
-
-  return (
-    <Card>
-      <CardHeader>
-        <div className="flex justify-between items-center">
-          <CardTitle>Jadwal untuk WhatsApp</CardTitle>
-          <Button onClick={handleCopy}>Salin Jadwal</Button>
-        </div>
-      </CardHeader>
-      <CardContent>
-        <div className="whitespace-pre-wrap p-4 bg-muted/50 rounded-md text-sm font-mono">
-            {generateScheduleText()}
-        </div>
-      </CardContent>
-    </Card>
-  );
-}
 
 export default function CalendarPage() {
   const [allEvents, setAllEvents] = useState<CalendarEvent[]>([]);
@@ -142,7 +90,7 @@ export default function CalendarPage() {
   const [filterDate, setFilterDate] = useState<Date | undefined>();
   const [searchTerm, setSearchTerm] = useState('');
   const [isFormOpen, setIsFormOpen] = useState(false);
-  const [viewMode, setViewMode] = useState<'card' | 'whatsapp'>('card');
+  const [viewMode, setViewMode] = useState<'harian' | 'mingguan' | 'bulanan'>('harian');
 
   useEffect(() => {
     // Set the initial date on the client-side to avoid hydration mismatch
@@ -183,34 +131,46 @@ export default function CalendarPage() {
     fetchEvents();
   }, [fetchEvents]);
 
-  const eventsOnSelectedDate = useMemo(() => {
+ const filteredEvents = useMemo(() => {
     if (!filterDate) return [];
-    
-    const selectedDayStart = startOfDay(filterDate);
-    const selectedDayEnd = endOfDay(filterDate);
-    
-    return allEvents.filter(event => {
-        if (!event.start) return false;
-        try {
-            const eventStart = parseISO(event.start);
-            // For all-day events, 'end' is exclusive. For timed events, it's inclusive.
-            const eventEnd = event.end ? parseISO(event.end) : eventStart;
-            const inclusiveEventEnd = event.isAllDay ? new Date(eventEnd.getTime() - 1) : eventEnd;
 
-            // Check if event range overlaps with the selected day
-            return eventStart <= selectedDayEnd && inclusiveEventEnd >= selectedDayStart;
-        } catch {
-            return false;
-        }
+    let interval;
+    const now = filterDate;
+
+    switch (viewMode) {
+      case 'harian':
+        interval = { start: startOfDay(now), end: endOfDay(now) };
+        break;
+      case 'mingguan':
+        interval = { start: startOfWeek(now, { weekStartsOn: 1 }), end: endOfWeek(now, { weekStartsOn: 1 }) };
+        break;
+      case 'bulanan':
+        interval = { start: startOfMonth(now), end: endOfMonth(now) };
+        break;
+      default:
+        interval = { start: startOfDay(now), end: endOfDay(now) };
+    }
+
+    const eventsInInterval = allEvents.filter(event => {
+      if (!event.start) return false;
+      try {
+        const eventStart = parseISO(event.start);
+        const eventEnd = event.end ? parseISO(event.end) : eventStart;
+        const inclusiveEventEnd = event.isAllDay ? new Date(eventEnd.getTime() - 1) : eventEnd;
+
+        return isWithinInterval(eventStart, interval) || 
+               isWithinInterval(inclusiveEventEnd, interval) ||
+               (eventStart < interval.start && inclusiveEventEnd > interval.end);
+      } catch {
+        return false;
+      }
     });
-  }, [allEvents, filterDate]);
 
-  const filteredBySearchEvents = useMemo(() => {
     if (!searchTerm) {
-        return eventsOnSelectedDate;
+        return eventsInInterval;
     }
     
-    return eventsOnSelectedDate.filter(event => {
+    return eventsInInterval.filter(event => {
         const term = searchTerm.toLowerCase();
         const summaryMatch = event.summary?.toLowerCase().includes(term);
         const descriptionMatch = event.description?.toLowerCase().includes(term);
@@ -220,7 +180,8 @@ export default function CalendarPage() {
 
         return summaryMatch || descriptionMatch || locationMatch || disposisiMatch;
     });
-  }, [eventsOnSelectedDate, searchTerm]);
+  }, [allEvents, filterDate, searchTerm, viewMode]);
+
 
   const handleRefresh = () => {
     fetchEvents();
@@ -230,6 +191,42 @@ export default function CalendarPage() {
     setIsFormOpen(false);
     fetchEvents();
   };
+
+  const EventCard = ({ event }: { event: CalendarEvent }) => (
+    <Card key={event.id} className="flex flex-col">
+        <CardHeader className="pb-4">
+            <CardTitle className="text-base line-clamp-2 leading-snug">{event.summary || '(Tanpa Judul)'}</CardTitle>
+        </CardHeader>
+        <CardContent className="flex-grow space-y-3 text-sm text-muted-foreground">
+            <div className="space-y-2">
+                <p className="flex items-start">
+                    <Clock className="h-4 w-4 mr-2 mt-0.5 flex-shrink-0 text-blue-500" />
+                    <span className='font-medium text-foreground'>{formatEventDisplay(event.start, event.end, event.isAllDay)}</span>
+                </p>
+                {event.location && (
+                <p className="flex items-start">
+                    <MapPin className="h-4 w-4 mr-2 mt-0.5 flex-shrink-0 text-red-500" />
+                    <span>{event.location}</span>
+                </p>
+                )}
+                <p className="flex items-start">
+                    <FileSignature className="h-4 w-4 mr-2 mt-0.5 flex-shrink-0 text-green-500" />
+                    <span className='line-clamp-2'>Disposisi: {extractDisposisi(event.description)}</span>
+                </p>
+            </div>
+        </CardContent>
+        <CardFooter className="flex flex-wrap justify-end gap-2 pt-4 mt-auto">
+            {event.htmlLink && (
+            <Button variant="ghost" size="sm" asChild>
+                <a href={event.htmlLink} target="_blank" rel="noopener noreferrer">
+                    <ExternalLink className='mr-2 h-4 w-4' />
+                    Detail
+                </a>
+            </Button>
+            )}
+        </CardFooter>
+    </Card>
+  );
 
   return (
     <div className="flex flex-col gap-6 w-full">
@@ -312,57 +309,31 @@ export default function CalendarPage() {
       
       {!isLoading && !error && (
         <>
-            {filterDate && (
-                 <Tabs value={viewMode} onValueChange={(value) => setViewMode(value as 'card' | 'whatsapp')} className="w-full">
-                    <TabsList className="grid w-full grid-cols-2 max-w-[400px] mx-auto">
-                        <TabsTrigger value="card">Tampilan Kartu</TabsTrigger>
-                        <TabsTrigger value="whatsapp">Jadwal WA</TabsTrigger>
-                    </TabsList>
-                    <TabsContent value="card">
-                        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
-                            {filteredBySearchEvents.map(event => event.id && (
-                                <Card key={event.id} className="flex flex-col">
-                                    <CardHeader className="pb-4">
-                                        <CardTitle className="text-base line-clamp-2 leading-snug">{event.summary || '(Tanpa Judul)'}</CardTitle>
-                                    </CardHeader>
-                                    <CardContent className="flex-grow space-y-3 text-sm text-muted-foreground">
-                                        <div className="space-y-2">
-                                            <p className="flex items-start">
-                                                <Clock className="h-4 w-4 mr-2 mt-0.5 flex-shrink-0 text-blue-500" />
-                                                <span className='font-medium text-foreground'>{formatEventDisplay(event.start, event.end, event.isAllDay)}</span>
-                                            </p>
-                                            {event.location && (
-                                            <p className="flex items-start">
-                                                <MapPin className="h-4 w-4 mr-2 mt-0.5 flex-shrink-0 text-red-500" />
-                                                <span>{event.location}</span>
-                                            </p>
-                                            )}
-                                            <p className="flex items-start">
-                                                <FileSignature className="h-4 w-4 mr-2 mt-0.5 flex-shrink-0 text-green-500" />
-                                                <span className='line-clamp-2'>Disposisi: {extractDisposisi(event.description)}</span>
-                                            </p>
-                                        </div>
-                                    </CardContent>
-                                    <CardFooter className="flex flex-wrap justify-end gap-2 pt-4 mt-auto">
-                                        {event.htmlLink && (
-                                        <Button variant="ghost" size="sm" asChild>
-                                            <a href={event.htmlLink} target="_blank" rel="noopener noreferrer">
-                                                <ExternalLink className='mr-2 h-4 w-4' />
-                                                Detail
-                                            </a>
-                                        </Button>
-                                        )}
-                                    </CardFooter>
-                                </Card>
-                            ))}
-                        </div>
-                    </TabsContent>
-                     <TabsContent value="whatsapp">
-                        <WhatsAppScheduleView events={filteredBySearchEvents} scheduleDate={filterDate} />
-                    </TabsContent>
-                </Tabs>
-            )}
-          {filteredBySearchEvents.length === 0 && (
+            <Tabs value={viewMode} onValueChange={(value) => setViewMode(value as any)} className="w-full">
+                <TabsList className="grid w-full grid-cols-3 max-w-[400px] mx-auto">
+                    <TabsTrigger value="harian">Harian</TabsTrigger>
+                    <TabsTrigger value="mingguan">Mingguan</TabsTrigger>
+                    <TabsTrigger value="bulanan">Bulanan</TabsTrigger>
+                </TabsList>
+                
+                <TabsContent value="harian">
+                     <div className="flex flex-col gap-4">
+                        {filteredEvents.map(event => event.id && <EventCard event={event} key={event.id} />)}
+                    </div>
+                </TabsContent>
+                <TabsContent value="mingguan">
+                    <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
+                        {filteredEvents.map(event => event.id && <EventCard event={event} key={event.id} />)}
+                    </div>
+                </TabsContent>
+                 <TabsContent value="bulanan">
+                    <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
+                        {filteredEvents.map(event => event.id && <EventCard event={event} key={event.id} />)}
+                    </div>
+                </TabsContent>
+            </Tabs>
+            
+          {filteredEvents.length === 0 && (
               <div className="text-center py-12 text-muted-foreground">
                 <p>Tidak ada kegiatan yang ditemukan untuk filter yang dipilih.</p>
                 <p className="text-sm">Coba pilih tanggal lain atau reset filter.</p>
@@ -373,3 +344,5 @@ export default function CalendarPage() {
     </div>
   );
 }
+
+    
