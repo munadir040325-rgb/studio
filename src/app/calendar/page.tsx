@@ -362,75 +362,56 @@ export default function CalendarPage() {
 
   return (
     <div className="flex flex-col gap-6 w-full">
-       <Dialog open={isFormOpen} onOpenChange={setIsFormOpen}>
         {/* Top Navigation & Controls */}
         <div className="flex flex-col md:flex-row md:items-center md:justify-between gap-4 p-2 rounded-lg bg-card border">
 
-            {/* Mobile: Top Row (Nav + Add), Desktop: Right side */}
+             {/* Mobile: Top Row */}
             <div className='flex items-center justify-between w-full md:w-auto'>
                 <div className='flex items-center gap-1'>
                     <Button variant="ghost" size="icon" onClick={() => handleDateChange(-1)}>
                         <ChevronLeft className="h-5 w-5" />
                     </Button>
+                     <span className="text-base sm:text-lg font-semibold w-32 sm:w-auto text-center">
+                        {getDateNavigatorLabel()}
+                    </span>
                     <Button variant="ghost" size="icon" onClick={() => handleDateChange(1)}>
                         <ChevronRight className="h-5 w-5" />
                     </Button>
-                    <Popover>
-                        <PopoverTrigger asChild>
-                        <Button variant="outline" className="w-auto text-center font-semibold">
-                            {getDateNavigatorLabel()}
-                        </Button>
-                        </PopoverTrigger>
-                        <PopoverContent className="w-auto p-0">
-                            <Calendar
-                            locale={localeId}
-                            mode="single"
-                            selected={filterDate}
-                            onSelect={(date) => setFilterDate(date)}
-                            initialFocus
-                            />
-                        </PopoverContent>
-                    </Popover>
                 </div>
-                
-                <DialogTrigger asChild>
-                    <Button>
-                        <PlusCircle className="mr-2 h-4 w-4" />
-                        Tambah
-                    </Button>
-                </DialogTrigger>
+                 <Dialog open={isFormOpen} onOpenChange={setIsFormOpen}>
+                    <DialogTrigger asChild>
+                        <Button>
+                            <PlusCircle className="mr-2 h-4 w-4" />
+                            <span className='hidden sm:inline'>Tambah</span>
+                        </Button>
+                    </DialogTrigger>
+                     <DialogContent className="sm:max-w-2xl max-h-[90vh] overflow-y-auto no-scrollbar">
+                        <DialogHeader>
+                        <DialogTitle>Tambah Kegiatan Baru</DialogTitle>
+                        </DialogHeader>
+                        <EventForm onSuccess={handleSuccess} />
+                    </DialogContent>
+                 </Dialog>
             </div>
             
-            {/* Mobile: Bottom Row (Tabs), Desktop: Left side */}
-            <Tabs value={viewMode} onValueChange={(value) => setViewMode(value as any)} className="w-full md:w-auto">
-                <TabsList className='w-full'>
-                    <TabsTrigger value="harian" className='flex-1'>Harian</TabsTrigger>
-                    <TabsTrigger value="mingguan" className='flex-1'>Mingguan</TabsTrigger>
-                    <TabsTrigger value="bulanan" className='flex-1'>Bulanan</TabsTrigger>
-                </TabsList>
-            </Tabs>
-
-        </div>
-
-        <DialogContent className="sm:max-w-2xl max-h-[90vh] overflow-y-auto no-scrollbar">
-            <DialogHeader>
-            <DialogTitle>Tambah Kegiatan Baru</DialogTitle>
-            </DialogHeader>
-            <EventForm onSuccess={handleSuccess} />
-        </DialogContent>
-      </Dialog>
-        {/* Filter Bar */}
-        <div className="flex flex-col sm:flex-row gap-4 justify-between items-center">
-             <div className="relative flex-1 w-full sm:w-auto">
-                <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
-                <Input 
-                    placeholder="Cari kegiatan..." 
-                    className="pl-10 w-full" 
-                    value={searchTerm}
-                    onChange={(e) => setSearchTerm(e.target.value)}
-                />
-            </div>
-            <div className='flex items-center gap-2'>
+            {/* Mobile: Bottom Row, Desktop: Merged */}
+             <div className="flex flex-col sm:flex-row gap-4 w-full">
+                <Tabs value={viewMode} onValueChange={(value) => setViewMode(value as any)} className="w-full md:w-auto">
+                    <TabsList className='w-full'>
+                        <TabsTrigger value="harian" className='flex-1'>Harian</TabsTrigger>
+                        <TabsTrigger value="mingguan" className='flex-1'>Mingguan</TabsTrigger>
+                        <TabsTrigger value="bulanan" className='flex-1'>Bulanan</TabsTrigger>
+                    </TabsList>
+                </Tabs>
+                <div className="relative flex-1 w-full sm:w-auto">
+                    <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
+                    <Input 
+                        placeholder="Cari kegiatan..." 
+                        className="pl-10 w-full" 
+                        value={searchTerm}
+                        onChange={(e) => setSearchTerm(e.target.value)}
+                    />
+                </div>
                  <Button className="bg-green-500 hover:bg-green-600 text-white flex-1 sm:flex-none">
                     Kirim ke WhatsApp
                 </Button>
@@ -438,6 +419,22 @@ export default function CalendarPage() {
                     <RefreshCw className={cn("h-4 w-4", isLoading && "animate-spin")} />
                     <span className="sr-only">Muat Ulang</span>
                 </Button>
+                 <Popover>
+                    <PopoverTrigger asChild>
+                        <Button variant="outline" size='icon' className='flex-shrink-0'>
+                           <CalendarIcon className="h-4 w-4" />
+                        </Button>
+                    </PopoverTrigger>
+                    <PopoverContent className="w-auto p-0">
+                        <Calendar
+                        locale={localeId}
+                        mode="single"
+                        selected={filterDate}
+                        onSelect={(date) => setFilterDate(date)}
+                        initialFocus
+                        />
+                    </PopoverContent>
+                </Popover>
             </div>
         </div>
       
@@ -470,7 +467,7 @@ export default function CalendarPage() {
                     </div>
                 </TabsContent>
                 <TabsContent value="mingguan" className="mt-0">
-                    {filterDate && <WeeklyView events={filteredEvents} baseDate={filterDate} />}
+                   {filterDate && <WeeklyView events={filteredEvents} baseDate={filterDate} />}
                 </TabsContent>
                  <TabsContent value="bulanan" className="mt-0">
                     {filterDate && <MonthlyView events={allEvents} baseDate={filterDate} />}
