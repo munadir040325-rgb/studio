@@ -41,7 +41,7 @@ const createEventInputSchema = z.object({
   location: z.string().optional(),
   startDateTime: z.string().datetime(),
   endDateTime: z.string().datetime(),
-  attachmentUrl: z.string().url().optional(),
+  attachmentUrl: z.string().url().optional().or(z.literal('')),
 });
 
 export type CreateEventInput = z.infer<typeof createEventInputSchema>;
