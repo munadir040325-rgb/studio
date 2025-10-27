@@ -13,7 +13,6 @@ import {
   SidebarInset,
 } from '@/components/ui/sidebar';
 import {
-  LayoutDashboard,
   Calendar,
   Upload,
   Settings,
