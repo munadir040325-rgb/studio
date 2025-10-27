@@ -27,18 +27,13 @@ const formatSegment = (segment: string) => {
 
 export function Breadcrumbs() {
   const path = usePathname();
-  const [isClient, setIsClient] = useState(false);
-
-  useEffect(() => {
-    setIsClient(true);
-  }, []);
-
-  if (!isClient) {
-    return null;
-  }
-
-  const segments = path.split('/').filter(Boolean);
+  const [segments, setSegments] = useState<string[]>([]);
   
+  useEffect(() => {
+      setSegments(path.split('/').filter(Boolean));
+  }, [path]);
+
+
   // Handle case where root is /calendar
   const breadcrumbSegments = segments.length > 0 ? segments : ['calendar'];
 
@@ -62,6 +57,7 @@ export function Breadcrumbs() {
                  if (breadcrumbSegments.length === 1) {
                      return (
                          <li key={segment} className="flex items-center">
+                            <ChevronRight className="h-4 w-4 shrink-0" />
                             <span
                                 className="ml-1 truncate font-medium text-foreground"
                                 aria-current="page"
