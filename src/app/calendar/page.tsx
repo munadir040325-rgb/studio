@@ -6,7 +6,7 @@ import { Card, CardContent, CardFooter, CardHeader, CardTitle } from '@/componen
 import { Input } from '@/components/ui/input';
 import { Popover, PopoverContent, PopoverTrigger } from '@/components/ui/popover';
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger } from '@/components/ui/dialog';
-import { Calendar as CalendarIcon, ExternalLink, PlusCircle, RefreshCw, Search, MapPin, Clock, ChevronLeft, ChevronRight, FileSignature } from 'lucide-react';
+import { Calendar as CalendarIcon, ExternalLink, PlusCircle, RefreshCw, MapPin, Clock, ChevronLeft, ChevronRight, FileSignature } from 'lucide-react';
 import { Calendar } from '@/components/ui/calendar';
 import { format, parseISO, isSameDay, startOfDay, endOfDay, startOfWeek, endOfWeek, startOfMonth, endOfMonth, isWithinInterval, eachDayOfInterval, getDay, isSameMonth, getDate, addDays, subDays, addWeeks, subWeeks, addMonths, subMonths } from 'date-fns';
 import { id as localeId } from 'date-fns/locale';
@@ -300,7 +300,11 @@ export default function CalendarPage() {
         break;
       case 'bulanan':
         // For monthly view, we pass all events and let the component handle filtering
-        return allEvents;
+        const searchFiltered = allEvents.filter(event => 
+            (event.summary || '').toLowerCase().includes(searchTerm.toLowerCase()) ||
+            (event.location || '').toLowerCase().includes(searchTerm.toLowerCase())
+        );
+        return searchFiltered;
       default:
         interval = { start: startOfDay(now), end: endOfDay(now) };
     }
@@ -353,6 +357,9 @@ export default function CalendarPage() {
       if (viewMode === 'mingguan') {
           const start = startOfWeek(filterDate, { weekStartsOn: 1 });
           const end = endOfWeek(filterDate, { weekStartsOn: 1 });
+          if (start.getMonth() === end.getMonth()) {
+            return `${format(start, 'dd')} - ${format(end, 'dd MMMM yyyy')}`;
+          }
           return `${format(start, 'dd MMM')} - ${format(end, 'dd MMM yyyy')}`;
       }
       if (viewMode === 'bulanan') return format(filterDate, 'MMMM yyyy', { locale: localeId });
@@ -363,65 +370,36 @@ export default function CalendarPage() {
   return (
     <div className="flex flex-col gap-6 w-full">
         {/* Top Navigation & Controls */}
-        <div className="flex flex-col md:flex-row md:items-center md:justify-between gap-4 p-2 rounded-lg bg-card border">
-
-             {/* Mobile: Top Row */}
-            <div className='flex items-center justify-between w-full md:w-auto'>
-                <div className='flex items-center gap-1'>
-                    <Button variant="ghost" size="icon" onClick={() => handleDateChange(-1)}>
-                        <ChevronLeft className="h-5 w-5" />
-                    </Button>
-                     <span className="text-base sm:text-lg font-semibold w-32 sm:w-auto text-center">
-                        {getDateNavigatorLabel()}
-                    </span>
-                    <Button variant="ghost" size="icon" onClick={() => handleDateChange(1)}>
-                        <ChevronRight className="h-5 w-5" />
-                    </Button>
-                </div>
-                 <Dialog open={isFormOpen} onOpenChange={setIsFormOpen}>
-                    <DialogTrigger asChild>
-                        <Button>
-                            <PlusCircle className="mr-2 h-4 w-4" />
-                            <span className='hidden sm:inline'>Tambah</span>
-                        </Button>
-                    </DialogTrigger>
-                     <DialogContent className="sm:max-w-2xl max-h-[90vh] overflow-y-auto no-scrollbar">
-                        <DialogHeader>
-                        <DialogTitle>Tambah Kegiatan Baru</DialogTitle>
-                        </DialogHeader>
-                        <EventForm onSuccess={handleSuccess} />
-                    </DialogContent>
-                 </Dialog>
+        <div className="flex flex-wrap items-center justify-between gap-4 p-2 rounded-lg bg-card border">
+            {/* Left Side: Date Navigator */}
+            <div className='flex items-center gap-2'>
+                <Button variant="ghost" size="icon" onClick={() => handleDateChange(-1)}>
+                    <ChevronLeft className="h-5 w-5" />
+                </Button>
+                <span className="text-lg font-semibold text-center w-48">
+                    {getDateNavigatorLabel()}
+                </span>
+                <Button variant="ghost" size="icon" onClick={() => handleDateChange(1)}>
+                    <ChevronRight className="h-5 w-5" />
+                </Button>
             </div>
             
-            {/* Mobile: Bottom Row, Desktop: Merged */}
-             <div className="flex flex-col sm:flex-row gap-4 w-full">
-                <Tabs value={viewMode} onValueChange={(value) => setViewMode(value as any)} className="w-full md:w-auto">
-                    <TabsList className='w-full'>
-                        <TabsTrigger value="harian" className='flex-1'>Harian</TabsTrigger>
-                        <TabsTrigger value="mingguan" className='flex-1'>Mingguan</TabsTrigger>
-                        <TabsTrigger value="bulanan" className='flex-1'>Bulanan</TabsTrigger>
+            {/* Right Side: Actions */}
+            <div className="flex items-center gap-2 flex-wrap">
+                <Tabs value={viewMode} onValueChange={(value) => setViewMode(value as any)}>
+                    <TabsList>
+                        <TabsTrigger value="harian">Harian</TabsTrigger>
+                        <TabsTrigger value="mingguan">Mingguan</TabsTrigger>
+                        <TabsTrigger value="bulanan">Bulanan</TabsTrigger>
                     </TabsList>
                 </Tabs>
-                <div className="relative flex-1 w-full sm:w-auto">
-                    <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
-                    <Input 
-                        placeholder="Cari kegiatan..." 
-                        className="pl-10 w-full" 
-                        value={searchTerm}
-                        onChange={(e) => setSearchTerm(e.target.value)}
-                    />
-                </div>
-                 <Button className="bg-green-500 hover:bg-green-600 text-white flex-1 sm:flex-none">
-                    Kirim ke WhatsApp
-                </Button>
-                <Button variant="outline" onClick={handleRefresh} disabled={isLoading}>
+                 <Button variant="outline" onClick={handleRefresh} disabled={isLoading} size="icon">
                     <RefreshCw className={cn("h-4 w-4", isLoading && "animate-spin")} />
                     <span className="sr-only">Muat Ulang</span>
                 </Button>
                  <Popover>
                     <PopoverTrigger asChild>
-                        <Button variant="outline" size='icon' className='flex-shrink-0'>
+                        <Button variant="outline" size='icon'>
                            <CalendarIcon className="h-4 w-4" />
                         </Button>
                     </PopoverTrigger>
@@ -435,6 +413,23 @@ export default function CalendarPage() {
                         />
                     </PopoverContent>
                 </Popover>
+                 <Dialog open={isFormOpen} onOpenChange={setIsFormOpen}>
+                    <DialogTrigger asChild>
+                        <Button>
+                            <PlusCircle className="mr-2 h-4 w-4" />
+                            Tambah
+                        </Button>
+                    </DialogTrigger>
+                     <DialogContent className="sm:max-w-2xl max-h-[90vh] overflow-y-auto no-scrollbar">
+                        <DialogHeader>
+                        <DialogTitle>Tambah Kegiatan Baru</DialogTitle>
+                        </DialogHeader>
+                        <EventForm onSuccess={handleSuccess} />
+                    </DialogContent>
+                 </Dialog>
+                <Button className="bg-green-500 hover:bg-green-600 text-white">
+                    Kirim ke WhatsApp
+                </Button>
             </div>
         </div>
       
