@@ -5,7 +5,7 @@ import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardFooter, CardHeader, CardTitle } from '@/components/ui/card';
 import { Popover, PopoverContent, PopoverTrigger } from '@/components/ui/popover';
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger, DialogFooter, DialogDescription } from '@/components/ui/dialog';
-import { Calendar as CalendarIcon, ExternalLink, PlusCircle, RefreshCw, MapPin, Clock, ChevronLeft, ChevronRight, FileSignature, Copy, Info, Link as LinkIcon } from 'lucide-react';
+import { Calendar as CalendarIcon, ExternalLink, PlusCircle, RefreshCw, MapPin, Clock, ChevronLeft, ChevronRight, FileSignature, Copy, Info, Link as LinkIcon, File as FileIcon, FileText, FileImage, FileSpreadsheet, FileVideo, FolderArchive } from 'lucide-react';
 import { Calendar } from '@/components/ui/calendar';
 import { format, parseISO, isSameDay, startOfDay, endOfDay, startOfWeek, endOfWeek, startOfMonth, endOfMonth, isWithinInterval, eachDayOfInterval, getDay, isSameMonth, getDate, addDays, subDays, addWeeks, subMonths } from 'date-fns';
 import { id as localeId } from 'date-fns/locale';
@@ -65,17 +65,18 @@ const formatEventDisplay = (startStr: string | null | undefined, endStr: string 
     }
 };
 
-const extractLink = (description: string | null | undefined, linkTextStart: string): string | null => {
+type AttachmentLink = { name: string; url: string; } | null;
+
+const extractAttachmentLink = (description: string | null | undefined, linkTextStart: string): AttachmentLink => {
     if (!description) {
         return null;
     }
-    const linkIndex = description.indexOf(linkTextStart);
-    if (linkIndex === -1) {
-        return null;
+    const regex = new RegExp(`${linkTextStart}: \\[([^\\]]+)\\]\\(([^\\)]+)\\)`, 'i');
+    const match = description.match(regex);
+    if (match && match[1] && match[2]) {
+        return { name: match[1], url: match[2] };
     }
-    const urlStartIndex = linkIndex + linkTextStart.length;
-    const urlEndIndex = description.indexOf('\n', urlStartIndex);
-    return urlEndIndex === -1 ? description.substring(urlStartIndex).trim() : description.substring(urlStartIndex, urlEndIndex).trim();
+    return null;
 }
 
 const extractDisposisi = (description: string | null | undefined): string => {
@@ -98,6 +99,33 @@ const extractDisposisi = (description: string | null | undefined): string => {
 
     return '-';
 };
+
+const getFileIcon = (fileName: string) => {
+    const extension = fileName.split('.').pop()?.toLowerCase();
+    if (!extension) return <FileIcon className="mr-3 h-5 w-5 flex-shrink-0 text-muted-foreground" />;
+
+    if (['jpg', 'jpeg', 'png', 'gif', 'bmp', 'svg'].includes(extension)) {
+        return <FileImage className="mr-3 h-5 w-5 flex-shrink-0 text-muted-foreground" />;
+    }
+    if (['pdf'].includes(extension)) {
+        return <FileText className="mr-3 h-5 w-5 flex-shrink-0 text-red-500" />;
+    }
+    if (['doc', 'docx'].includes(extension)) {
+        return <FileText className="mr-3 h-5 w-5 flex-shrink-0 text-blue-500" />;
+    }
+    if (['xls', 'xlsx'].includes(extension)) {
+        return <FileSpreadsheet className="mr-3 h-5 w-5 flex-shrink-0 text-green-500" />;
+    }
+    if (['ppt', 'pptx'].includes(extension)) {
+        return <FileVideo className="mr-3 h-5 w-5 flex-shrink-0 text-orange-500" />;
+    }
+    if (['zip', 'rar', '7z'].includes(extension)) {
+        return <FolderArchive className="mr-3 h-5 w-5 flex-shrink-0 text-yellow-500" />;
+    }
+
+    return <FileIcon className="mr-3 h-5 w-5 flex-shrink-0 text-muted-foreground" />;
+};
+
 
 const EventCard = ({ event }: { event: CalendarEvent }) => (
   <Card key={event.id} className="flex flex-col">
@@ -439,8 +467,13 @@ export default function CalendarPage() {
 
   const eventsByDay = useMemo(() => groupEventsByDay(events), [events]);
   const dailyEvents = dayToShow ? eventsByDay.get(format(dayToShow, 'yyyy-MM-dd')) || [] : [];
-  const invitationLink = selectedEvent ? extractLink(selectedEvent.description, 'Lampiran Surat Tugas/Undangan: ') : null;
-  const resultLink = selectedEvent ? extractLink(selectedEvent.description, 'Lihat Hasil Kegiatan di Google Drive: ') : null;
+  
+  const invitationLink = selectedEvent ? extractAttachmentLink(selectedEvent.description, 'Lampiran Undangan') : null;
+  const resultLink = selectedEvent ? extractAttachmentLink(selectedEvent.description, 'Link Hasil Kegiatan') : null;
+  const cleanDescription = selectedEvent?.description
+    ?.replace(/Lampiran Undangan: \[[^\]]+\]\([^\)]+\)\n?/, '')
+    ?.replace(/Link Hasil Kegiatan: \[[^\]]+\]\([^\)]+\)\n?/, '')
+    .trim();
 
 
   return (
@@ -596,27 +629,27 @@ export default function CalendarPage() {
                 </div>
                 
                 {invitationLink && (
-                    <div className="flex items-start">
-                        <LinkIcon className="mr-3 h-5 w-5 flex-shrink-0 text-muted-foreground" />
-                        <a href={invitationLink} target="_blank" rel="noopener noreferrer" className="text-blue-600 hover:underline">
-                            Lihat Lampiran Undangan
+                    <div className="flex items-center">
+                        {getFileIcon(invitationLink.name)}
+                        <a href={invitationLink.url} target="_blank" rel="noopener noreferrer" className="text-blue-600 hover:underline truncate">
+                            {invitationLink.name}
                         </a>
                     </div>
                 )}
                 
                 {resultLink && (
-                    <div className="flex items-start">
-                        <LinkIcon className="mr-3 h-5 w-5 flex-shrink-0 text-muted-foreground" />
-                        <a href={resultLink} target="_blank" rel="noopener noreferrer" className="text-blue-600 hover:underline">
-                            Lihat Hasil Kegiatan
+                    <div className="flex items-center">
+                        <FolderArchive className="mr-3 h-5 w-5 flex-shrink-0 text-yellow-500" />
+                        <a href={resultLink.url} target="_blank" rel="noopener noreferrer" className="text-blue-600 hover:underline truncate">
+                            {resultLink.name}
                         </a>
                     </div>
                 )}
                 
-                {selectedEvent.description && (
+                {cleanDescription && (
                   <div className="flex items-start pt-4 border-t">
                     <Info className="mr-3 h-5 w-5 flex-shrink-0 text-muted-foreground" />
-                    <p className="text-foreground whitespace-pre-wrap">{selectedEvent.description}</p>
+                    <p className="text-foreground whitespace-pre-wrap">{cleanDescription}</p>
                   </div>
                 )}
               </div>
@@ -662,4 +695,3 @@ export default function CalendarPage() {
     </div>
   );
 }
-

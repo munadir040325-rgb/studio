@@ -42,6 +42,7 @@ const createEventInputSchema = z.object({
   startDateTime: z.string().datetime(),
   endDateTime: z.string().datetime(),
   attachmentUrl: z.string().url().optional().or(z.literal('')),
+  attachmentName: z.string().optional(),
 });
 
 export type CreateEventInput = z.infer<typeof createEventInputSchema>;
@@ -93,8 +94,8 @@ export const createCalendarEventFlow = ai.defineFlow(
     let finalDescription = input.description || '';
 
     // Append the link to the calendar event description
-    if (input.attachmentUrl) {
-        finalDescription += `\n\nLampiran Surat Tugas/Undangan: ${input.attachmentUrl}`;
+    if (input.attachmentUrl && input.attachmentName) {
+        finalDescription += `\n\nLampiran Undangan: [${input.attachmentName}](${input.attachmentUrl})`;
     }
 
     // Create the calendar event
@@ -160,7 +161,7 @@ export const updateCalendarEventFlow = ai.defineFlow(
 
             // 2. Prepare the new description
             let description = existingEvent.data.description || '';
-            const resultLinkText = `\n\nLihat Hasil Kegiatan di Google Drive: ${input.resultFolderUrl}`;
+            const resultLinkText = `\n\nLink Hasil Kegiatan: [Folder Hasil](${input.resultFolderUrl})`;
             
             // Avoid adding duplicate links
             if (!description.includes(input.resultFolderUrl)) {

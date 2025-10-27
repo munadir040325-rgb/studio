@@ -41,6 +41,7 @@ const formSchema = z.object({
     required_error: 'Tanggal & waktu selesai harus diisi.',
   }),
   attachmentUrl: z.string().url().optional().or(z.literal('')),
+  attachmentName: z.string().optional(),
 });
 
 
@@ -55,7 +56,6 @@ export function EventForm({ onSuccess }: EventFormProps) {
   const [isGisLoaded, setIsGisLoaded] = useState(false);
   const [gapiError, setGapiError] = useState<string | null>(null);
   const [isUploading, setIsUploading] = useState(false);
-  const [attachmentName, setAttachmentName] = useState<string | null>(null);
   
   const tokenClient = useRef<any>(null);
   const accessTokenRef = useRef<string | null>(null);
@@ -68,6 +68,7 @@ export function EventForm({ onSuccess }: EventFormProps) {
       description: '',
       location: '',
       attachmentUrl: '',
+      attachmentName: '',
     },
   });
 
@@ -240,7 +241,7 @@ export function EventForm({ onSuccess }: EventFormProps) {
       }
 
       setIsUploading(true);
-      setAttachmentName(file.name);
+      form.setValue('attachmentName', file.name);
       toast({ description: `Mengunggah ${file.name}...` });
       
       try {
@@ -256,8 +257,8 @@ export function EventForm({ onSuccess }: EventFormProps) {
               description: error.message,
           });
           // Clear attachment if upload fails
-          setAttachmentName(null);
-          form.setValue('attachmentUrl', undefined);
+          form.setValue('attachmentName', '');
+          form.setValue('attachmentUrl', '');
       } finally {
           setIsUploading(false);
           // Reset file input to allow re-uploading the same file
@@ -278,6 +279,7 @@ export function EventForm({ onSuccess }: EventFormProps) {
         startDateTime: values.startDateTime.toISOString(),
         endDateTime: values.endDateTime.toISOString(),
         attachmentUrl: values.attachmentUrl,
+        attachmentName: values.attachmentName,
       });
 
       toast({
@@ -320,6 +322,7 @@ export function EventForm({ onSuccess }: EventFormProps) {
   };
 
   const attachmentUrl = form.watch('attachmentUrl');
+  const attachmentName = form.watch('attachmentName');
   const isReady = isGisLoaded;
   
   const getButtonText = () => {
@@ -331,7 +334,7 @@ export function EventForm({ onSuccess }: EventFormProps) {
 
   const handleRemoveAttachment = () => {
       form.setValue('attachmentUrl', '');
-      setAttachmentName(null);
+      form.setValue('attachmentName', '');
   }
 
   return (

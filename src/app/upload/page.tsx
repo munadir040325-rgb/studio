@@ -252,7 +252,7 @@ export default function UploadPage() {
             }
         }
         
-        toast({ description: "Mengunggah file..." });
+        toast({ description: `Mengunggah ${uploadPromises.length} file...` });
         await Promise.all(uploadPromises);
         toast({ title: 'Berhasil!', description: 'Semua file telah berhasil diunggah ke Google Drive.' });
         
@@ -462,5 +462,3 @@ export default function UploadPage() {
     </div>
   );
 }
-
-    
