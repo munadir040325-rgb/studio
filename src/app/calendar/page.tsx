@@ -8,7 +8,7 @@ import { Card, CardContent, CardFooter, CardHeader, CardTitle } from '@/componen
 import { Input } from '@/components/ui/input';
 import { Popover, PopoverContent, PopoverTrigger } from '@/components/ui/popover';
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger } from '@/components/ui/dialog';
-import { Calendar as CalendarIcon, ExternalLink, FilePlus, PlusCircle, RefreshCw, Search, MapPin, FileSignature, Clock } from 'lucide-react';
+import { Calendar as CalendarIcon, ExternalLink, PlusCircle, RefreshCw, Search, MapPin, FileSignature, Clock } from 'lucide-react';
 import { Calendar } from '@/components/ui/calendar';
 import { format, parseISO, isSameDay, startOfDay, endOfDay } from 'date-fns';
 import { id } from 'date-fns/locale';
@@ -32,11 +32,6 @@ type CalendarEvent = {
 
 const toYYYYMMDD = (date: Date): string => {
   return format(date, 'yyyy-MM-dd');
-};
-
-const getDatePartFromISO = (isoString: string | null | undefined): string | null => {
-    if (!isoString) return null;
-    return isoString.substring(0, 10);
 };
 
 const formatEventDisplay = (startStr: string | null | undefined, endStr: string | null | undefined, isAllDay: boolean) => {
@@ -357,12 +352,6 @@ export default function CalendarPage() {
                                             </a>
                                         </Button>
                                         )}
-                                        <Button asChild size="sm">
-                                        <Link href={`/sppd/new?title=${encodeURIComponent(event.summary || '')}&startDate=${getDatePartFromISO(event.start) || ''}`}>
-                                            <FilePlus className='mr-2 h-4 w-4' />
-                                            Buat SPPD
-                                        </Link>
-                                        </Button>
                                     </CardFooter>
                                 </Card>
                             ))}
