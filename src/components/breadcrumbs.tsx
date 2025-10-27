@@ -3,7 +3,7 @@
 import { usePathname } from 'next/navigation';
 import Link from 'next/link';
 import { ChevronRight, Home } from 'lucide-react';
-import { Fragment } from 'react';
+import { Fragment, useEffect, useState } from 'react';
 
 // Fungsi untuk mengubah segmen path menjadi judul yang mudah dibaca
 const formatSegment = (segment: string) => {
@@ -35,9 +35,20 @@ const formatSegment = (segment: string) => {
 };
 
 export function Breadcrumbs() {
-  const pathname = usePathname();
-  const segments = pathname.split('/').filter(Boolean);
+  const path = usePathname();
+  const [segments, setSegments] = useState<string[]>([]);
+  const [isClient, setIsClient] = useState(false);
 
+  useEffect(() => {
+    setSegments(path.split('/').filter(Boolean));
+    setIsClient(true);
+  }, [path]);
+
+  if (!isClient) {
+    // Render null atau placeholder di server untuk menghindari mismatch
+    return null;
+  }
+  
   const breadcrumbSegments = ['home', ...segments];
 
   return (
@@ -63,9 +74,13 @@ export function Breadcrumbs() {
               </li>
             );
           }
-          
-           if (segment === 'calendar' && index === 1 && breadcrumbSegments.length === 2) {
-             return (
+
+          // Jangan render "Home" lagi karena sudah ada di atas
+          if (segment === 'home') return null;
+
+          // Jika ini adalah halaman kalender itu sendiri, jangan render breadcrumbnya
+          if (segment === 'calendar' && breadcrumbSegments.length <= 2) {
+              return (
                  <Fragment key={href}>
                     <li className="flex items-center">
                         <ChevronRight className="h-4 w-4 shrink-0" />
@@ -75,8 +90,7 @@ export function Breadcrumbs() {
                     </li>
                 </Fragment>
              )
-           }
-          
+          }
           if (segment === 'calendar') return null;
 
 
