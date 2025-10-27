@@ -11,17 +11,8 @@ const formatSegment = (segment: string) => {
   
   // Custom formatting
   const customFormats: { [key: string]: string } = {
-    'sppd': 'SPPD',
-    'spj': 'SPJ',
-    'master': 'Master Data',
-    'employees': 'Pegawai',
-    'signatures': 'Tanda Tangan',
-    'letterheads': 'Kop Surat',
     'calendar': 'Kalender',
     'upload': 'Upload Lampiran',
-    'settings': 'Pengaturan',
-    'reports': 'Laporan',
-    'dashboard': 'Dashboard'
   };
 
   if (customFormats[segment]) {
@@ -85,9 +76,6 @@ export function Breadcrumbs() {
             }
 
             let displayText = formatSegment(segment);
-            if (segment === 'new') {
-                displayText = 'Buat Baru';
-            }
 
             return (
                 <Fragment key={href}>
