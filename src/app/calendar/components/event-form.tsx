@@ -53,7 +53,6 @@ export function EventForm({ onSuccess }: EventFormProps) {
   const { toast } = useToast();
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [isGisLoaded, setIsGisLoaded] = useState(false);
-  const [isGapiLoaded, setIsGapiLoaded] = useState(false);
   const [gapiError, setGapiError] = useState<string | null>(null);
   const [isUploading, setIsUploading] = useState(false);
   const [attachmentName, setAttachmentName] = useState<string | null>(null);
@@ -87,24 +86,6 @@ export function EventForm({ onSuccess }: EventFormProps) {
       });
     }
   }, [toast]);
-
-  const handleGapiLoad = () => {
-    const { gapi } = window as any;
-    if (!gapi) return;
-    gapi.load('client', async () => {
-      try {
-        await gapi.client.init({
-          apiKey: process.env.NEXT_PUBLIC_GOOGLE_API_KEY,
-        });
-        await gapi.client.load('drive', 'v3');
-        setIsGapiLoaded(true);
-      } catch (error: any) {
-        const errorMsg = `Gagal menginisialisasi Google API Client: ${error.message}`;
-        console.error(errorMsg, error);
-        setGapiError(errorMsg);
-      }
-    });
-  };
 
   const handleGisLoad = () => {
     const CLIENT_ID = process.env.NEXT_PUBLIC_GOOGLE_CLIENT_ID;
@@ -141,7 +122,6 @@ export function EventForm({ onSuccess }: EventFormProps) {
         }
       };
       
-      // Prompt for consent to ensure the user sees the auth flow.
       client.requestAccessToken({ prompt: 'consent' });
     });
   };
@@ -340,7 +320,7 @@ export function EventForm({ onSuccess }: EventFormProps) {
   };
 
   const attachmentUrl = form.watch('attachmentUrl');
-  const isReady = isGapiLoaded && isGisLoaded;
+  const isReady = isGisLoaded;
   
   const getButtonText = () => {
     if (gapiError) return "Konfigurasi Error";
@@ -356,7 +336,6 @@ export function EventForm({ onSuccess }: EventFormProps) {
 
   return (
     <>
-      <Script src="https://apis.google.com/js/api.js" async defer onLoad={handleGapiLoad}></Script>
       <Script src="https://accounts.google.com/gsi/client" async defer onLoad={handleGisLoad}></Script>
       <Form {...form}>
         <form onSubmit={form.handleSubmit(onSubmit)} className="space-y-6">
