@@ -38,34 +38,22 @@ export function Breadcrumbs() {
   const pathname = usePathname();
   const segments = pathname.split('/').filter(Boolean);
 
-  // Jika di halaman root/calendar, tidak menampilkan apa-apa atau hanya judul
-  if (segments.length === 0 || (segments.length === 1 && segments[0] === 'calendar')) {
-    return (
-        <nav aria-label="Breadcrumb" className="hidden flex-1 md:flex">
-            <ol className="flex items-center space-x-1 text-sm text-muted-foreground">
-                <li>
-                    <span className="font-medium text-foreground">Kalender</span>
-                </li>
-            </ol>
-        </nav>
-    );
-  }
+  // Jika di halaman root, redirect ke /calendar, jadi kita bisa asumsikan /calendar adalah root
+  const isRootPage = segments.length === 0 || (segments.length === 1 && segments[0] === 'calendar');
 
   return (
     <nav aria-label="Breadcrumb" className="hidden flex-1 md:flex">
-      <ol className="flex items-center space-x-1 text-sm text-muted-foreground">
+      <ol className="flex min-w-0 flex-1 items-center space-x-1 text-sm text-muted-foreground">
         <li>
           <Link href="/calendar" className="hover:text-foreground">
             <Home className="h-4 w-4" />
             <span className="sr-only">Home</span>
           </Link>
         </li>
-        {segments.map((segment, index) => {
-          // Skip the first segment if it's the base like 'dashboard' or 'calendar'
-          if (index === 0 && (segment === 'dashboard' || segment === 'calendar')) {
-            return null;
-          }
-            
+        {!isRootPage && segments.map((segment, index) => {
+          // Skip 'calendar' segment as it's represented by Home
+          if (segment === 'calendar') return null;
+
           const href = `/${segments.slice(0, index + 1).join('/')}`;
           const isLast = index === segments.length - 1;
           
@@ -77,10 +65,10 @@ export function Breadcrumbs() {
           return (
             <Fragment key={href}>
               <li className="flex items-center">
-                <ChevronRight className="h-4 w-4" />
+                <ChevronRight className="h-4 w-4 shrink-0" />
                 {isLast ? (
                    <span
-                    className="ml-1 font-medium text-foreground"
+                    className="ml-1 truncate font-medium text-foreground"
                     aria-current="page"
                   >
                     {displayText}
@@ -97,6 +85,14 @@ export function Breadcrumbs() {
             </Fragment>
           );
         })}
+         {isRootPage && (
+            <li className="flex items-center">
+                <ChevronRight className="h-4 w-4 shrink-0" />
+                <span className="ml-1 font-medium text-foreground" aria-current="page">
+                    Kalender
+                </span>
+            </li>
+        )}
       </ol>
     </nav>
   );
