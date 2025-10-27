@@ -44,7 +44,9 @@ export default function RootLayout({
               <SidebarHeader>
                 <div className="flex items-center gap-2 p-2">
                   <CalendarDays className="w-7 h-7 text-primary" />
-                  <span className="text-lg font-semibold">Calendar Manager</span>
+                  <span className="text-lg font-semibold">
+                    <span>Calendar Manager</span>
+                  </span>
                 </div>
               </SidebarHeader>
               <SidebarContent>
