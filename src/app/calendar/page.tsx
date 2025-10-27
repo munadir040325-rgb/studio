@@ -13,7 +13,7 @@ import { cn } from '@/lib/utils';
 import { EventForm } from './components/event-form';
 import { Alert, AlertDescription, AlertTitle } from '@/components/ui/alert';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
-import { Input } from '@/components/ui/input';
+import { useToast } from '@/hooks/use-toast';
 
 type CalendarEvent = {
     id: string | null | undefined;
@@ -25,6 +25,13 @@ type CalendarEvent = {
     isAllDay: boolean;
     htmlLink: string | null | undefined;
 }
+
+const WhatsAppIcon = () => (
+    <svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="currentColor" className="mr-2 h-4 w-4">
+        <path d="M.057 24l1.687-6.163c-1.041-1.804-1.588-3.849-1.587-5.946.003-6.556 5.338-11.891 11.893-11.891 3.181.001 6.167 1.24 8.413 3.488 2.245 2.248 3.487 5.235 3.487 8.413.003 6.557-5.338 11.892-11.893 11.892-1.99-.001-3.951-.5-5.688-1.448l-6.305 1.654zm6.597-3.807c1.676.995 3.276 1.591 5.392 1.592 5.448 0 9.886-4.434 9.889-9.885.002-5.462-4.415-9.89-9.881-9.89-5.451 0-9.887 4.434-9.889 9.884-.002 2.024.63 3.891 1.742 5.634l-.999 3.648 3.742-1.001z"/>
+    </svg>
+);
+
 
 const formatEventDisplay = (startStr: string | null | undefined, endStr: string | null | undefined, isAllDay: boolean) => {
     if (!startStr) return 'Waktu tidak valid';
@@ -251,6 +258,7 @@ export default function CalendarPage() {
   const [searchTerm, setSearchTerm] = useState('');
   const [isFormOpen, setIsFormOpen] = useState(false);
   const [viewMode, setViewMode] = useState<'harian' | 'mingguan' | 'bulanan'>('harian');
+  const { toast } = useToast();
 
 
   const fetchEvents = useCallback(async () => {
@@ -324,9 +332,51 @@ export default function CalendarPage() {
       }
     });
 
+    // Sort events in daily and weekly view by start time
+    if (viewMode === 'harian' || viewMode === 'mingguan') {
+        return eventsInInterval.sort((a, b) => {
+            if (!a.start || !b.start) return 0;
+            return parseISO(a.start).getTime() - parseISO(b.start).getTime();
+        });
+    }
+
     return eventsInInterval;
 
   }, [allEvents, filterDate, viewMode, searchTerm]);
+
+    const handleSendToWhatsApp = () => {
+        if (!filterDate || filteredEvents.length === 0) {
+            toast({
+                variant: 'destructive',
+                title: "Tidak Ada Jadwal",
+                description: `Tidak ada kegiatan yang dijadwalkan untuk ${viewMode === 'harian' ? 'hari ini.' : 'periode ini.'}`
+            });
+            return;
+        }
+
+        const headerDate = format(filterDate, 'EEEE, dd MMMM yyyy', { locale: localeId });
+        let message = `*JADWAL KEGIATAN - ${headerDate.toUpperCase()}*\n\n`;
+
+        filteredEvents.forEach((event, index) => {
+            const title = event.summary || '(Tanpa Judul)';
+            const time = formatEventDisplay(event.start, event.end, event.isAllDay);
+            const location = event.location;
+            const disposisi = extractDisposisi(event.description);
+
+            message += `*${index + 1}. ${title}*\n`;
+            message += `- ⏰ *Waktu:* ${time}\n`;
+            if (location) {
+                message += `- 📍 *Lokasi:* ${location}\n`;
+            }
+            if (disposisi && disposisi !== '-') {
+                message += `- ✍️ *Disposisi:* ${disposisi}\n`;
+            }
+            message += '\n';
+        });
+
+        const encodedMessage = encodeURIComponent(message);
+        window.open(`https://api.whatsapp.com/send?text=${encodedMessage}`, '_blank');
+    };
 
 
   const handleRefresh = () => {
@@ -349,7 +399,7 @@ export default function CalendarPage() {
 
   const getDateNavigatorLabel = () => {
       if (!filterDate) return '';
-      if (viewMode === 'harian') return format(filterDate, 'PPP', { locale: localeId });
+      if (viewMode === 'harian') return format(filterDate, 'EEEE, dd MMMM yyyy', { locale: localeId });
       if (viewMode === 'mingguan') {
           const start = startOfWeek(filterDate, { weekStartsOn: 1 });
           const end = endOfWeek(filterDate, { weekStartsOn: 1 });
@@ -366,18 +416,18 @@ export default function CalendarPage() {
   return (
     <div className="flex flex-col gap-6 w-full">
         {/* Top Navigation & Controls */}
-        <div className="flex flex-col items-center gap-4 p-2 rounded-lg bg-card border md:flex-row md:items-center md:justify-between">
+        <div className="flex flex-col md:flex-row items-center justify-center md:justify-between gap-4 p-2 rounded-lg bg-card border flex-wrap">
             {/* Left Side: Date Navigator */}
             <div className='flex items-center gap-2'>
                 <Button variant="ghost" size="icon" onClick={() => handleDateChange(-1)}>
                     <ChevronLeft className="h-5 w-5" />
                 </Button>
-                <span className="text-lg font-semibold text-center w-48">
-                    {getDateNavigatorLabel()}
-                </span>
-                <Button variant="ghost" size="icon" onClick={() => handleDateChange(1)}>
+                 <Button variant="ghost" size="icon" onClick={() => handleDateChange(1)}>
                     <ChevronRight className="h-5 w-5" />
                 </Button>
+                <span className="text-lg font-semibold text-center w-auto hidden sm:block">
+                    {getDateNavigatorLabel()}
+                </span>
             </div>
             
             {/* Right Side: Actions */}
@@ -389,27 +439,29 @@ export default function CalendarPage() {
                         <TabsTrigger value="bulanan">Bulanan</TabsTrigger>
                     </TabsList>
                 </Tabs>
-                 <Button variant="outline" onClick={handleRefresh} disabled={isLoading} size="icon">
-                    <RefreshCw className={cn("h-4 w-4", isLoading && "animate-spin")} />
-                    <span className="sr-only">Muat Ulang</span>
-                </Button>
-                <Popover>
-                    <PopoverTrigger asChild>
-                        <Button variant="outline" size='icon'>
-                           <CalendarIcon className="h-4 w-4" />
-                        </Button>
-                    </PopoverTrigger>
-                    <PopoverContent className="w-auto p-0">
-                        <Calendar
-                        locale={localeId}
-                        mode="single"
-                        selected={filterDate}
-                        onSelect={(date) => setFilterDate(date)}
-                        initialFocus
-                        />
-                    </PopoverContent>
-                </Popover>
-                <Dialog open={isFormOpen} onOpenChange={setIsFormOpen}>
+                <div className='flex items-center gap-2'>
+                    <Button variant="outline" onClick={handleRefresh} disabled={isLoading} size="icon">
+                        <RefreshCw className={cn("h-4 w-4", isLoading && "animate-spin")} />
+                        <span className="sr-only">Muat Ulang</span>
+                    </Button>
+                    <Popover>
+                        <PopoverTrigger asChild>
+                            <Button variant="outline" size='icon'>
+                            <CalendarIcon className="h-4 w-4" />
+                            </Button>
+                        </PopoverTrigger>
+                        <PopoverContent className="w-auto p-0">
+                            <Calendar
+                            locale={localeId}
+                            mode="single"
+                            selected={filterDate}
+                            onSelect={(date) => setFilterDate(date)}
+                            initialFocus
+                            />
+                        </PopoverContent>
+                    </Popover>
+                </div>
+                 <Dialog open={isFormOpen} onOpenChange={setIsFormOpen}>
                     <DialogTrigger asChild>
                         <Button>
                             <PlusCircle className="mr-2 h-4 w-4" />
@@ -423,11 +475,15 @@ export default function CalendarPage() {
                         <EventForm onSuccess={handleSuccess} />
                     </DialogContent>
                 </Dialog>
-                <Button className="bg-green-500 hover:bg-green-600 text-white">
-                     <MessageSquare className="mr-2 h-4 w-4" />
+                <Button className="bg-green-500 hover:bg-green-600 text-white" onClick={handleSendToWhatsApp}>
+                    <WhatsAppIcon />
                     Kirim ke WhatsApp
                 </Button>
             </div>
+        </div>
+
+        <div className="block sm:hidden text-lg font-semibold text-center w-full -mt-4">
+            {getDateNavigatorLabel()}
         </div>
       
       {isLoading && <div className="text-center py-12 text-muted-foreground">Memuat kegiatan...</div>}
@@ -446,20 +502,13 @@ export default function CalendarPage() {
             <Tabs value={viewMode} onValueChange={(value) => setViewMode(value as any)} className="w-full">
                  <TabsContent value="harian" className="mt-0">
                      <div className="flex flex-col gap-4">
-                        {filterDate && viewMode === 'harian' && (
-                            <div className="mb-2">
-                                <h2 className="text-xl font-semibold">
-                                    Jadwal Kegiatan: {format(filterDate, 'EEEE, dd MMMM yyyy', { locale: localeId })}
-                                </h2>
-                            </div>
-                        )}
                         <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
                             {filteredEvents.map(event => event.id && <EventCard event={event} key={event.id} />)}
                         </div>
                     </div>
                 </TabsContent>
                 <TabsContent value="mingguan" className="mt-0">
-                   {filterDate && <WeeklyView events={filteredEvents} baseDate={filterDate} />}
+                   {filterDate && <WeeklyView events={allEvents} baseDate={filterDate} />}
                 </TabsContent>
                  <TabsContent value="bulanan" className="mt-0">
                     {filterDate && <MonthlyView events={allEvents} baseDate={filterDate} />}
