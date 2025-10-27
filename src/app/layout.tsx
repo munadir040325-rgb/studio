@@ -20,7 +20,7 @@ import { AppHeader } from '@/components/app-header';
 import { FirebaseClientProvider } from '@/firebase';
 
 export const metadata: Metadata = {
-  title: 'SPPD Manager',
+  title: 'Calendar Manager',
   description: 'Aplikasi web SPPD integrasi Google Sheets dan Calendar',
 };
 
@@ -44,7 +44,7 @@ export default function RootLayout({
               <SidebarHeader>
                 <div className="flex items-center gap-2 p-2">
                   <CalendarDays className="w-7 h-7 text-primary" />
-                  <span className="text-lg font-semibold">SPPD Manager</span>
+                  <span className="text-lg font-semibold">Calendar Manager</span>
                 </div>
               </SidebarHeader>
               <SidebarContent>
