@@ -6,7 +6,7 @@ import { Card, CardContent, CardFooter, CardHeader, CardTitle } from '@/componen
 import { Input } from '@/components/ui/input';
 import { Popover, PopoverContent, PopoverTrigger } from '@/components/ui/popover';
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger } from '@/components/ui/dialog';
-import { Calendar as CalendarIcon, ExternalLink, PlusCircle, RefreshCw, Search, MapPin, FileSignature, Clock, ChevronLeft, ChevronRight, MessageSquare } from 'lucide-react';
+import { Calendar as CalendarIcon, ExternalLink, PlusCircle, RefreshCw, Search, MapPin, Clock, ChevronLeft, ChevronRight, MessageSquare } from 'lucide-react';
 import { Calendar } from '@/components/ui/calendar';
 import { format, parseISO, isSameDay, startOfDay, endOfDay, startOfWeek, endOfWeek, startOfMonth, endOfMonth, isWithinInterval, eachDayOfInterval, getDay, isSameMonth, getDate, addDays, subDays, addWeeks, subWeeks, addMonths, subMonths } from 'date-fns';
 import { id as localeId } from 'date-fns/locale';
@@ -341,10 +341,6 @@ export default function CalendarPage() {
     setFilterDate(newDate);
   };
   
-  const goToToday = () => {
-      setFilterDate(new Date());
-  }
-
   const getDateNavigatorLabel = () => {
       if (!filterDate) return '';
       if (viewMode === 'harian') return format(filterDate, 'PPP', { locale: localeId });
@@ -382,7 +378,6 @@ export default function CalendarPage() {
             </div>
 
             <div className='flex items-center gap-2'>
-                <Button variant="outline" className="w-28" onClick={() => setFilterDate(new Date())}>Hari Ini</Button>
                 <Button variant="ghost" size="icon" onClick={() => handleDateChange(-1)}>
                     <ChevronLeft className="h-5 w-5" />
                 </Button>
