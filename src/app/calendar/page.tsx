@@ -5,7 +5,7 @@ import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardFooter, CardHeader, CardTitle } from '@/components/ui/card';
 import { Popover, PopoverContent, PopoverTrigger } from '@/components/ui/popover';
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger, DialogFooter, DialogDescription } from '@/components/ui/dialog';
-import { Calendar as CalendarIcon, ExternalLink, PlusCircle, RefreshCw, MapPin, Clock, ChevronLeft, ChevronRight, FileSignature, Copy, Info } from 'lucide-react';
+import { Calendar as CalendarIcon, ExternalLink, PlusCircle, RefreshCw, MapPin, Clock, ChevronLeft, ChevronRight, Pin, Copy, Info } from 'lucide-react';
 import { Calendar } from '@/components/ui/calendar';
 import { format, parseISO, isSameDay, startOfDay, endOfDay, startOfWeek, endOfWeek, startOfMonth, endOfMonth, isWithinInterval, eachDayOfInterval, getDay, isSameMonth, getDate, addDays, subDays, addWeeks, subMonths, addMonths } from 'date-fns';
 import { id as localeId } from 'date-fns/locale';
@@ -119,7 +119,7 @@ const EventCard = ({ event }: { event: CalendarEvent }) => (
               </p>
               )}
               <p className="flex items-start">
-                  <FileSignature className="h-4 w-4 mr-2 mt-0.5 flex-shrink-0 text-green-500" />
+                  <Pin className="h-4 w-4 mr-2 mt-0.5 flex-shrink-0 text-red-500" />
                   <span className='line-clamp-2'>Disposisi: {extractDisposisi(event.description)}</span>
               </p>
           </div>
@@ -605,26 +605,26 @@ export default function CalendarPage() {
                 )}
                 
                 <div className="flex items-start">
-                  <FileSignature className="mr-3 h-5 w-5 flex-shrink-0 text-muted-foreground" />
+                  <Pin className="mr-3 h-5 w-5 flex-shrink-0 text-red-500" />
                   <span className="text-foreground">Disposisi: {extractDisposisi(selectedEvent.description)}</span>
                 </div>
                 
-                {invitationLink && (
-                    <div className="flex items-center">
-                        {getFileIcon(invitationLink.name)}
-                        <a href={invitationLink.url} target="_blank" rel="noopener noreferrer" className="text-blue-600 hover:underline truncate">
-                            {invitationLink.name}
-                        </a>
-                    </div>
-                )}
-                
-                {resultLink && (
-                    <div className="flex items-center">
-                        {getFileIcon(resultLink.name)}
-                        <a href={resultLink.url} target="_blank" rel="noopener noreferrer" className="text-blue-600 hover:underline truncate">
-                            {resultLink.name}
-                        </a>
-                    </div>
+                {(invitationLink || resultLink) && (
+                  <div className="space-y-2 pt-4 border-t">
+                      <h3 className="text-sm font-medium text-muted-foreground">Lampiran</h3>
+                      {invitationLink && (
+                          <a href={invitationLink.url} target="_blank" rel="noopener noreferrer" className="flex items-center gap-3 p-2 rounded-md hover:bg-muted">
+                              {getFileIcon(invitationLink.name)}
+                              <span className="text-blue-600 truncate">{invitationLink.name}</span>
+                          </a>
+                      )}
+                      {resultLink && (
+                          <a href={resultLink.url} target="_blank" rel="noopener noreferrer" className="flex items-center gap-3 p-2 rounded-md hover:bg-muted">
+                              {getFileIcon(resultLink.name)}
+                              <span className="text-blue-600 truncate">{resultLink.name}</span>
+                          </a>
+                      )}
+                  </div>
                 )}
                 
                 {cleanDescription && (
@@ -676,3 +676,5 @@ export default function CalendarPage() {
     </div>
   );
 }
+
+    
