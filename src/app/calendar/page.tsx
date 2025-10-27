@@ -10,7 +10,7 @@ import { Popover, PopoverContent, PopoverTrigger } from '@/components/ui/popover
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger } from '@/components/ui/dialog';
 import { Calendar as CalendarIcon, ExternalLink, FilePlus, PlusCircle, RefreshCw, Search, MapPin, FileSignature, Clock } from 'lucide-react';
 import { Calendar } from '@/components/ui/calendar';
-import { format, parseISO, isSameDay } from 'date-fns';
+import { format, parseISO, isSameDay, startOfDay, endOfDay } from 'date-fns';
 import { id } from 'date-fns/locale';
 import { cn } from '@/lib/utils';
 import Link from 'next/link';
@@ -59,7 +59,7 @@ const formatEventDisplay = (startStr: string | null | undefined, endStr: string 
             }
         } else {
             if (isSameDay(startDate, endDate)) {
-                return `${format(startDate, 'HH:mm', { locale: id })} - ${format(endDate, 'HH:mm', { locale: id })}`;
+                return `${format(startDate, 'HH:mm', { locale: id })} - ${format(endDate, 'HH:mm', { locale:id })}`;
             } else {
                 return `${format(startDate, 'dd MMM, HH:mm', { locale: id })} - ${format(endDate, 'dd MMM, HH:mm', { locale: id })}`;
             }
@@ -141,7 +141,7 @@ function WhatsAppScheduleView({ events, scheduleDate }: { events: CalendarEvent[
 }
 
 export default function CalendarPage() {
-  const [events, setEvents] = useState<CalendarEvent[]>([]);
+  const [allEvents, setAllEvents] = useState<CalendarEvent[]>([]);
   const [isLoading, setIsLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
   const [filterDate, setFilterDate] = useState<Date | undefined>();
@@ -155,27 +155,19 @@ export default function CalendarPage() {
   }, []);
 
 
-  const fetchEvents = useCallback(async (date: Date | undefined) => {
+  const fetchEvents = useCallback(async () => {
     setIsLoading(true);
     setError(null);
     try {
-      if (!date) {
-        setEvents([]);
-        setIsLoading(false);
-        return;
-      }
-      
-      const selectedDate = toYYYYMMDD(date);
-      let url = `/api/events?start=${selectedDate}`;
-      
-      const response = await fetch(url);
+      // Fetch all events for a wide range, then filter on client
+      const response = await fetch(`/api/events`);
       const data = await response.json();
 
       if (!response.ok) {
         throw new Error(data.error || 'Gagal mengambil data dari server.');
       }
       
-      setEvents(data.items || []);
+      setAllEvents(data.items || []);
     } catch (e: any) {
       console.error("Error fetching calendar events:", e);
       let friendlyMessage = e.message || 'Gagal memuat kegiatan dari kalender.';
@@ -186,41 +178,44 @@ export default function CalendarPage() {
         friendlyMessage = "Kalender tidak ditemukan atau belum dibagikan ke email Service Account. Pastikan ID Kalender benar dan izin telah diberikan.";
       }
       setError(friendlyMessage);
-      setEvents([]);
+      setAllEvents([]);
     } finally {
       setIsLoading(false);
     }
   }, []);
 
   useEffect(() => {
-    fetchEvents(filterDate);
-  }, [filterDate, fetchEvents]);
+    fetchEvents();
+  }, [fetchEvents]);
 
-  const filteredEvents = useMemo(() => {
+  const eventsOnSelectedDate = useMemo(() => {
     if (!filterDate) return [];
     
-    // This will filter events that are happening on the selected day, including multi-day events
-    return events.filter(event => {
+    const selectedDayStart = startOfDay(filterDate);
+    const selectedDayEnd = endOfDay(filterDate);
+    
+    return allEvents.filter(event => {
         if (!event.start) return false;
         try {
-            const startDate = parseISO(getDatePartFromISO(event.start)!);
-            const endDate = event.end ? parseISO(getDatePartFromISO(event.end)!) : startDate;
-            // For all-day events, the end date is exclusive, so we might need to adjust
-            const inclusiveEndDate = event.isAllDay ? new Date(endDate.getTime() - 1) : endDate;
+            const eventStart = parseISO(event.start);
+            // For all-day events, 'end' is exclusive. For timed events, it's inclusive.
+            const eventEnd = event.end ? parseISO(event.end) : eventStart;
+            const inclusiveEventEnd = event.isAllDay ? new Date(eventEnd.getTime() - 1) : eventEnd;
 
-            return filterDate >= startDate && filterDate <= inclusiveEndDate;
+            // Check if event range overlaps with the selected day
+            return eventStart <= selectedDayEnd && inclusiveEventEnd >= selectedDayStart;
         } catch {
             return false;
         }
     });
-  }, [events, filterDate]);
+  }, [allEvents, filterDate]);
 
   const filteredBySearchEvents = useMemo(() => {
     if (!searchTerm) {
-        return filteredEvents;
+        return eventsOnSelectedDate;
     }
     
-    return filteredEvents.filter(event => {
+    return eventsOnSelectedDate.filter(event => {
         const term = searchTerm.toLowerCase();
         const summaryMatch = event.summary?.toLowerCase().includes(term);
         const descriptionMatch = event.description?.toLowerCase().includes(term);
@@ -230,15 +225,15 @@ export default function CalendarPage() {
 
         return summaryMatch || descriptionMatch || locationMatch || disposisiMatch;
     });
-  }, [filteredEvents, searchTerm]);
+  }, [eventsOnSelectedDate, searchTerm]);
 
   const handleRefresh = () => {
-    fetchEvents(filterDate);
+    fetchEvents();
   };
   
   const handleSuccess = () => {
     setIsFormOpen(false);
-    fetchEvents(filterDate);
+    fetchEvents();
   };
 
   return (

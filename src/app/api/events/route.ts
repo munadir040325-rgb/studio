@@ -61,7 +61,7 @@ export async function GET(req: NextRequest) {
       return NextResponse.json({ error: "ID Kalender (NEXT_PUBLIC_CALENDAR_ID) belum diatur." }, { status: 500 });
     }
 
-    // Jika tidak ada tanggal filter, ambil rentang default (misal, 1 tahun)
+    // Jika tidak ada tanggal filter, ambil rentang default (misal, 1 tahun ke depan dan ke belakang)
     const today = new Date();
     const defaultStart = new Date(today);
     defaultStart.setFullYear(today.getFullYear() - 1);
@@ -69,9 +69,10 @@ export async function GET(req: NextRequest) {
     defaultEnd.setFullYear(today.getFullYear() + 1);
 
     const startDate = start || `${defaultStart.getFullYear()}-${String(defaultStart.getMonth() + 1).padStart(2, '0')}-${String(defaultStart.getDate()).padStart(2, '0')}`;
+    const endDate = end || (start ? undefined : `${defaultEnd.getFullYear()}-${String(defaultEnd.getMonth() + 1).padStart(2, '0')}-${String(defaultEnd.getDate()).padStart(2, '0')}`);
 
 
-    const { timeMin, timeMax } = buildRangeISO(startDate, end ?? startDate, "Asia/Jakarta");
+    const { timeMin, timeMax } = buildRangeISO(startDate, endDate);
 
     // Auth service account for calendar
     const auth = await getGoogleAuth("https://www.googleapis.com/auth/calendar.readonly");
@@ -83,8 +84,8 @@ export async function GET(req: NextRequest) {
 
     const res = await calendar.events.list({
       calendarId,
-      timeMin: start ? timeMin : undefined, // Hanya filter jika 'start' disediakan
-      timeMax: start ? timeMax : undefined,
+      timeMin: timeMin,
+      timeMax: timeMax,
       singleEvents: true,
       orderBy: "startTime",
       maxResults: 2500,
