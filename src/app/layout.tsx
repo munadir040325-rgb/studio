@@ -15,14 +15,9 @@ import {
 import {
   LayoutDashboard,
   Calendar,
-  FileText,
-  Users,
-  PenSquare,
-  FileImage,
+  Upload,
   Settings,
   Book,
-  FileBarChart,
-  FileCheck,
 } from 'lucide-react';
 import Link from 'next/link';
 import { AppHeader } from '@/components/app-header';
@@ -60,47 +55,14 @@ export default function RootLayout({
                 <SidebarMenu>
                   <SidebarMenuItem>
                     <SidebarMenuButton asChild>
-                      <Link href="/dashboard"><LayoutDashboard />Dashboard</Link>
+                      <Link href="/calendar"><Calendar />Kalender</Link>
                     </SidebarMenuButton>
                   </SidebarMenuItem>
                   <SidebarMenuItem>
                     <SidebarMenuButton asChild>
-                      <Link href="/calendar"><Calendar />Kalender</Link>
+                      <Link href="/upload"><Upload />Upload Lampiran</Link>
                     </SidebarMenuButton>
                   </SidebarMenuItem>
-                  
-                  <SidebarMenuItem>
-                     <SidebarMenuButton asChild>
-                        <Link href="/sppd"><FileText />SPPD</Link>
-                      </SidebarMenuButton>
-                  </SidebarMenuItem>
-                   <SidebarMenuItem>
-                     <SidebarMenuButton asChild>
-                        <Link href="/spj"><FileCheck />SPJ</Link>
-                      </SidebarMenuButton>
-                  </SidebarMenuItem>
-                  <SidebarMenuItem>
-                     <SidebarMenuButton asChild>
-                        <Link href="/reports"><FileBarChart />Rekap</Link>
-                      </SidebarMenuButton>
-                  </SidebarMenuItem>
-
-                   <SidebarMenuItem>
-                     <SidebarMenuButton asChild>
-                        <Link href="/master/employees"><Users />Pegawai</Link>
-                      </SidebarMenuButton>
-                  </SidebarMenuItem>
-                   <SidebarMenuItem>
-                     <SidebarMenuButton asChild>
-                        <Link href="/master/signatures"><PenSquare />Tanda Tangan</Link>
-                      </SidebarMenuButton>
-                  </SidebarMenuItem>
-                   <SidebarMenuItem>
-                     <SidebarMenuButton asChild>
-                        <Link href="/master/letterheads"><FileImage />Kop Surat</Link>
-                      </SidebarMenuButton>
-                  </SidebarMenuItem>
-                  
                 </SidebarMenu>
               </SidebarContent>
               <SidebarFooter>
