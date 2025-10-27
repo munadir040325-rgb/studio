@@ -26,7 +26,7 @@ import { useToast } from '@/hooks/use-toast';
 import { useState, useEffect, useRef } from 'react';
 import Script from 'next/script';
 
-const DRIVE_FOLDER_ID = '1ozMzvJUBgy9h0bq4HXXxN0aPkPW4duCH';
+const DRIVE_FOLDER_ID = process.env.NEXT_PUBLIC_DRIVE_FOLDER_ID;
 
 const formSchema = z.object({
   summary: z.string().min(2, {
@@ -74,8 +74,8 @@ export function EventForm({ onSuccess }: EventFormProps) {
   useEffect(() => {
     const API_KEY = process.env.NEXT_PUBLIC_GOOGLE_API_KEY;
     const CLIENT_ID = process.env.NEXT_PUBLIC_GOOGLE_CLIENT_ID;
-    if (!API_KEY || !CLIENT_ID) {
-      const errorMsg = "Kredensial Google (API_KEY atau CLIENT_ID) belum diatur di .env.";
+    if (!API_KEY || !CLIENT_ID || !DRIVE_FOLDER_ID) {
+      const errorMsg = "Kredensial Google (API_KEY, CLIENT_ID, atau DRIVE_FOLDER_ID) belum diatur di .env.";
       console.error(errorMsg);
       setGapiError(errorMsg);
       toast({
