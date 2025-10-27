@@ -99,7 +99,7 @@ export default function UploadPage() {
     try {
         tokenClient.current = (window as any).google.accounts.oauth2.initTokenClient({
             client_id: CLIENT_ID,
-            scope: 'https://www.googleapis.com/auth/drive',
+            scope: 'https://www.googleapis.com/auth/drive.file',
             callback: '', // Callback is handled in the promise
         });
         setIsGisLoaded(true);
@@ -202,9 +202,11 @@ export default function UploadPage() {
     toast({ description: "Memulai proses unggah..." });
 
     try {
-        // This check is now redundant because handleAuthorizeAndPick ensures we have a token
         if (!accessTokenRef.current) {
-            throw new Error("Sesi izin Google tidak valid. Coba otorisasi ulang.");
+            toast({ description: "Meminta izin Google..." });
+            const token = await requestAccessToken();
+            accessTokenRef.current = token;
+            toast({ title: "Izin diberikan!" });
         }
 
         if (!ROOT_FOLDER_ID) throw new Error("ROOT_FOLDER_ID belum diatur.");
@@ -257,11 +259,13 @@ export default function UploadPage() {
     } else {
       setter(e.target.files[0] || null);
     }
+    // Clear the input value to allow re-selecting the same file
+    e.target.value = '';
   };
   
-  const FileUploadButton = ({ pickerRef, label, files, isSingle, isUploading, isDisabled }: { pickerRef: React.RefObject<HTMLInputElement>, label: string, files: File[], isSingle?: boolean, isUploading: boolean, isDisabled: boolean }) => (
+  const FileUploadButton = ({ pickerRef, label, files, isSingle, isUploading, isDisabled, onButtonClick }: { pickerRef: React.RefObject<HTMLInputElement>, label: string, files: File[], isSingle?: boolean, isUploading: boolean, isDisabled: boolean, onButtonClick: () => void }) => (
     <div>
-      <Button type="button" variant="outline" className="w-full justify-start font-normal" onClick={() => handleAuthorizeAndPick(pickerRef)} disabled={isDisabled || isUploading}>
+      <Button type="button" variant="outline" className="w-full justify-start font-normal" onClick={onButtonClick} disabled={isDisabled || isUploading}>
           <UploadCloud className="h-4 w-4 mr-2" />
           <span>{files.length > 0 ? `${files.length} file dipilih` : label}</span>
       </Button>
@@ -371,19 +375,41 @@ export default function UploadPage() {
             <div className="grid grid-cols-1 lg:grid-cols-3 gap-4">
                 <div className="grid gap-2">
                     <Label htmlFor="foto-upload">Upload Foto Kegiatan</Label>
-                     <FileUploadButton pickerRef={fotoInputRef} label="Pilih foto..." files={fotoFiles} isUploading={isSubmitting} isDisabled={!isGisLoaded || !!gapiError} />
+                     <FileUploadButton 
+                        pickerRef={fotoInputRef} 
+                        label="Pilih foto..." 
+                        files={fotoFiles} 
+                        isUploading={isSubmitting} 
+                        isDisabled={!isGisLoaded || !!gapiError}
+                        onButtonClick={() => handleAuthorizeAndPick(fotoInputRef)}
+                     />
                     <p className="text-xs text-muted-foreground">Bisa unggah lebih dari satu file gambar.</p>
                     <FileList files={fotoFiles} onRemove={(index) => setFotoFiles(files => files.filter((_, i) => i !== index))} isUploading={isSubmitting}/>
                 </div>
                 <div className="grid gap-2">
                     <Label htmlFor="notulen-upload">Upload Notulen/Laporan</Label>
-                    <FileUploadButton pickerRef={notulenInputRef} label="Pilih file..." files={notulenFile ? [notulenFile] : []} isSingle isUploading={isSubmitting} isDisabled={!isGisLoaded || !!gapiError}/>
+                    <FileUploadButton 
+                        pickerRef={notulenInputRef} 
+                        label="Pilih file..." 
+                        files={notulenFile ? [notulenFile] : []} 
+                        isSingle 
+                        isUploading={isSubmitting} 
+                        isDisabled={!isGisLoaded || !!gapiError}
+                        onButtonClick={() => handleAuthorizeAndPick(notulenInputRef)}
+                    />
                     <p className="text-xs text-muted-foreground">Hanya satu file (PDF/DOCX).</p>
                     {notulenFile && <FileList files={[notulenFile]} onRemove={() => setNotulenFile(null)} isUploading={isSubmitting} />}
                 </div>
                 <div className="grid gap-2">
                     <Label htmlFor="materi-upload">Upload Materi</Label>
-                    <FileUploadButton pickerRef={materiInputRef} label="Pilih file..." files={materiFiles} isUploading={isSubmitting} isDisabled={!isGisLoaded || !!gapiError}/>
+                    <FileUploadButton 
+                        pickerRef={materiInputRef} 
+                        label="Pilih file..." 
+                        files={materiFiles} 
+                        isUploading={isSubmitting} 
+                        isDisabled={!isGisLoaded || !!gapiError}
+                        onButtonClick={() => handleAuthorizeAndPick(materiInputRef)}
+                    />
                     <p className="text-xs text-muted-foreground">Bisa unggah file jenis apa pun.</p>
                      <FileList files={materiFiles} onRemove={(index) => setMateriFiles(files => files.filter((_, i) => i !== index))} isUploading={isSubmitting}/>
                 </div>
@@ -400,5 +426,3 @@ export default function UploadPage() {
     </div>
   );
 }
-
-    
