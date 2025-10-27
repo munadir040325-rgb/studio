@@ -115,10 +115,15 @@ export default function UploadPage() {
       if (!tokenClient.current) {
         return reject(new Error("Google Identity Services client not initialized."));
       }
+
       tokenClient.current.callback = (resp: any) => {
-        if (resp.error) reject(new Error(`Gagal mendapatkan izin: ${resp.error_description || resp.error}`));
-        else resolve(resp.access_token);
+        if (resp.error) {
+          reject(new Error(`Gagal mendapatkan izin: ${resp.error_description || resp.error}`));
+        } else {
+          resolve(resp.access_token);
+        }
       };
+      
       // This is what shows the popup
       tokenClient.current.requestAccessToken({ prompt: 'consent' });
     });
@@ -263,33 +268,36 @@ export default function UploadPage() {
     e.target.value = '';
   };
   
-  const FileUploadButton = ({ pickerRef, label, files, isSingle, isUploading, isDisabled, onButtonClick }: { pickerRef: React.RefObject<HTMLInputElement>, label: string, files: File[], isSingle?: boolean, isUploading: boolean, isDisabled: boolean, onButtonClick: () => void }) => (
-    <div>
-      <Button type="button" variant="outline" className="w-full justify-start font-normal" onClick={onButtonClick} disabled={isDisabled || isUploading}>
-          <UploadCloud className="h-4 w-4 mr-2" />
-          <span>{files.length > 0 ? `${files.length} file dipilih` : label}</span>
-      </Button>
-      <Input 
-        id={pickerRef.current?.id}
-        ref={pickerRef}
-        type="file" 
-        className="hidden" 
-        multiple={!isSingle} 
-        accept={
-          pickerRef === fotoInputRef ? "image/*" : 
-          pickerRef === notulenInputRef ? ".pdf,.doc,.docx" : 
-          "*"
-        }
-        onChange={handleFileChange(
-          pickerRef === fotoInputRef ? setFotoFiles : 
-          pickerRef === notulenInputRef ? setNotulenFile : 
-          setMateriFiles, 
-          !isSingle
-        )}
-        disabled={isDisabled || isUploading}
-      />
-    </div>
-  );
+  const FileUploadButton = ({ pickerRef, label, files, isSingle, isUploading, isDisabled, onButtonClick }: { pickerRef: React.RefObject<HTMLInputElement>, label: string, files: File[] | null, isSingle?: boolean, isUploading: boolean, isDisabled: boolean, onButtonClick: () => void }) => {
+    const fileCount = files ? files.length : 0;
+    return (
+        <div>
+        <Button type="button" variant="outline" className="w-full justify-start font-normal" onClick={onButtonClick} disabled={isDisabled || isUploading}>
+            <UploadCloud className="h-4 w-4 mr-2" />
+            <span>{fileCount > 0 ? `${fileCount} file dipilih` : label}</span>
+        </Button>
+        <Input 
+            id={pickerRef.current?.id}
+            ref={pickerRef}
+            type="file" 
+            className="hidden" 
+            multiple={!isSingle} 
+            accept={
+            pickerRef === fotoInputRef ? "image/*" : 
+            pickerRef === notulenInputRef ? ".pdf,.doc,.docx" : 
+            "*"
+            }
+            onChange={handleFileChange(
+            pickerRef === fotoInputRef ? setFotoFiles : 
+            pickerRef === notulenInputRef ? setNotulenFile : 
+            setMateriFiles, 
+            !isSingle
+            )}
+            disabled={isDisabled || isUploading}
+        />
+        </div>
+    );
+  };
 
 
   return (
@@ -391,7 +399,7 @@ export default function UploadPage() {
                     <FileUploadButton 
                         pickerRef={notulenInputRef} 
                         label="Pilih file..." 
-                        files={notulenFile ? [notulenFile] : []} 
+                        files={notulenFile ? [notulenFile] : null} 
                         isSingle 
                         isUploading={isSubmitting} 
                         isDisabled={!isGisLoaded || !!gapiError}
