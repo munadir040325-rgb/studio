@@ -16,7 +16,7 @@ import { parseISO } from 'date-fns';
 import useSWR from 'swr';
 import Script from 'next/script';
 
-const ROOT_FOLDER_ID = process.env.NEXT_PUBLIC_DRIVE_FOLDER_ID;
+const ROOT_FOLDER_ID = process.env.NEXT_PUBLIC_DRIVE_FOLDER_ID_HASIL;
 
 type CalendarEvent = {
   id: string;
@@ -82,7 +82,7 @@ export default function UploadPage() {
     const API_KEY = process.env.NEXT_PUBLIC_GOOGLE_API_KEY;
     const CLIENT_ID = process.env.NEXT_PUBLIC_GOOGLE_CLIENT_ID;
     if (!API_KEY || !CLIENT_ID || !ROOT_FOLDER_ID) {
-      const errorMsg = "Kredensial Google (API_KEY, CLIENT_ID, atau DRIVE_FOLDER_ID) belum diatur di .env.";
+      const errorMsg = "Kredensial Google (API_KEY, CLIENT_ID, atau DRIVE_FOLDER_ID_HASIL) belum diatur di .env.";
       console.error(errorMsg);
       setGapiError(errorMsg);
     }
