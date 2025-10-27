@@ -29,11 +29,12 @@ import { Calendar as CalendarIcon, Save } from 'lucide-react';
 import { cn } from '@/lib/utils';
 import { format } from 'date-fns';
 import { employees } from '@/lib/data';
-import { useState, useEffect } from 'react';
+import { useState, useEffect, Suspense } from 'react';
 import Link from 'next/link';
 import { useSearchParams } from 'next/navigation';
+import { Skeleton } from '@/components/ui/skeleton';
 
-export default function NewSppdPage() {
+function NewSppdForm() {
   const searchParams = useSearchParams();
   const [activity, setActivity] = useState('');
   const [dateRange, setDateRange] = useState<{ from?: Date; to?: Date }>({});
@@ -48,7 +49,6 @@ export default function NewSppdPage() {
 
     if (startDate) {
         const start = new Date(startDate);
-        // Set 'from' and 'to' to the same date initially
         setDateRange({ from: start, to: start });
     }
   }, [searchParams]);
@@ -171,4 +171,54 @@ export default function NewSppdPage() {
       </div>
     </div>
   );
+}
+
+
+function FormSkeleton() {
+  return (
+    <div className="flex flex-col gap-6">
+      <PageHeader
+        title="Buat SPPD Baru"
+        description="Isi detail di bawah ini untuk membuat surat tugas perjalanan baru."
+      >
+        <div className="flex gap-2">
+          <Button variant="outline" disabled>Batal</Button>
+          <Button disabled>
+            <Save className="mr-2 h-4 w-4" />
+            Simpan SPPD
+          </Button>
+        </div>
+      </PageHeader>
+      <div className="grid grid-cols-1 gap-6 lg:grid-cols-3">
+        <div className="lg:col-span-2 space-y-6">
+          <Card>
+            <CardHeader>
+              <CardTitle>Detail SPPD</CardTitle>
+              <CardDescription>
+                Berikan informasi utama untuk tugas perjalanan.
+              </CardDescription>
+            </CardHeader>
+            <CardContent className="grid gap-6">
+              <div className="space-y-2">
+                <Label>Kegiatan</Label>
+                <Skeleton className="h-10 w-full" />
+              </div>
+               <div className="space-y-2">
+                <Label>Nomor SPPD</Label>
+                <Skeleton className="h-10 w-full" />
+              </div>
+            </CardContent>
+          </Card>
+        </div>
+      </div>
+    </div>
+  )
+}
+
+export default function NewSppdPage() {
+  return (
+    <Suspense fallback={<FormSkeleton />}>
+      <NewSppdForm />
+    </Suspense>
+  )
 }
