@@ -70,7 +70,6 @@ export const useGoogleDriveAuth = ({ folderId }: UseGoogleDriveAuthProps) => {
 
     const requestAccessToken = useCallback((): Promise<string> => {
         return new Promise((resolve, reject) => {
-            // If we have a token, just resolve it. In a real app, you'd check for expiration.
             if (accessTokenRef.current) {
                 return resolve(accessTokenRef.current);
             }
@@ -88,10 +87,29 @@ export const useGoogleDriveAuth = ({ folderId }: UseGoogleDriveAuthProps) => {
                     resolve(resp.access_token);
                 }
             };
-            // This is the call that opens the popup.
             client.requestAccessToken({ prompt: 'consent' });
         });
     }, []);
+    
+    const getOrCreateFolder = useCallback(async (name: string, parentId: string, token: string): Promise<string> => {
+        const q = `'${parentId}' in parents and name='${name}' and mimeType='application/vnd.google-apps.folder' and trashed=false`;
+        const res = await fetch(`https://www.googleapis.com/drive/v3/files?q=${encodeURIComponent(q)}&fields=files(id)`, {
+            headers: { 'Authorization': `Bearer ${token}` }
+        });
+        const body = await res.json();
+        if (body.files && body.files.length > 0) return body.files[0].id;
+
+        const metadata = { name, mimeType: 'application/vnd.google-apps.folder', parents: [parentId] };
+        const createRes = await fetch('https://www.googleapis.com/drive/v3/files', {
+            method: 'POST',
+            headers: { 'Authorization': `Bearer ${token}`, 'Content-Type': 'application/json' },
+            body: JSON.stringify(metadata)
+        });
+        const createBody = await createRes.json();
+        if (!createRes.ok) throw new Error(`Gagal membuat folder '${name}': ${createBody.error?.message}`);
+        return createBody.id;
+    }, []);
+
 
     const uploadFile = useCallback(async (file: File, targetFolderId: string, token: string): Promise<{ fileId: string; webViewLink: string; name: string }> => {
         const metadata = { name: file.name, parents: [targetFolderId] };
@@ -109,31 +127,36 @@ export const useGoogleDriveAuth = ({ folderId }: UseGoogleDriveAuthProps) => {
         if (!res.ok) {
             throw new Error(`Gagal mengunggah ${file.name}: ${body.error?.message}`);
         }
+        
+        // Make file public
+        await fetch(`https://www.googleapis.com/drive/v3/files/${body.id}/permissions`, {
+            method: 'POST',
+            headers: { 'Authorization': `Bearer ${token}`, 'Content-Type': 'application/json' },
+            body: JSON.stringify({ role: 'reader', type: 'anyone' }),
+        });
+
         return body;
     }, []);
 
-    // Simplified version for single folder upload
-    const authorizeAndUpload = async (files: File[]): Promise<UploadResult> => {
+    // Updated to handle subfolders for invitation attachments
+    const authorizeAndUpload = async (file: File, bagian: string, kegiatan: string): Promise<UploadResult> => {
         setIsUploading(true);
         try {
-            if (!folderId) throw new Error("ID Folder tujuan tidak ada.");
-            const token = await requestAccessToken();
-            toast({ description: `Mengunggah ${files.length} file...` });
-            
-            const uploadPromises = files.map(file => uploadFile(file, folderId, token));
-            const results = await Promise.all(uploadPromises);
-            
-            // Make files public
-            for (const result of results) {
-                 await fetch(`https://www.googleapis.com/drive/v3/files/${result.fileId}/permissions`, {
-                    method: 'POST',
-                    headers: { 'Authorization': `Bearer ${token}`, 'Content-Type': 'application/json' },
-                    body: JSON.stringify({ role: 'reader', type: 'anyone' }),
-                });
-            }
-            toast({ title: 'Berhasil!', description: 'Semua file telah diunggah.' });
+            if (!folderId) throw new Error("Root folder ID is not configured.");
+            if (!bagian || !kegiatan) throw new Error("Bagian and Kegiatan names are required.");
 
-            return { links: results };
+            const token = await requestAccessToken();
+            toast({ description: `Mengunggah ${file.name}...` });
+
+            const bagianFolderId = await getOrCreateFolder(bagian, folderId, token);
+            const kegiatanFolderId = await getOrCreateFolder(kegiatan, bagianFolderId, token);
+            const undanganFolderId = await getOrCreateFolder('Undangan', kegiatanFolderId, token);
+            
+            const result = await uploadFile(file, undanganFolderId, token);
+            
+            toast({ title: 'Berhasil!', description: `${file.name} telah diunggah.` });
+
+            return { links: [result] };
         } catch (e: any) {
             return { error: e.message };
         } finally {
@@ -141,37 +164,18 @@ export const useGoogleDriveAuth = ({ folderId }: UseGoogleDriveAuthProps) => {
         }
     };
     
-    // Advanced version for subfolder structure
+    // Advanced version for post-event subfolder structure
     const uploadToSubfolders = async (bagian: string, kegiatan: string, subfolders: SubfolderUpload[]): Promise<UploadResult> => {
         setIsUploading(true);
         try {
             if (!folderId) throw new Error("Root folder ID is not configured.");
             const token = await requestAccessToken();
 
-            const getOrCreateFolder = async (name: string, parentId: string): Promise<string> => {
-                const q = `'${parentId}' in parents and name='${name}' and mimeType='application/vnd.google-apps.folder' and trashed=false`;
-                const res = await fetch(`https://www.googleapis.com/drive/v3/files?q=${encodeURIComponent(q)}&fields=files(id)`, {
-                    headers: { 'Authorization': `Bearer ${token}` }
-                });
-                const body = await res.json();
-                if (body.files && body.files.length > 0) return body.files[0].id;
-
-                const metadata = { name, mimeType: 'application/vnd.google-apps.folder', parents: [parentId] };
-                const createRes = await fetch('https://www.googleapis.com/drive/v3/files', {
-                    method: 'POST',
-                    headers: { 'Authorization': `Bearer ${token}`, 'Content-Type': 'application/json' },
-                    body: JSON.stringify(metadata)
-                });
-                const createBody = await createRes.json();
-                if (!createRes.ok) throw new Error(`Gagal membuat folder '${name}': ${createBody.error?.message}`);
-                return createBody.id;
-            };
-
-            const bagianFolderId = await getOrCreateFolder(bagian, folderId);
-            const kegiatanFolderId = await getOrCreateFolder(kegiatan, bagianFolderId);
+            const bagianFolderId = await getOrCreateFolder(bagian, folderId, token);
+            const kegiatanFolderId = await getOrCreateFolder(kegiatan, bagianFolderId, token);
 
             for (const sub of subfolders) {
-                const subFolderId = await getOrCreateFolder(sub.folderName, kegiatanFolderId);
+                const subFolderId = await getOrCreateFolder(sub.folderName, kegiatanFolderId, token);
                 await Promise.all(sub.files.map(file => uploadFile(file, subFolderId, token)));
             }
 
@@ -195,7 +199,7 @@ export const useGoogleDriveAuth = ({ folderId }: UseGoogleDriveAuthProps) => {
         isReady: isGisLoaded && !error,
         isUploading,
         error,
-        requestAccessToken, // Expose this function
+        requestAccessToken,
         authorizeAndUpload,
         uploadToSubfolders,
     };

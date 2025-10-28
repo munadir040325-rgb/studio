@@ -26,13 +26,18 @@ import { useToast } from '@/hooks/use-toast';
 import { useState, useRef } from 'react';
 import { getFileIcon } from '@/lib/utils';
 import { useGoogleDriveAuth } from '@/hooks/useGoogleDriveAuth';
+import useSWR from 'swr';
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 
 
-const DRIVE_FOLDER_ID = process.env.NEXT_PUBLIC_DRIVE_FOLDER_ID;
+const ROOT_FOLDER_ID = process.env.NEXT_PUBLIC_DRIVE_FOLDER_ID_HASIL;
 
 const formSchema = z.object({
   summary: z.string().min(2, {
     message: 'Judul kegiatan harus diisi (minimal 2 karakter).',
+  }),
+  bagian: z.string().min(1, {
+    message: 'Bagian harus dipilih.',
   }),
   description: z.string().optional(),
   location: z.string().optional(),
@@ -51,6 +56,13 @@ type EventFormProps = {
   onSuccess: () => void;
 };
 
+const fetcher = (url: string) => fetch(url).then(res => {
+    if (!res.ok) {
+        throw new Error('Gagal mengambil data');
+    }
+    return res.json();
+});
+
 
 export function EventForm({ onSuccess }: EventFormProps) {
   const { toast } = useToast();
@@ -63,12 +75,15 @@ export function EventForm({ onSuccess }: EventFormProps) {
     error: driveError,
     requestAccessToken,
     authorizeAndUpload,
-  } = useGoogleDriveAuth({ folderId: DRIVE_FOLDER_ID });
+  } = useGoogleDriveAuth({ folderId: ROOT_FOLDER_ID });
+
+  const { data: bagianData, error: bagianError } = useSWR('/api/sheets', fetcher);
 
   const form = useForm<z.infer<typeof formSchema>>({
     resolver: zodResolver(formSchema),
     defaultValues: {
       summary: '',
+      bagian: '',
       description: '',
       location: '',
       attachmentUrl: '',
@@ -93,10 +108,20 @@ export function EventForm({ onSuccess }: EventFormProps) {
       const file = event.target.files?.[0];
       if (!file) return;
 
+      const { summary, bagian } = form.getValues();
+
+      if (!summary || !bagian) {
+          toast({
+              variant: 'destructive',
+              title: 'Form Belum Lengkap',
+              description: 'Mohon isi Judul Kegiatan dan Bagian sebelum mengunggah lampiran.',
+          });
+          return;
+      }
+
       form.setValue('attachmentName', file.name);
       
-      // We already have the token from handleUploadClick, so this should be quick
-      const result = await authorizeAndUpload([file]);
+      const result = await authorizeAndUpload(file, bagian, summary);
 
       if (result.error) {
           toast({
@@ -311,6 +336,28 @@ export function EventForm({ onSuccess }: EventFormProps) {
                   </FormItem>
               )}
               />
+               <FormField
+                control={form.control}
+                name="bagian"
+                render={({ field }) => (
+                    <FormItem>
+                        <FormLabel>Bagian (Wajib)</FormLabel>
+                        <Select onValueChange={field.onChange} defaultValue={field.value} disabled={!bagianData || !!bagianError}>
+                            <FormControl>
+                                <SelectTrigger>
+                                    <SelectValue placeholder={!bagianData ? "Memuat opsi..." : "Pilih bagian"} />
+                                </SelectTrigger>
+                            </FormControl>
+                            <SelectContent>
+                                {bagianData?.values?.map((item: string, index: number) => (
+                                    <SelectItem key={index} value={item.toLowerCase().replace(/ /g, '_')}>{item}</SelectItem>
+                                ))}
+                            </SelectContent>
+                        </Select>
+                        <FormMessage />
+                    </FormItem>
+                )}
+                />
               <FormField
                   control={form.control}
                   name="location"
@@ -380,7 +427,7 @@ export function EventForm({ onSuccess }: EventFormProps) {
                   </div>
                 )}
                 <FormDescription>
-                      File akan diunggah ke Google Drive. Kosongkan jika tidak ada lampiran.
+                      File akan diunggah ke Google Drive dan membutuhkan Judul Kegiatan & Bagian.
                   </FormDescription>
                 <FormMessage />
               </FormItem>
