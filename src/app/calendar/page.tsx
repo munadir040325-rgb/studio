@@ -72,24 +72,25 @@ const formatEventDisplay = (startStr: string | null | undefined, endStr: string 
 type AttachmentLink = { name: string; url: string; };
 
 const extractAllAttachmentLinks = (description: string | null | undefined): AttachmentLink[] => {
-    if (!description) {
+    if (!description || typeof window === 'undefined') {
         return [];
     }
-    const links: AttachmentLink[] = [];
-    const regex = /<a href="([^"]+?)"[^>]*>([\s\S]*?)<\/a>/g;
-    let match;
-
-    while ((match = regex.exec(description)) !== null) {
-        const url = match[1];
-        const name = match[2];
-        if (url && name) {
-            // Remove any inner HTML tags from the name for a clean display
-            const cleanName = name.replace(/<[^>]*>/g, '').trim();
-            links.push({ name: cleanName, url });
-        }
-    }
     
-    // Remove duplicates
+    const sanitized = DOMPurify.sanitize(description, { USE_PROFILES: { html: true } });
+    const tempDiv = document.createElement('div');
+    tempDiv.innerHTML = sanitized;
+
+    const links: AttachmentLink[] = [];
+    const anchorTags = tempDiv.querySelectorAll('a');
+
+    anchorTags.forEach(a => {
+        const url = a.getAttribute('href');
+        const name = a.textContent;
+        if (url && name) {
+            links.push({ name: name.trim(), url });
+        }
+    });
+
     const uniqueLinks = links.filter((link, index, self) =>
         index === self.findIndex((l) => (
             l.url === link.url && l.name === link.name
@@ -97,7 +98,7 @@ const extractAllAttachmentLinks = (description: string | null | undefined): Atta
     );
 
     return uniqueLinks;
-}
+};
 
 const extractDisposisi = (description: string | null | undefined): string => {
     if (!description) {
@@ -112,67 +113,37 @@ const CleanDescription = ({ description }: { description: string | null | undefi
 
     useEffect(() => {
         if (typeof window !== 'undefined') {
-            // Sanitize the whole description first
             const sanitized = DOMPurify.sanitize(description || '', { USE_PROFILES: { html: true } });
             
-            // Create a temporary element to parse the HTML
             const tempDiv = document.createElement('div');
             tempDiv.innerHTML = sanitized;
             
-            // Remove known attachment/meta lines by selecting nodes
-            const nodesToRemove: ChildNode[] = [];
-            tempDiv.childNodes.forEach(node => {
-                const text = node.textContent || '';
-                if (
-                    text.match(/📍\s*Disposisi:/i) ||
-                    text.match(/Lampiran Undangan:/i) ||
-                    text.match(/Link Hasil Kegiatan:/i) ||
-                    text.match(/^Giat_\w+_\d+/i) ||
-                    text.match(/Disimpan pada:/i) ||
-                    (node.nodeName === 'A') // also check if the node itself is a link
-                ) {
-                    nodesToRemove.push(node);
-                    // Check for surrounding <br> tags to remove as well
-                    if (node.nextSibling && node.nextSibling.nodeName === 'BR') {
-                        nodesToRemove.push(node.nextSibling);
-                    }
-                    if (node.previousSibling && node.previousSibling.nodeName === 'BR') {
-                         nodesToRemove.push(node.previousSibling);
-                    }
-                }
+            const lines = tempDiv.innerHTML.split(/<br\s*\/?>/i);
+
+            const filteredLines = lines.filter(line => {
+                const textContent = line.replace(/<[^>]*>/g, '').trim();
+                return !(
+                    textContent.startsWith('📍 Disposisi:') ||
+                    textContent.startsWith('Lampiran Undangan:') ||
+                    textContent.startsWith('Link Hasil Kegiatan:') ||
+                    textContent.startsWith('Giat_') ||
+                    textContent.startsWith('Disimpan pada:')
+                );
             });
-
-            // Filter out br tags that are only surrounded by other br tags or nothing
-            const brTags = Array.from(tempDiv.getElementsByTagName('br'));
-             brTags.forEach(br => {
-                let prev = br.previousSibling;
-                while(prev && (prev.nodeType === Node.TEXT_NODE && !prev.textContent?.trim())) {
-                    prev = prev.previousSibling;
-                }
-
-                let next = br.nextSibling;
-                while(next && (next.nodeType === Node.TEXT_NODE && !next.textContent?.trim())) {
-                    next = next.nextSibling;
-                }
-
-                if ((!prev || prev.nodeName === 'BR') && (!next || next.nodeName === 'BR')) {
-                     nodesToRemove.push(br)
-                }
-             })
             
-            nodesToRemove.forEach(node => node.parentNode?.removeChild(node));
-
-            // Clean up leftover empty lines (multiple <br> tags)
-            let cleanedHtml = tempDiv.innerHTML.replace(/(<br\s*\/?>\s*){2,}/gi, '<br>');
-            cleanedHtml = cleanedHtml.trim().replace(/^<br\s*\/?>|<br\s*\/?>$/g, '');
-
+            let cleanedHtml = filteredLines.join('<br>').trim();
+            // Remove leading/trailing <br> and multiple consecutive <br>
+            cleanedHtml = cleanedHtml.replace(/^(<br\s*\/?>\s*)+|(<br\s*\/?>\s*)+$/g, '');
+            cleanedHtml = cleanedHtml.replace(/(<br\s*\/?>\s*){2,}/gi, '<br>');
 
             setSanitizedHtml(cleanedHtml);
         }
     }, [description]);
     
-    // Use dangerouslySetInnerHTML because we have sanitized the content
-    // and want to preserve line breaks (<br>)
+    if (!sanitizedHtml || sanitizedHtml === '<br>') {
+        return null;
+    }
+    
     return <div dangerouslySetInnerHTML={{ __html: sanitizedHtml }} className="whitespace-pre-wrap"/>;
 };
 
@@ -421,7 +392,7 @@ const EventDetailContent = ({ event }: { event: CalendarEvent }) => {
                     </div>
                 )}
 
-                <div className="flex items-start pt-4 border-t">
+                 <div className="flex items-start pt-4 border-t">
                     <Info className="mr-3 h-5 w-5 flex-shrink-0 text-muted-foreground" />
                     <CleanDescription description={event.description} />
                 </div>
@@ -778,3 +749,5 @@ export default function CalendarPage() {
     </div>
   );
 }
+
+    
