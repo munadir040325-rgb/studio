@@ -5,7 +5,7 @@ import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardFooter, CardHeader, CardTitle } from '@/components/ui/card';
 import { Popover, PopoverContent, PopoverTrigger } from '@/components/ui/popover';
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger, DialogFooter, DialogDescription } from '@/components/ui/dialog';
-import { Calendar as CalendarIcon, ExternalLink, PlusCircle, RefreshCw, MapPin, Clock, ChevronLeft, ChevronRight, Pin, Copy, Info, Link as LinkIcon, FolderOpen } from 'lucide-react';
+import { Calendar as CalendarIcon, ExternalLink, PlusCircle, RefreshCw, MapPin, Clock, ChevronLeft, ChevronRight, Pin, Copy, Info, Link as LinkIcon, FolderOpen, Paperclip } from 'lucide-react';
 import { Calendar } from '@/components/ui/calendar';
 import { format, parseISO, isSameDay, startOfDay, endOfDay, startOfWeek, endOfWeek, startOfMonth, endOfMonth, isWithinInterval, eachDayOfInterval, getDay, isSameMonth, getDate, addDays, subDays, addWeeks, subMonths, addMonths } from 'date-fns';
 import { id as localeId } from 'date-fns/locale';
@@ -17,6 +17,7 @@ import { useToast } from '@/hooks/use-toast';
 import { Textarea } from '@/components/ui/textarea';
 import { getFileIcon } from '@/lib/utils';
 import DOMPurify from 'isomorphic-dompurify';
+import { Accordion, AccordionContent, AccordionItem, AccordionTrigger } from '@/components/ui/accordion';
 
 
 type CalendarEvent = {
@@ -68,18 +69,49 @@ const formatEventDisplay = (startStr: string | null | undefined, endStr: string 
     }
 };
 
-type AttachmentLink = { name: string; url: string; } | null;
+type AttachmentLink = { name: string; url: string; };
 
-const extractAttachmentLink = (description: string | null | undefined, linkTextStart: string): AttachmentLink => {
+const extractAllAttachmentLinks = (description: string | null | undefined): AttachmentLink[] => {
     if (!description) {
-        return null;
+        return [];
     }
-    const regex = new RegExp(`${linkTextStart}: <a href="([^"]+)">([^<]+)</a>`, 'i');
-    const match = description.match(regex);
-    if (match && match[1] && match[2]) {
-        return { name: match[2], url: match[1] };
+    const links: AttachmentLink[] = [];
+    const sanitized = DOMPurify.sanitize(description, { USE_PROFILES: { html: true } });
+    
+    // Create a temporary div to parse the HTML
+    if (typeof window !== 'undefined') {
+        const tempDiv = document.createElement('div');
+        tempDiv.innerHTML = sanitized;
+
+        // Find all <a> tags
+        const aTags = tempDiv.querySelectorAll('a');
+        aTags.forEach(a => {
+            const href = a.getAttribute('href');
+            const name = a.textContent;
+            if (href && name) {
+                // Heuristic to identify attachment links
+                if (a.textContent?.includes('.') || href.includes('drive.google.com')) {
+                    links.push({ name: name.trim(), url: href });
+                }
+            }
+        });
+
+        // Also check for "Link Hasil Kegiatan" which might just be a folder link
+        const resultFolderMatch = description.match(/Link Hasil Kegiatan: <a href="([^"]+)">([^<]+)<\/a>/i);
+        if (resultFolderMatch && !links.some(l => l.url === resultFolderMatch[1])) {
+             links.push({ name: resultFolderMatch[2].trim(), url: resultFolderMatch[1] });
+        }
+
     }
-    return null;
+    
+    // Remove duplicates
+    const uniqueLinks = links.filter((link, index, self) =>
+        index === self.findIndex((l) => (
+            l.url === link.url && l.name === link.name
+        ))
+    );
+
+    return uniqueLinks;
 }
 
 const extractDisposisi = (description: string | null | undefined): string => {
@@ -111,7 +143,8 @@ const CleanDescription = ({ description }: { description: string | null | undefi
                 !line.match(/Lampiran Undangan:/i) &&
                 !line.match(/Link Hasil Kegiatan:/i) &&
                 !line.match(/^Giat_\w+_\d+/i) &&
-                !line.match(/Disimpan pada:/i)
+                !line.match(/Disimpan pada:/i) &&
+                !line.match(/<a href/i) // remove lines with links
             );
 
             const finalHtml = filteredLines.join('\n').trim();
@@ -126,8 +159,7 @@ const CleanDescription = ({ description }: { description: string | null | undefi
 
 
 const EventCard = ({ event }: { event: CalendarEvent }) => {
-  const invitationLink = extractAttachmentLink(event.description, 'Lampiran Undangan');
-  const resultLink = extractAttachmentLink(event.description, 'Link Hasil Kegiatan');
+  const attachments = useMemo(() => extractAllAttachmentLinks(event.description), [event.description]);
 
   return (
     <Card key={event.id} className="flex flex-col">
@@ -152,25 +184,34 @@ const EventCard = ({ event }: { event: CalendarEvent }) => {
                 </p>
             </div>
             
-            {(invitationLink || resultLink) && (
-              <div className="pt-3 mt-3 border-t space-y-2">
-                 {invitationLink && (
-                  <Button variant="outline" size="sm" asChild className="w-full justify-start">
-                      <a href={invitationLink.url} target="_blank" rel="noopener noreferrer">
-                          <LinkIcon className='mr-2 h-4 w-4' />
-                          Lampiran Undangan
-                      </a>
-                  </Button>
-                  )}
-                  {resultLink && (
-                  <Button variant="outline" size="sm" asChild className="w-full justify-start">
-                      <a href={resultLink.url} target="_blank" rel="noopener noreferrer">
-                          <FolderOpen className='mr-2 h-4 w-4' />
-                          Hasil Kegiatan
-                      </a>
-                  </Button>
-                  )}
-              </div>
+            {attachments.length > 0 && (
+              <Accordion type="single" collapsible className="w-full">
+                <AccordionItem value="item-1" className='border-t pt-3 mt-3'>
+                  <AccordionTrigger className='text-sm font-medium text-muted-foreground hover:no-underline py-2'>
+                    <div className='flex items-center'>
+                      <Paperclip className='mr-2 h-4 w-4'/> Lampiran ({attachments.length})
+                    </div>
+                  </AccordionTrigger>
+                  <AccordionContent className='pt-2 pl-1'>
+                    <div className="space-y-2">
+                      {attachments.map((link, index) => (
+                        <a 
+                          key={index}
+                          href={link.url} 
+                          target="_blank" 
+                          rel="noopener noreferrer" 
+                          className="flex items-center gap-2 p-1.5 rounded-md hover:bg-muted transition-colors group"
+                        >
+                            {getFileIcon(link.name)}
+                            <span className="text-blue-600 group-hover:underline truncate text-xs" title={link.name}>
+                                {link.name}
+                            </span>
+                        </a>
+                      ))}
+                    </div>
+                  </AccordionContent>
+                </AccordionItem>
+              </Accordion>
             )}
 
         </CardContent>
@@ -328,8 +369,7 @@ const MonthlyView = ({ events, baseDate, onEventClick, onDayClick }: { events: C
 };
 
 const EventDetailContent = ({ event }: { event: CalendarEvent }) => {
-    const invitationLink = extractAttachmentLink(event.description, 'Lampiran Undangan');
-    const resultLink = extractAttachmentLink(event.description, 'Link Hasil Kegiatan');
+    const attachments = useMemo(() => extractAllAttachmentLinks(event.description), [event.description]);
 
     return (
         <>
@@ -350,21 +390,15 @@ const EventDetailContent = ({ event }: { event: CalendarEvent }) => {
                     <span className="text-foreground">Disposisi: {extractDisposisi(event.description)}</span>
                 </div>
 
-                {(invitationLink || resultLink) && (
+                {attachments.length > 0 && (
                     <div className="space-y-2 pt-4 border-t">
                         <h3 className="text-sm font-medium text-muted-foreground">Lampiran</h3>
-                        {invitationLink && (
-                            <a href={invitationLink.url} target="_blank" rel="noopener noreferrer" className="flex items-center gap-3 p-2 rounded-md hover:bg-muted">
-                                {getFileIcon(invitationLink.name)}
-                                <span className="text-blue-600 truncate">{invitationLink.name}</span>
+                        {attachments.map((link, index) => (
+                            <a key={index} href={link.url} target="_blank" rel="noopener noreferrer" className="flex items-center gap-3 p-2 rounded-md hover:bg-muted">
+                                {getFileIcon(link.name)}
+                                <span className="text-blue-600 truncate">{link.name}</span>
                             </a>
-                        )}
-                        {resultLink && (
-                            <a href={resultLink.url} target="_blank" rel="noopener noreferrer" className="flex items-center gap-3 p-2 rounded-md hover:bg-muted">
-                                {getFileIcon(resultLink.name)}
-                                <span className="text-blue-600 truncate">{resultLink.name}</span>
-                            </a>
-                        )}
+                        ))}
                     </div>
                 )}
 
@@ -725,5 +759,3 @@ export default function CalendarPage() {
     </div>
   );
 }
-
-    
