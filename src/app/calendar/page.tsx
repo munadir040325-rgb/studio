@@ -76,18 +76,16 @@ const extractAllAttachmentLinks = (description: string | null | undefined): Atta
         return [];
     }
     const links: AttachmentLink[] = [];
-    // Regular expression to find <a> tags and capture href and content
-    const regex = /<a href="([^"]+)">([^<]+)<\/a>/g;
+    const regex = /<a href="([^"]+?)"[^>]*>([\s\S]*?)<\/a>/g;
     let match;
 
     while ((match = regex.exec(description)) !== null) {
         const url = match[1];
         const name = match[2];
-
-        // Basic filtering to avoid non-attachment links if needed
-        // For now, we take all links found.
         if (url && name) {
-            links.push({ name: name.trim(), url });
+            // Remove any inner HTML tags from the name for a clean display
+            const cleanName = name.replace(/<[^>]*>/g, '').trim();
+            links.push({ name: cleanName, url });
         }
     }
     
@@ -105,13 +103,8 @@ const extractDisposisi = (description: string | null | undefined): string => {
     if (!description) {
         return '-';
     }
-    // Match "📍 Disposisi: ..." and extract the content
-    const match = description.match(/📍\s*Disposisi:\s*(.*)/i);
-    if (match && match[1]) {
-        // The content might be followed by <br>, so we split by it
-        return match[1].split('<br>')[0].trim();
-    }
-    return '-';
+    const match = description.match(/Disposisi:\s*([\s\S]*?)(?=<br\s*\/?>|$)/i);
+    return match && match[1] ? match[1].trim() : '-';
 };
 
 const CleanDescription = ({ description }: { description: string | null | undefined }) => {
@@ -632,7 +625,7 @@ export default function CalendarPage() {
                 <span className="text-lg font-semibold text-center w-auto">
                     {getDateNavigatorLabel()}
                 </span>
-                 <Button variant="ghost" size="icon" onClick={() => handleDateChange(1)}>
+                <Button variant="ghost" size="icon" onClick={() => handleDateChange(1)}>
                     <ChevronRight className="h-5 w-5" />
                 </Button>
             </div>
