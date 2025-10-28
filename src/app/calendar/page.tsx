@@ -5,7 +5,7 @@ import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardFooter, CardHeader, CardTitle } from '@/components/ui/card';
 import { Popover, PopoverContent, PopoverTrigger } from '@/components/ui/popover';
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger, DialogFooter, DialogDescription } from '@/components/ui/dialog';
-import { Calendar as CalendarIcon, ExternalLink, PlusCircle, RefreshCw, MapPin, Clock, ChevronLeft, ChevronRight, Pin, Copy, Info } from 'lucide-react';
+import { Calendar as CalendarIcon, ExternalLink, PlusCircle, RefreshCw, MapPin, Clock, ChevronLeft, ChevronRight, Pin, Copy, Info, Link as LinkIcon, FolderOpen } from 'lucide-react';
 import { Calendar } from '@/components/ui/calendar';
 import { format, parseISO, isSameDay, startOfDay, endOfDay, startOfWeek, endOfWeek, startOfMonth, endOfMonth, isWithinInterval, eachDayOfInterval, getDay, isSameMonth, getDate, addDays, subDays, addWeeks, subMonths, addMonths } from 'date-fns';
 import { id as localeId } from 'date-fns/locale';
@@ -125,41 +125,68 @@ const CleanDescription = ({ description }: { description: string | null | undefi
 };
 
 
-const EventCard = ({ event }: { event: CalendarEvent }) => (
-  <Card key={event.id} className="flex flex-col">
-      <CardHeader className="pb-4">
-          <CardTitle className="text-base line-clamp-2 leading-snug">{event.summary || '(Tanpa Judul)'}</CardTitle>
-      </CardHeader>
-      <CardContent className="flex-grow space-y-3 text-sm text-muted-foreground">
-          <div className="space-y-2">
-              <p className="flex items-start">
-                  <Clock className="h-4 w-4 mr-2 mt-0.5 flex-shrink-0 text-blue-500" />
-                  <span className='font-medium text-foreground'>{formatEventDisplay(event.start, event.end, event.isAllDay)}</span>
-              </p>
-              {event.location && (
-              <p className="flex items-start">
-                  <MapPin className="h-4 w-4 mr-2 mt-0.5 flex-shrink-0 text-red-500" />
-                  <span>{event.location}</span>
-              </p>
-              )}
-              <p className="flex items-start">
-                  <Pin className="h-4 w-4 mr-2 mt-0.5 flex-shrink-0 text-red-500" />
-                  <span className='line-clamp-2'>Disposisi: {extractDisposisi(event.description)}</span>
-              </p>
-          </div>
-      </CardContent>
-      <CardFooter className="flex flex-wrap justify-end gap-2 pt-4 mt-auto">
-          {event.htmlLink && (
-          <Button variant="ghost" size="sm" asChild>
-              <a href={event.htmlLink} target="_blank" rel="noopener noreferrer">
-                  <ExternalLink className='mr-2 h-4 w-4' />
-                  Detail
-              </a>
-          </Button>
-          )}
-      </CardFooter>
-  </Card>
-);
+const EventCard = ({ event }: { event: CalendarEvent }) => {
+  const invitationLink = extractAttachmentLink(event.description, 'Lampiran Undangan');
+  const resultLink = extractAttachmentLink(event.description, 'Link Hasil Kegiatan');
+
+  return (
+    <Card key={event.id} className="flex flex-col">
+        <CardHeader className="pb-4">
+            <CardTitle className="text-base line-clamp-2 leading-snug">{event.summary || '(Tanpa Judul)'}</CardTitle>
+        </CardHeader>
+        <CardContent className="flex-grow space-y-3 text-sm text-muted-foreground">
+            <div className="space-y-2">
+                <p className="flex items-start">
+                    <Clock className="h-4 w-4 mr-2 mt-0.5 flex-shrink-0 text-blue-500" />
+                    <span className='font-medium text-foreground'>{formatEventDisplay(event.start, event.end, event.isAllDay)}</span>
+                </p>
+                {event.location && (
+                <p className="flex items-start">
+                    <MapPin className="h-4 w-4 mr-2 mt-0.5 flex-shrink-0 text-red-500" />
+                    <span>{event.location}</span>
+                </p>
+                )}
+                <p className="flex items-start">
+                    <Pin className="h-4 w-4 mr-2 mt-0.5 flex-shrink-0 text-red-500" />
+                    <span className='line-clamp-2'>Disposisi: {extractDisposisi(event.description)}</span>
+                </p>
+            </div>
+            
+            {(invitationLink || resultLink) && (
+              <div className="pt-3 mt-3 border-t space-y-2">
+                 {invitationLink && (
+                  <Button variant="outline" size="sm" asChild className="w-full justify-start">
+                      <a href={invitationLink.url} target="_blank" rel="noopener noreferrer">
+                          <LinkIcon className='mr-2 h-4 w-4' />
+                          Lampiran Undangan
+                      </a>
+                  </Button>
+                  )}
+                  {resultLink && (
+                  <Button variant="outline" size="sm" asChild className="w-full justify-start">
+                      <a href={resultLink.url} target="_blank" rel="noopener noreferrer">
+                          <FolderOpen className='mr-2 h-4 w-4' />
+                          Hasil Kegiatan
+                      </a>
+                  </Button>
+                  )}
+              </div>
+            )}
+
+        </CardContent>
+        <CardFooter className="flex flex-wrap justify-end gap-2 pt-4 mt-auto">
+            {event.htmlLink && (
+            <Button variant="ghost" size="sm" asChild>
+                <a href={event.htmlLink} target="_blank" rel="noopener noreferrer">
+                    <ExternalLink className='mr-2 h-4 w-4' />
+                    Detail
+                </a>
+            </Button>
+            )}
+        </CardFooter>
+    </Card>
+  );
+};
 
 const groupEventsByDay = (events: CalendarEvent[]) => {
     const grouped = new Map<string, CalendarEvent[]>();
@@ -698,3 +725,5 @@ export default function CalendarPage() {
     </div>
   );
 }
+
+    
