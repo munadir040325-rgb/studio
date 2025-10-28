@@ -158,7 +158,7 @@ const EventCard = ({ event }: { event: CalendarEvent }) => {
                     </div>
                   </AccordionTrigger>
                   <AccordionContent className='pt-2 pl-1'>
-                    <div className="space-y-2">
+                    <div>
                       {attachments.map((att, index) => (
                         att.fileUrl && att.title && (
                           <a 
