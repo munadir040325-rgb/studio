@@ -211,10 +211,10 @@ export default function UploadPage() {
                         variant="outline"
                         role="combobox"
                         aria-expanded={openEvent}
-                        className="w-full justify-between"
+                        className="w-full justify-between h-auto min-h-10"
                         disabled={isLoadingEvents}
                         >
-                        <span className="truncate overflow-hidden">
+                        <span className="whitespace-normal text-left">
                             {isLoadingEvents 
                                 ? "Memuat kegiatan..." 
                                 : selectedEvent
