@@ -71,9 +71,9 @@ export function EventForm({ onSuccess }: EventFormProps) {
       
       const userInput = values.description || '';
       
-      // Gabungkan semua bagian deskripsi
+      // Gabungkan semua bagian deskripsi dengan <br> untuk baris baru di HTML
       const descriptionParts = [giatPrefix, userInput, timestamp].filter(Boolean); // Filter out empty strings
-      const finalDescription = descriptionParts.join('\n');
+      const finalDescription = descriptionParts.join('<br>');
 
       await createCalendarEvent({
         summary: values.summary,
@@ -284,5 +284,3 @@ export function EventForm({ onSuccess }: EventFormProps) {
     </>
   );
 }
-
-    
