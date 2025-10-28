@@ -15,7 +15,7 @@ import { cn, getFileIcon } from '@/lib/utils';
 import { parseISO, format } from 'date-fns';
 import { id as localeId } from 'date-fns/locale';
 import useSWR from 'swr';
-import { updateCalendarEvent } from '@/ai/flows/calendar-flow';
+import { updateCalendarEvent, createCalendarEvent } from '@/ai/flows/calendar-flow';
 import { useGoogleDriveAuth } from '@/hooks/useGoogleDriveAuth';
 
 const ROOT_FOLDER_ID = process.env.NEXT_PUBLIC_DRIVE_FOLDER_ID_HASIL;
@@ -68,10 +68,12 @@ export default function UploadPage() {
   const [selectedBagian, setSelectedBagian] = useState('');
 
   // File state
+  const [undanganFiles, setUndanganFiles] = useState<File[]>([]);
   const [fotoFiles, setFotoFiles] = useState<File[]>([]);
   const [notulenFile, setNotulenFile] = useState<File | null>(null);
   const [materiFiles, setMateriFiles] = useState<File[]>([]);
 
+  const undanganInputRef = useRef<HTMLInputElement>(null);
   const fotoInputRef = useRef<HTMLInputElement>(null);
   const notulenInputRef = useRef<HTMLInputElement>(null);
   const materiInputRef = useRef<HTMLInputElement>(null);
@@ -101,12 +103,13 @@ export default function UploadPage() {
       toast({ variant: 'destructive', title: 'Form Belum Lengkap', description: 'Mohon pilih kegiatan dan bagian.' });
       return;
     }
-    if (!fotoFiles.length && !notulenFile && !materiFiles.length) {
+    if (!undanganFiles.length && !fotoFiles.length && !notulenFile && !materiFiles.length) {
         toast({ variant: 'destructive', title: 'Tidak Ada File', description: 'Mohon pilih setidaknya satu file untuk diunggah.' });
         return;
     }
 
-    const subfolders = [
+    const subfolders: { folderName: string, files: File[] }[] = [
+      ...(undanganFiles.length > 0 ? [{ folderName: 'Undangan', files: undanganFiles }] : []),
       ...(fotoFiles.length > 0 ? [{ folderName: 'Foto Kegiatan', files: fotoFiles }] : []),
       ...(notulenFile ? [{ folderName: 'Notulen', files: [notulenFile] }] : []),
       ...(materiFiles.length > 0 ? [{ folderName: 'Materi Kegiatan', files: materiFiles }] : []),
@@ -119,27 +122,38 @@ export default function UploadPage() {
       return;
     }
     
-    if (result.kegiatanFolderLink) {
-      toast({ title: 'Berhasil!', description: 'Semua file telah berhasil diunggah ke Google Drive.' });
-      
-      toast({ description: "Memperbarui acara di kalender..." });
-      try {
-        await updateCalendarEvent({
-          eventId: selectedEvent.id,
-          resultFolderUrl: result.kegiatanFolderLink
-        });
-        toast({ title: 'Berhasil!', description: 'Link hasil kegiatan telah ditambahkan ke acara kalender.' });
+    // Create attachment links for calendar description
+    const allUploadedLinks: { webViewLink: string; name: string }[] = result.links || [];
+    let attachmentLinksDescription = '';
+    if (allUploadedLinks.length > 0) {
+        attachmentLinksDescription = allUploadedLinks
+            .map(link => `Lampiran: <a href="${link.webViewLink}">${link.name}</a>`)
+            .join('<br>');
+    }
+    
+    if (result.kegiatanFolderLink || attachmentLinksDescription) {
+        toast({ title: 'Berhasil!', description: 'Semua file telah berhasil diunggah ke Google Drive.' });
+        
+        toast({ description: "Memperbarui acara di kalender..." });
+        try {
+            await updateCalendarEvent({
+                eventId: selectedEvent.id,
+                resultFolderUrl: result.kegiatanFolderLink,
+                attachments: allUploadedLinks
+            });
+            toast({ title: 'Berhasil!', description: 'Link lampiran & hasil kegiatan telah ditambahkan ke acara kalender.' });
 
-        // Reset form
-        setSelectedEvent(null);
-        setSelectedBagian('');
-        setFotoFiles([]);
-        setNotulenFile(null);
-        setMateriFiles([]);
+            // Reset form
+            setSelectedEvent(null);
+            setSelectedBagian('');
+            setUndanganFiles([]);
+            setFotoFiles([]);
+            setNotulenFile(null);
+            setMateriFiles([]);
 
-      } catch (updateError: any) {
-        toast({ variant: 'destructive', title: 'Gagal Memperbarui Kalender', description: updateError.message });
-      }
+        } catch (updateError: any) {
+            toast({ variant: 'destructive', title: 'Gagal Memperbarui Kalender', description: updateError.message });
+        }
     }
   };
 
@@ -169,15 +183,17 @@ export default function UploadPage() {
             className="hidden" 
             multiple={!isSingle} 
             accept={
-            pickerRef === fotoInputRef ? "image/*" : 
-            pickerRef === notulenInputRef ? ".pdf,.doc,.docx" : 
-            "*"
+                pickerRef === undanganInputRef ? ".pdf,.doc,.docx" :
+                pickerRef === fotoInputRef ? "image/*" : 
+                pickerRef === notulenInputRef ? ".pdf,.doc,.docx" : 
+                "*"
             }
             onChange={handleFileChange(
-            pickerRef === fotoInputRef ? setFotoFiles : 
-            pickerRef === notulenInputRef ? setNotulenFile : 
-            setMateriFiles, 
-            !isSingle
+                pickerRef === undanganInputRef ? setUndanganFiles :
+                pickerRef === fotoInputRef ? setFotoFiles : 
+                pickerRef === notulenInputRef ? setNotulenFile : 
+                setMateriFiles, 
+                !isSingle
             )}
             disabled={isDisabled || isUploading}
         />
@@ -274,7 +290,20 @@ export default function UploadPage() {
               </div>
             </div>
 
-            <div className="grid grid-cols-1 lg:grid-cols-3 gap-4">
+            <div className="grid grid-cols-1 lg:grid-cols-2 gap-y-6 gap-x-4">
+                <div className="grid gap-2">
+                    <Label htmlFor="undangan-upload">Upload Undangan/Surat Tugas</Label>
+                     <FileUploadButton 
+                        pickerRef={undanganInputRef} 
+                        label="Pilih file..." 
+                        files={undanganFiles} 
+                        isUploading={isUploading} 
+                        isDisabled={!isReady || !!driveError}
+                        onButtonClick={() => handleAuthorizeAndPick(undanganInputRef)}
+                     />
+                    <p className="text-xs text-muted-foreground">Bisa unggah lebih dari satu file (PDF/DOCX).</p>
+                    <FileList files={undanganFiles} onRemove={(index) => setUndanganFiles(files => files.filter((_, i) => i !== index))} isUploading={isUploading}/>
+                </div>
                 <div className="grid gap-2">
                     <Label htmlFor="foto-upload">Upload Foto Kegiatan</Label>
                      <FileUploadButton 
@@ -328,3 +357,5 @@ export default function UploadPage() {
     </div>
   );
 }
+
+    

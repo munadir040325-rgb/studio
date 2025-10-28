@@ -17,27 +17,17 @@ import { Input } from '@/components/ui/input';
 import { Textarea } from '@/components/ui/textarea';
 import { Popover, PopoverContent, PopoverTrigger } from '@/components/ui/popover';
 import { Calendar } from '@/components/ui/calendar';
-import { CalendarIcon, Loader2, UploadCloud, Trash2 } from 'lucide-react';
+import { CalendarIcon, Loader2 } from 'lucide-react';
 import { cn } from '@/lib/utils';
 import { format } from 'date-fns';
 import { id } from 'date-fns/locale';
 import { createCalendarEvent } from '@/ai/flows/calendar-flow';
 import { useToast } from '@/hooks/use-toast';
-import { useState, useRef } from 'react';
-import { getFileIcon } from '@/lib/utils';
-import { useGoogleDriveAuth } from '@/hooks/useGoogleDriveAuth';
-import useSWR from 'swr';
-import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
-
-
-const ROOT_FOLDER_ID = process.env.NEXT_PUBLIC_DRIVE_FOLDER_ID_HASIL;
+import { useState } from 'react';
 
 const formSchema = z.object({
   summary: z.string().min(2, {
     message: 'Judul kegiatan harus diisi (minimal 2 karakter).',
-  }),
-  bagian: z.string().min(1, {
-    message: 'Bagian harus dipilih.',
   }),
   description: z.string().optional(),
   location: z.string().optional(),
@@ -47,8 +37,6 @@ const formSchema = z.object({
   endDateTime: z.date({
     required_error: 'Tanggal & waktu selesai harus diisi.',
   }),
-  attachmentUrl: z.string().url().optional().or(z.literal('')),
-  attachmentName: z.string().optional(),
 });
 
 
@@ -56,91 +44,19 @@ type EventFormProps = {
   onSuccess: () => void;
 };
 
-const fetcher = (url: string) => fetch(url).then(res => {
-    if (!res.ok) {
-        throw new Error('Gagal mengambil data');
-    }
-    return res.json();
-});
-
 
 export function EventForm({ onSuccess }: EventFormProps) {
   const { toast } = useToast();
   const [isSubmitting, setIsSubmitting] = useState(false);
-  const fileInputRef = useRef<HTMLInputElement>(null);
-
-  const {
-    isReady,
-    isUploading,
-    error: driveError,
-    requestAccessToken,
-    authorizeAndUpload,
-  } = useGoogleDriveAuth({ folderId: ROOT_FOLDER_ID });
-
-  const { data: bagianData, error: bagianError } = useSWR('/api/sheets', fetcher);
-
+  
   const form = useForm<z.infer<typeof formSchema>>({
     resolver: zodResolver(formSchema),
     defaultValues: {
       summary: '',
-      bagian: '',
       description: '',
       location: '',
-      attachmentUrl: '',
-      attachmentName: '',
     },
   });
-
-  const handleUploadClick = async () => {
-    try {
-        await requestAccessToken(); // First, get permission
-        fileInputRef.current?.click(); // Then, open file picker
-    } catch (error: any) {
-        toast({
-            variant: 'destructive',
-            title: 'Izin Gagal',
-            description: error.message || 'Gagal mendapatkan izin untuk mengakses Google Drive.',
-        });
-    }
-  }
-
-  const handleFileChange = async (event: React.ChangeEvent<HTMLInputElement>) => {
-      const file = event.target.files?.[0];
-      if (!file) return;
-
-      const { summary, bagian } = form.getValues();
-
-      if (!summary || !bagian) {
-          toast({
-              variant: 'destructive',
-              title: 'Form Belum Lengkap',
-              description: 'Mohon isi Judul Kegiatan dan Bagian sebelum mengunggah lampiran.',
-          });
-          return;
-      }
-
-      form.setValue('attachmentName', file.name);
-      
-      const result = await authorizeAndUpload(file, bagian, summary);
-
-      if (result.error) {
-          toast({
-              variant: 'destructive',
-              title: 'Gagal Mengunggah',
-              description: result.error,
-          });
-          form.setValue('attachmentName', '');
-          form.setValue('attachmentUrl', '');
-      } else if (result.links && result.links.length > 0) {
-          form.setValue('attachmentUrl', result.links[0].webViewLink);
-          toast({ title: "Berhasil!", description: `${file.name} telah diunggah.` });
-      }
-
-      // Reset file input to allow re-uploading the same file
-      if (fileInputRef.current) {
-        fileInputRef.current.value = "";
-      }
-  }
 
   async function onSubmit(values: z.infer<typeof formSchema>) {
     setIsSubmitting(true);
@@ -165,8 +81,6 @@ export function EventForm({ onSuccess }: EventFormProps) {
         location: values.location,
         startDateTime: values.startDateTime.toISOString(),
         endDateTime: values.endDateTime.toISOString(),
-        attachmentUrl: values.attachmentUrl,
-        attachmentName: values.attachmentName,
       });
 
       toast({
@@ -207,19 +121,10 @@ export function EventForm({ onSuccess }: EventFormProps) {
     newDate.setMinutes(minutes);
     field.onChange(newDate);
   };
-
-  const attachmentName = form.watch('attachmentName');
   
   const getButtonText = () => {
-    if (driveError) return "Konfigurasi Error";
     if (isSubmitting) return "Menyimpan...";
-    if (!isReady) return "Memuat Google API...";
     return "Simpan Kegiatan";
-  }
-
-  const handleRemoveAttachment = () => {
-      form.setValue('attachmentUrl', '');
-      form.setValue('attachmentName', '');
   }
 
   return (
@@ -336,28 +241,6 @@ export function EventForm({ onSuccess }: EventFormProps) {
                   </FormItem>
               )}
               />
-               <FormField
-                control={form.control}
-                name="bagian"
-                render={({ field }) => (
-                    <FormItem>
-                        <FormLabel>Bagian (Wajib)</FormLabel>
-                        <Select onValueChange={field.onChange} defaultValue={field.value} disabled={!bagianData || !!bagianError}>
-                            <FormControl>
-                                <SelectTrigger>
-                                    <SelectValue placeholder={!bagianData ? "Memuat opsi..." : "Pilih bagian"} />
-                                </SelectTrigger>
-                            </FormControl>
-                            <SelectContent>
-                                {bagianData?.values?.map((item: string, index: number) => (
-                                    <SelectItem key={index} value={item.toLowerCase().replace(/ /g, '_')}>{item}</SelectItem>
-                                ))}
-                            </SelectContent>
-                        </Select>
-                        <FormMessage />
-                    </FormItem>
-                )}
-                />
               <FormField
                   control={form.control}
                   name="location"
@@ -390,53 +273,8 @@ export function EventForm({ onSuccess }: EventFormProps) {
               />
           </div>
 
-          <FormField
-            control={form.control}
-            name="attachmentUrl"
-            render={() => (
-              <FormItem>
-                <FormLabel>Lampiran Undangan/Surat Tugas (Opsional)</FormLabel>
-                {attachmentName ? (
-                  <div className='flex items-center justify-between text-sm p-2 bg-muted rounded-md'>
-                      <div className="flex items-center gap-2 overflow-hidden">
-                          {getFileIcon(attachmentName)}
-                          <span className='truncate' title={attachmentName}>{attachmentName}</span>
-                      </div>
-                      <Button type="button" variant="ghost" size="icon" className='h-6 w-6 flex-shrink-0' onClick={handleRemoveAttachment} disabled={isUploading}>
-                          <Trash2 className='h-4 w-4 text-red-500'/>
-                          <span className="sr-only">Hapus file</span>
-                      </Button>
-                  </div>
-                ) : (
-                  <div>
-                    <Button type="button" variant="outline" onClick={handleUploadClick} disabled={!isReady || isUploading || !!driveError}>
-                        {isUploading ? <Loader2 className="mr-2 h-4 w-4 animate-spin" /> : <UploadCloud className="mr-2 h-4 w-4" />}
-                        {isUploading ? 'Mengunggah...' : 'Unggah Lampiran'}
-                    </Button>
-                    <FormControl>
-                      <Input
-                        type="file"
-                        id="file-upload"
-                        ref={fileInputRef}
-                        onChange={handleFileChange}
-                        className="hidden"
-                        accept=".pdf,.doc,.docx,.xls,.xlsx,.ppt,.pptx,image/*"
-                        disabled={isUploading}
-                      />
-                    </FormControl>
-                  </div>
-                )}
-                <FormDescription>
-                      File akan diunggah ke Google Drive dan membutuhkan Judul Kegiatan & Bagian.
-                  </FormDescription>
-                <FormMessage />
-              </FormItem>
-            )}
-          />
-
-
           <div className="flex justify-end">
-              <Button type="submit" disabled={!isReady || isSubmitting || isUploading || !!driveError}>
+              <Button type="submit" disabled={isSubmitting}>
               {isSubmitting && <Loader2 className="mr-2 h-4 w-4 animate-spin" />}
               {getButtonText()}
               </Button>
@@ -446,3 +284,5 @@ export function EventForm({ onSuccess }: EventFormProps) {
     </>
   );
 }
+
+    

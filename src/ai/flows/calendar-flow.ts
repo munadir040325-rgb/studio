@@ -49,7 +49,11 @@ export type CreateEventInput = z.infer<typeof createEventInputSchema>;
 
 const updateEventInputSchema = z.object({
   eventId: z.string(),
-  resultFolderUrl: z.string().url(),
+  resultFolderUrl: z.string().url().optional(),
+  attachments: z.array(z.object({
+    name: z.string(),
+    webViewLink: z.string().url(),
+  })).optional(),
 });
 
 export type UpdateEventInput = z.infer<typeof updateEventInputSchema>;
@@ -102,12 +106,6 @@ export const createCalendarEventFlow = ai.defineFlow(
         } else {
             descriptionParts.push(input.description);
         }
-    }
-
-    // Attachment link
-    if (input.attachmentUrl && input.attachmentName) {
-        const attachmentText = `Lampiran Undangan: <a href="${input.attachmentUrl}">${input.attachmentName}</a>`;
-        descriptionParts.push(attachmentText);
     }
 
     const finalDescription = descriptionParts.join('<br><br>');
@@ -175,14 +173,29 @@ export const updateCalendarEventFlow = ai.defineFlow(
 
             // 2. Prepare the new description using HTML
             let description = existingEvent.data.description || '';
-            const resultLinkText = `Link Hasil Kegiatan: <a href="${input.resultFolderUrl}">Folder Hasil</a>`;
             
-            // Avoid adding duplicate links
-            if (!description.includes(input.resultFolderUrl)) {
+            // Add invitation attachments
+            if (input.attachments && input.attachments.length > 0) {
+                 const attachmentLinks = input.attachments
+                    .map(att => `Lampiran Undangan: <a href="${att.webViewLink}">${att.name}</a>`)
+                    .join('<br>');
                 if (description) {
-                   description += `<br><br>${resultLinkText}`;
+                    description += `<br><br>${attachmentLinks}`;
                 } else {
-                   description = resultLinkText;
+                    description = attachmentLinks;
+                }
+            }
+
+            // Add result folder link
+            if (input.resultFolderUrl) {
+                const resultLinkText = `Link Hasil Kegiatan: <a href="${input.resultFolderUrl}">Folder Hasil</a>`;
+                // Avoid adding duplicate links
+                if (!description.includes(input.resultFolderUrl)) {
+                    if (description) {
+                       description += `<br><br>${resultLinkText}`;
+                    } else {
+                       description = resultLinkText;
+                    }
                 }
             }
 
@@ -205,11 +218,11 @@ export const updateCalendarEventFlow = ai.defineFlow(
 );
 
 
-export async function createCalendarEvent(input: CreateEventInput): Promise<CalendarEvent> {
+export async function createCalendarEvent(input: Omit<CreateEventInput, 'attachmentUrl' | 'attachmentName'>): Promise<CalendarEvent> {
     if (!areCredentialsConfigured()) {
       throw new Error("Kredensial Google Service Account (GOOGLE_CLIENT_EMAIL, GOOGLE_PRIVATE_KEY) belum dikonfigurasi di file .env Anda.");
     }
-    return createCalendarEventFlow(input);
+    return createCalendarEventFlow({ ...input, attachmentUrl: '', attachmentName: '' });
 }
 
 export async function updateCalendarEvent(input: UpdateEventInput): Promise<CalendarEvent> {
@@ -218,3 +231,5 @@ export async function updateCalendarEvent(input: UpdateEventInput): Promise<Cale
     }
     return updateCalendarEventFlow(input);
 }
+
+    

@@ -138,35 +138,16 @@ export const useGoogleDriveAuth = ({ folderId }: UseGoogleDriveAuthProps) => {
         return body;
     }, []);
 
-    // Updated to handle subfolders for invitation attachments
+    // Deprecated - no longer used
     const authorizeAndUpload = async (file: File, bagian: string, kegiatan: string): Promise<UploadResult> => {
-        setIsUploading(true);
-        try {
-            if (!folderId) throw new Error("Root folder ID is not configured.");
-            if (!bagian || !kegiatan) throw new Error("Bagian and Kegiatan names are required.");
-
-            const token = await requestAccessToken();
-            toast({ description: `Mengunggah ${file.name}...` });
-
-            const bagianFolderId = await getOrCreateFolder(bagian, folderId, token);
-            const kegiatanFolderId = await getOrCreateFolder(kegiatan, bagianFolderId, token);
-            const undanganFolderId = await getOrCreateFolder('Undangan', kegiatanFolderId, token);
-            
-            const result = await uploadFile(file, undanganFolderId, token);
-            
-            toast({ title: 'Berhasil!', description: `${file.name} telah diunggah.` });
-
-            return { links: [result] };
-        } catch (e: any) {
-            return { error: e.message };
-        } finally {
-            setIsUploading(false);
-        }
+        return { error: 'This function is deprecated.' };
     };
     
     // Advanced version for post-event subfolder structure
     const uploadToSubfolders = async (bagian: string, kegiatan: string, subfolders: SubfolderUpload[]): Promise<UploadResult> => {
         setIsUploading(true);
+        let allUploadedLinks: { fileId: string; webViewLink: string; name: string }[] = [];
+
         try {
             if (!folderId) throw new Error("Root folder ID is not configured.");
             const token = await requestAccessToken();
@@ -176,7 +157,9 @@ export const useGoogleDriveAuth = ({ folderId }: UseGoogleDriveAuthProps) => {
 
             for (const sub of subfolders) {
                 const subFolderId = await getOrCreateFolder(sub.folderName, kegiatanFolderId, token);
-                await Promise.all(sub.files.map(file => uploadFile(file, subFolderId, token)));
+                const uploadPromises = sub.files.map(file => uploadFile(file, subFolderId, token));
+                const uploadedLinks = await Promise.all(uploadPromises);
+                allUploadedLinks.push(...uploadedLinks);
             }
 
             const kegiatanFolderLinkRes = await fetch(`https://www.googleapis.com/drive/v3/files/${kegiatanFolderId}?fields=webViewLink`, {
@@ -185,7 +168,10 @@ export const useGoogleDriveAuth = ({ folderId }: UseGoogleDriveAuthProps) => {
             const linkBody = await kegiatanFolderLinkRes.json();
             if (!linkBody.webViewLink) throw new Error("Gagal mendapatkan link folder kegiatan.");
 
-            return { kegiatanFolderLink: linkBody.webViewLink };
+            return { 
+                kegiatanFolderLink: linkBody.webViewLink,
+                links: allUploadedLinks
+            };
 
         } catch (e: any) {
             return { error: e.message };
@@ -200,7 +186,9 @@ export const useGoogleDriveAuth = ({ folderId }: UseGoogleDriveAuthProps) => {
         isUploading,
         error,
         requestAccessToken,
-        authorizeAndUpload,
+        authorizeAndUpload, // Kept for compatibility, but deprecated
         uploadToSubfolders,
     };
 };
+
+    
