@@ -214,7 +214,7 @@ export default function UploadPage() {
                         className="w-full justify-between"
                         disabled={isLoadingEvents}
                         >
-                        <span className="truncate">
+                        <span className="truncate overflow-hidden">
                             {isLoadingEvents 
                                 ? "Memuat kegiatan..." 
                                 : selectedEvent
