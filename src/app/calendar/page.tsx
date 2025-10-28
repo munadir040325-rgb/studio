@@ -5,7 +5,7 @@ import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardFooter, CardHeader, CardTitle } from '@/components/ui/card';
 import { Popover, PopoverContent, PopoverTrigger } from '@/components/ui/popover';
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger, DialogFooter, DialogDescription } from '@/components/ui/dialog';
-import { Calendar as CalendarIcon, ExternalLink, PlusCircle, RefreshCw, MapPin, Clock, ChevronLeft, ChevronRight, Pin, Copy, Info, Link as LinkIcon, FolderOpen, Paperclip, Folder } from 'lucide-react';
+import { Calendar as CalendarIcon, ExternalLink, PlusCircle, RefreshCw, MapPin, Clock, ChevronLeft, ChevronRight, Pin, Copy, Info, Link as LinkIcon, FolderOpen, Paperclip, Folder, PenSquare } from 'lucide-react';
 import { Calendar } from '@/components/ui/calendar';
 import { format, parseISO, isSameDay, startOfDay, endOfDay, startOfWeek, endOfWeek, startOfMonth, endOfMonth, isWithinInterval, eachDayOfInterval, getDay, isSameMonth, getDate, addDays, subDays, addWeeks, subMonths, addMonths } from 'date-fns';
 import { id as localeId } from 'date-fns/locale';
@@ -76,12 +76,18 @@ const formatEventDisplay = (startStr: string | null | undefined, endStr: string 
     }
 };
 
-const extractDisposisi = (description: string | null | undefined): string => {
-    if (!description) return '-';
-    // Matches "Disposisi:", optional pin emoji, optional colon, and captures the text until a <br> tag or end of string.
+const extractDisposisi = (description: string | null | undefined): string | null => {
+    if (!description) return null;
     const match = description.match(/(?:📍\s*)?Disposisi:\s*([\s\S]*?)(?=<br\s*\/?>|$)/i);
-    return match && match[1] ? match[1].trim() : '-';
+    const disposisiText = match && match[1] ? match[1].trim() : null;
+    return disposisiText && disposisiText.toLowerCase() !== 'null' ? disposisiText : null;
 };
+
+const extractTimestamp = (description: string | null | undefined): string | null => {
+    if (!description) return null;
+    const match = description.match(/Disimpan pada:\s*(.*)/i);
+    return match && match[1] ? match[1].trim() : null;
+}
 
 const CleanDescription = ({ description }: { description: string | null | undefined }) => {
     const [sanitizedHtml, setSanitizedHtml] = useState('');
@@ -97,6 +103,7 @@ const CleanDescription = ({ description }: { description: string | null | undefi
                  const textContent = line.replace(/<[^>]*>/g, '').trim();
                  return !(
                      textContent.startsWith('📍 Disposisi:') ||
+                     textContent.startsWith('Disposisi:') ||
                      textContent.startsWith('Lampiran Undangan:') ||
                      textContent.startsWith('Link Hasil Kegiatan:') ||
                      textContent.startsWith('Giat_') ||
@@ -124,6 +131,7 @@ const CleanDescription = ({ description }: { description: string | null | undefi
 
 const EventCard = ({ event }: { event: CalendarEvent }) => {
   const disposisi = useMemo(() => extractDisposisi(event.description), [event.description]);
+  const timestamp = useMemo(() => extractTimestamp(event.description), [event.description]);
   const attachments = event.attachments || [];
 
   return (
@@ -143,10 +151,18 @@ const EventCard = ({ event }: { event: CalendarEvent }) => {
                     <span>{event.location}</span>
                 </p>
                 )}
-                <p className="flex items-start">
-                    <Pin className="h-4 w-4 mr-2 mt-0.5 flex-shrink-0 text-green-500" />
-                    <span className='line-clamp-2'>Disposisi: {disposisi}</span>
-                </p>
+                {disposisi && (
+                    <p className="flex items-start">
+                        <Pin className="h-4 w-4 mr-2 mt-0.5 flex-shrink-0 text-green-500" />
+                        <span className='line-clamp-2'>Disposisi: {disposisi}</span>
+                    </p>
+                )}
+                 {timestamp && (
+                    <p className="flex items-start">
+                        <PenSquare className="h-4 w-4 mr-2 mt-0.5 flex-shrink-0 text-yellow-600" />
+                        <span className='line-clamp-2 italic text-xs'>Disimpan: {timestamp}</span>
+                    </p>
+                )}
             </div>
             
             {attachments.length > 0 && (
@@ -353,10 +369,12 @@ const EventDetailContent = ({ event }: { event: CalendarEvent }) => {
                     </div>
                 )}
 
-                <div className="flex items-start">
-                    <Pin className="mr-3 h-5 w-5 flex-shrink-0 text-green-500" />
-                    <span className="text-foreground">Disposisi: {disposisi}</span>
-                </div>
+                {disposisi && (
+                    <div className="flex items-start">
+                        <Pin className="mr-3 h-5 w-5 flex-shrink-0 text-green-500" />
+                        <span className="text-foreground">Disposisi: {disposisi}</span>
+                    </div>
+                )}
 
                 {attachments.length > 0 && (
                     <div className="space-y-2 pt-4 border-t">
