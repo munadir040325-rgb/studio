@@ -111,6 +111,7 @@ export function EventForm({ onSuccess }: EventFormProps) {
           toast({ title: "Berhasil!", description: `${file.name} telah diunggah.` });
       }
 
+      // Reset file input to allow re-uploading the same file
       if (fileInputRef.current) {
         fileInputRef.current.value = "";
       }
@@ -122,17 +123,15 @@ export function EventForm({ onSuccess }: EventFormProps) {
       toast({ description: "Menyimpan kegiatan ke Google Calendar..." });
       
       const now = new Date();
-      const monthName = format(now, 'MMMM', { locale: id });
-      const yearYY = format(now, 'yy');
-      const timestamp = format(now, 'dd MMMM yyyy, HH:mm', { locale: id });
+      // Format: Giat_[NamaBulan]_[TahunYY]
+      const giatPrefix = `Giat_${format(now, 'MMMM', { locale: id })}_${format(now, 'yy', { locale: id })}`;
+      // Format: Disimpan pada: [Tanggal], [Waktu]
+      const timestamp = `Disimpan pada: ${format(now, 'dd MMMM yyyy, HH:mm', { locale: id })}`;
       
       const userInput = values.description || '';
       
-      let descriptionParts = [];
-      descriptionParts.push(`Giat_${monthName}_${yearYY}`);
-      descriptionParts.push(userInput);
-      descriptionParts.push(`Disimpan pada: ${timestamp}`);
-
+      // Gabungkan semua bagian deskripsi
+      const descriptionParts = [giatPrefix, userInput, timestamp].filter(Boolean); // Filter out empty strings
       const finalDescription = descriptionParts.join('\n');
 
       await createCalendarEvent({
@@ -333,7 +332,7 @@ export function EventForm({ onSuccess }: EventFormProps) {
                       <FormLabel>Deskripsi</FormLabel>
                       <FormControl>
                           <Textarea
-                          placeholder="Tambahkan detail kegiatan."
+                          placeholder="Tambahkan detail kegiatan seperti agenda, peserta, atau catatan penting lainnya."
                           {...field}
                           className="h-20"
                           />
