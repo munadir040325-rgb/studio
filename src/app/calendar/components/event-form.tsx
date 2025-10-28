@@ -64,16 +64,20 @@ export function EventForm({ onSuccess }: EventFormProps) {
       toast({ description: "Menyimpan kegiatan ke Google Calendar..." });
       
       const now = new Date();
-      // Format: Giat_[NamaBulan]_[TahunYY]
       const giatPrefix = `Giat_${format(now, 'MMMM', { locale: id })}_${format(now, 'yy', { locale: id })}`;
-      // Format: Disimpan pada: [Tanggal], [Waktu]
       const timestamp = `Disimpan pada: ${format(now, 'dd MMMM yyyy, HH:mm', { locale: id })}`;
       
       const userInput = values.description || '';
       
-      // Gabungkan semua bagian deskripsi dengan <br> untuk baris baru di HTML
-      const descriptionParts = [giatPrefix, userInput, timestamp].filter(Boolean); // Filter out empty strings
-      const finalDescription = descriptionParts.join('<br>');
+      // Gabungkan prefix dan input pengguna
+      let finalDescription = [giatPrefix, userInput].filter(Boolean).join('<br>');
+      
+      // Tambahkan timestamp dengan baris baru pemisah
+      if (finalDescription) {
+        finalDescription += `<br><br>${timestamp}`;
+      } else {
+        finalDescription = timestamp;
+      }
 
       await createCalendarEvent({
         summary: values.summary,
