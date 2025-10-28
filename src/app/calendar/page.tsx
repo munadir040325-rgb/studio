@@ -78,7 +78,7 @@ const formatEventDisplay = (startStr: string | null | undefined, endStr: string 
 
 const extractDisposisi = (description: string | null | undefined): string | null => {
     if (!description) return null;
-    const match = description.match(/(?:📍\s*)?Disposisi:\s*([\s\S]*?)(?=<br\s*\/?>|$)/i);
+    const match = description.match(/(?:📍\s*)?Disposisi:\s*([\s\S]*?)(?=<br\s*\/?>\s*<br\s*\/?>|Disimpan pada:|$)/i);
     const disposisiText = match && match[1] ? match[1].trim() : null;
     return disposisiText && disposisiText.toLowerCase() !== 'null' ? disposisiText : null;
 };
