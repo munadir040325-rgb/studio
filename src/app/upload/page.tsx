@@ -214,11 +214,13 @@ export default function UploadPage() {
                         className="w-full justify-between"
                         disabled={isLoadingEvents}
                         >
-                        {isLoadingEvents 
-                            ? "Memuat kegiatan..." 
-                            : selectedEvent
-                            ? selectedEvent.summary
-                            : "Pilih kegiatan..."}
+                        <span className="truncate">
+                            {isLoadingEvents 
+                                ? "Memuat kegiatan..." 
+                                : selectedEvent
+                                ? selectedEvent.summary
+                                : "Pilih kegiatan..."}
+                        </span>
                         <ChevronsUpDown className="ml-2 h-4 w-4 shrink-0 opacity-50" />
                         </Button>
                     </PopoverTrigger>
@@ -243,8 +245,8 @@ export default function UploadPage() {
                                         selectedEvent?.id === event.id ? "opacity-100" : "opacity-0"
                                         )}
                                     />
-                                    <div className="flex flex-col">
-                                        <span>{event.summary}</span>
+                                    <div className="flex flex-col overflow-hidden">
+                                        <span className='truncate'>{event.summary}</span>
                                         <span className="text-xs text-muted-foreground">
                                             {format(parseISO(event.start), 'dd MMM yyyy', { locale: localeId })}
                                         </span>
