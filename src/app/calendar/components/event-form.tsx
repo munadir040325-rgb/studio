@@ -69,15 +69,16 @@ export function EventForm({ onSuccess }: EventFormProps) {
       
       const userInput = values.description || '';
       
-      // Gabungkan prefix dan input pengguna
-      let finalDescription = [giatPrefix, userInput].filter(Boolean).join('<br>');
+      // Build the description string sequentially for better control over newlines
+      let finalDescription = giatPrefix;
       
-      // Tambahkan timestamp dengan baris baru pemisah
-      if (finalDescription) {
-        finalDescription += `<br><br>${timestamp}`;
-      } else {
-        finalDescription = timestamp;
+      if (userInput) {
+        finalDescription += `<br>${userInput}`;
       }
+      
+      // Always add a blank line before the timestamp for clear separation
+      finalDescription += `<br><br>${timestamp}`;
+      
 
       await createCalendarEvent({
         summary: values.summary,
