@@ -20,6 +20,12 @@ import DOMPurify from 'isomorphic-dompurify';
 import { Accordion, AccordionContent, AccordionItem, AccordionTrigger } from '@/components/ui/accordion';
 
 
+type CalendarAttachment = {
+  fileUrl: string | null | undefined;
+  title: string | null | undefined;
+  fileId: string | null | undefined;
+}
+
 type CalendarEvent = {
     id: string | null | undefined;
     summary: string | null | undefined;
@@ -29,6 +35,7 @@ type CalendarEvent = {
     end: string | null | undefined;
     isAllDay: boolean;
     htmlLink: string | null | undefined;
+    attachments?: CalendarAttachment[];
 }
 
 const WhatsAppIcon = () => (
@@ -69,38 +76,11 @@ const formatEventDisplay = (startStr: string | null | undefined, endStr: string 
     }
 };
 
-type AttachmentLink = { name: string; url: string; };
-
-const extractAllAttachmentLinks = (description: string | null | undefined): AttachmentLink[] => {
-    if (!description) return [];
-
-    const links: AttachmentLink[] = [];
-    const linkRegex = /<a href="([^"]+)">([^<]+)<\/a>/g;
-    let match;
-
-    while ((match = linkRegex.exec(description)) !== null) {
-        const url = match[1];
-        const name = match[2];
-        if (url && name) {
-            links.push({ name: name.trim(), url });
-        }
-    }
-    
-    const uniqueLinks = links.filter((link, index, self) =>
-        index === self.findIndex((l) => (
-            l.url === link.url && l.name === link.name
-        ))
-    );
-
-    return uniqueLinks;
-};
-
 const extractDisposisi = (description: string | null | undefined): string => {
-    if (!description) {
-        return '-';
-    }
-    const match = description.match(/Disposisi:\s*([\s\S]*?)(?=<br\s*\/?>|$)/i);
-    return match && match[1] ? match[1].trim().replace(/📍\s*/, '') : '-';
+    if (!description) return '-';
+    // Matches "Disposisi:", optional pin emoji, optional colon, and captures the text until a <br> tag or end of string.
+    const match = description.match(/(?:📍\s*)?Disposisi:\s*([\s\S]*?)(?=<br\s*\/?>|$)/i);
+    return match && match[1] ? match[1].trim() : '-';
 };
 
 const CleanDescription = ({ description }: { description: string | null | undefined }) => {
@@ -143,32 +123,8 @@ const CleanDescription = ({ description }: { description: string | null | undefi
 
 
 const EventCard = ({ event }: { event: CalendarEvent }) => {
-  const [attachments, setAttachments] = useState<AttachmentLink[]>([]);
-
-  useEffect(() => {
-    if (typeof window !== 'undefined' && event.description) {
-        const tempDiv = document.createElement('div');
-        tempDiv.innerHTML = DOMPurify.sanitize(event.description, { USE_PROFILES: { html: true } });
-        
-        const links: AttachmentLink[] = [];
-        const anchorTags = tempDiv.querySelectorAll('a');
-
-        anchorTags.forEach(a => {
-            const url = a.getAttribute('href');
-            const name = a.textContent;
-            if (url && name) {
-                links.push({ name: name.trim(), url });
-            }
-        });
-
-        const uniqueLinks = links.filter((link, index, self) =>
-            index === self.findIndex((l) => l.url === link.url && l.name === link.name)
-        );
-        setAttachments(uniqueLinks);
-    }
-  }, [event.description]);
-
   const disposisi = useMemo(() => extractDisposisi(event.description), [event.description]);
+  const attachments = event.attachments || [];
 
   return (
     <Card key={event.id} className="flex flex-col">
@@ -203,19 +159,21 @@ const EventCard = ({ event }: { event: CalendarEvent }) => {
                   </AccordionTrigger>
                   <AccordionContent className='pt-2 pl-1'>
                     <div className="space-y-2">
-                      {attachments.map((link, index) => (
-                        <a 
-                          key={index}
-                          href={link.url} 
-                          target="_blank" 
-                          rel="noopener noreferrer" 
-                          className="flex items-center gap-2 p-1.5 rounded-md hover:bg-muted transition-colors group"
-                        >
-                            {getFileIcon(link.name)}
-                            <span className="text-blue-600 group-hover:underline truncate text-xs" title={link.name}>
-                                {link.name}
-                            </span>
-                        </a>
+                      {attachments.map((att, index) => (
+                        att.fileUrl && att.title && (
+                          <a 
+                            key={att.fileId || index}
+                            href={att.fileUrl} 
+                            target="_blank" 
+                            rel="noopener noreferrer" 
+                            className="flex items-center gap-2 p-1.5 rounded-md hover:bg-muted transition-colors group"
+                          >
+                              {getFileIcon(att.title)}
+                              <span className="text-blue-600 group-hover:underline truncate text-xs" title={att.title}>
+                                  {att.title}
+                              </span>
+                          </a>
+                        )
                       ))}
                     </div>
                   </AccordionContent>
@@ -378,8 +336,8 @@ const MonthlyView = ({ events, baseDate, onEventClick, onDayClick }: { events: C
 };
 
 const EventDetailContent = ({ event }: { event: CalendarEvent }) => {
-    const attachments = useMemo(() => extractAllAttachmentLinks(event.description), [event.description]);
     const disposisi = useMemo(() => extractDisposisi(event.description), [event.description]);
+    const attachments = event.attachments || [];
 
     return (
         <>
@@ -403,11 +361,13 @@ const EventDetailContent = ({ event }: { event: CalendarEvent }) => {
                 {attachments.length > 0 && (
                     <div className="space-y-2 pt-4 border-t">
                         <h3 className="text-sm font-medium text-muted-foreground">Lampiran</h3>
-                        {attachments.map((link, index) => (
-                            <a key={index} href={link.url} target="_blank" rel="noopener noreferrer" className="flex items-center gap-3 p-2 rounded-md hover:bg-muted">
-                                {getFileIcon(link.name)}
-                                <span className="text-blue-600 truncate">{link.name}</span>
+                        {attachments.map((att, index) => (
+                           att.fileUrl && att.title && (
+                            <a key={att.fileId || index} href={att.fileUrl} target="_blank" rel="noopener noreferrer" className="flex items-center gap-3 p-2 rounded-md hover:bg-muted">
+                                {getFileIcon(att.title)}
+                                <span className="text-blue-600 truncate">{att.title}</span>
                             </a>
+                           )
                         ))}
                     </div>
                 )}
@@ -769,5 +729,3 @@ export default function CalendarPage() {
     </div>
   );
 }
-
-    

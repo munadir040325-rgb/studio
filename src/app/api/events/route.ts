@@ -100,6 +100,11 @@ export async function GET(req: NextRequest) {
       end: ev.end?.dateTime ?? ev.end?.date,
       isAllDay: !!(ev.start?.date && !ev.start?.dateTime),
       htmlLink: ev.htmlLink,
+      attachments: (ev.attachments || []).map(att => ({
+        fileUrl: att.fileUrl,
+        title: att.title,
+        fileId: att.fileId
+      }))
     }));
 
     return NextResponse.json({
