@@ -5,7 +5,7 @@ import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardFooter, CardHeader, CardTitle } from '@/components/ui/card';
 import { Popover, PopoverContent, PopoverTrigger } from '@/components/ui/popover';
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger, DialogFooter, DialogDescription } from '@/components/ui/dialog';
-import { Calendar as CalendarIcon, ExternalLink, PlusCircle, RefreshCw, MapPin, Clock, ChevronLeft, ChevronRight, Pin, Copy, Info, Link as LinkIcon, FolderOpen, Paperclip } from 'lucide-react';
+import { Calendar as CalendarIcon, ExternalLink, PlusCircle, RefreshCw, MapPin, Clock, ChevronLeft, ChevronRight, Pin, Copy, Info, Link as LinkIcon, FolderOpen, Paperclip, Folder } from 'lucide-react';
 import { Calendar } from '@/components/ui/calendar';
 import { format, parseISO, isSameDay, startOfDay, endOfDay, startOfWeek, endOfWeek, startOfMonth, endOfMonth, isWithinInterval, eachDayOfInterval, getDay, isSameMonth, getDate, addDays, subDays, addWeeks, subMonths, addMonths } from 'date-fns';
 import { id as localeId } from 'date-fns/locale';
@@ -72,25 +72,20 @@ const formatEventDisplay = (startStr: string | null | undefined, endStr: string 
 type AttachmentLink = { name: string; url: string; };
 
 const extractAllAttachmentLinks = (description: string | null | undefined): AttachmentLink[] => {
-    if (!description || typeof window === 'undefined') {
-        return [];
-    }
-    
-    const sanitized = DOMPurify.sanitize(description, { USE_PROFILES: { html: true } });
-    const tempDiv = document.createElement('div');
-    tempDiv.innerHTML = sanitized;
+    if (!description) return [];
 
     const links: AttachmentLink[] = [];
-    const anchorTags = tempDiv.querySelectorAll('a');
+    const linkRegex = /<a href="([^"]+)">([^<]+)<\/a>/g;
+    let match;
 
-    anchorTags.forEach(a => {
-        const url = a.getAttribute('href');
-        const name = a.textContent;
+    while ((match = linkRegex.exec(description)) !== null) {
+        const url = match[1];
+        const name = match[2];
         if (url && name) {
             links.push({ name: name.trim(), url });
         }
-    });
-
+    }
+    
     const uniqueLinks = links.filter((link, index, self) =>
         index === self.findIndex((l) => (
             l.url === link.url && l.name === link.name
@@ -105,43 +100,42 @@ const extractDisposisi = (description: string | null | undefined): string => {
         return '-';
     }
     const match = description.match(/Disposisi:\s*([\s\S]*?)(?=<br\s*\/?>|$)/i);
-    return match && match[1] ? match[1].trim() : '-';
+    return match && match[1] ? match[1].trim().replace(/📍\s*/, '') : '-';
 };
 
 const CleanDescription = ({ description }: { description: string | null | undefined }) => {
     const [sanitizedHtml, setSanitizedHtml] = useState('');
 
     useEffect(() => {
-        if (typeof window !== 'undefined') {
-            const sanitized = DOMPurify.sanitize(description || '', { USE_PROFILES: { html: true } });
-            
-            const tempDiv = document.createElement('div');
-            tempDiv.innerHTML = sanitized;
-            
-            const lines = tempDiv.innerHTML.split(/<br\s*\/?>/i);
+        if (typeof window !== 'undefined' && description) {
+             const tempDiv = document.createElement('div');
+             tempDiv.innerHTML = DOMPurify.sanitize(description, { USE_PROFILES: { html: true } });
 
-            const filteredLines = lines.filter(line => {
-                const textContent = line.replace(/<[^>]*>/g, '').trim();
-                return !(
-                    textContent.startsWith('📍 Disposisi:') ||
-                    textContent.startsWith('Lampiran Undangan:') ||
-                    textContent.startsWith('Link Hasil Kegiatan:') ||
-                    textContent.startsWith('Giat_') ||
-                    textContent.startsWith('Disimpan pada:')
-                );
-            });
-            
-            let cleanedHtml = filteredLines.join('<br>').trim();
-            // Remove leading/trailing <br> and multiple consecutive <br>
-            cleanedHtml = cleanedHtml.replace(/^(<br\s*\/?>\s*)+|(<br\s*\/?>\s*)+$/g, '');
-            cleanedHtml = cleanedHtml.replace(/(<br\s*\/?>\s*){2,}/gi, '<br>');
+             const lines = tempDiv.innerHTML.split(/<br\s*\/?>/i);
 
-            setSanitizedHtml(cleanedHtml);
+             const filteredLines = lines.filter(line => {
+                 const textContent = line.replace(/<[^>]*>/g, '').trim();
+                 return !(
+                     textContent.startsWith('📍 Disposisi:') ||
+                     textContent.startsWith('Lampiran Undangan:') ||
+                     textContent.startsWith('Link Hasil Kegiatan:') ||
+                     textContent.startsWith('Giat_') ||
+                     textContent.startsWith('Disimpan pada:')
+                 );
+             });
+            
+             let cleanedHtml = filteredLines.join('<br>').trim();
+             cleanedHtml = cleanedHtml.replace(/^(<br\s*\/?>\s*)+|(<br\s*\/?>\s*)+$/g, '');
+             cleanedHtml = cleanedHtml.replace(/(<br\s*\/?>\s*){2,}/gi, '<br>');
+
+             setSanitizedHtml(cleanedHtml);
+        } else {
+            setSanitizedHtml('');
         }
     }, [description]);
     
     if (!sanitizedHtml || sanitizedHtml === '<br>') {
-        return null;
+        return <span className="text-muted-foreground italic">Tidak ada deskripsi tambahan.</span>;
     }
     
     return <div dangerouslySetInnerHTML={{ __html: sanitizedHtml }} className="whitespace-pre-wrap"/>;
@@ -149,7 +143,32 @@ const CleanDescription = ({ description }: { description: string | null | undefi
 
 
 const EventCard = ({ event }: { event: CalendarEvent }) => {
-  const attachments = useMemo(() => extractAllAttachmentLinks(event.description), [event.description]);
+  const [attachments, setAttachments] = useState<AttachmentLink[]>([]);
+
+  useEffect(() => {
+    if (typeof window !== 'undefined' && event.description) {
+        const tempDiv = document.createElement('div');
+        tempDiv.innerHTML = DOMPurify.sanitize(event.description, { USE_PROFILES: { html: true } });
+        
+        const links: AttachmentLink[] = [];
+        const anchorTags = tempDiv.querySelectorAll('a');
+
+        anchorTags.forEach(a => {
+            const url = a.getAttribute('href');
+            const name = a.textContent;
+            if (url && name) {
+                links.push({ name: name.trim(), url });
+            }
+        });
+
+        const uniqueLinks = links.filter((link, index, self) =>
+            index === self.findIndex((l) => l.url === link.url && l.name === link.name)
+        );
+        setAttachments(uniqueLinks);
+    }
+  }, [event.description]);
+
+  const disposisi = useMemo(() => extractDisposisi(event.description), [event.description]);
 
   return (
     <Card key={event.id} className="flex flex-col">
@@ -170,7 +189,7 @@ const EventCard = ({ event }: { event: CalendarEvent }) => {
                 )}
                 <p className="flex items-start">
                     <Pin className="h-4 w-4 mr-2 mt-0.5 flex-shrink-0 text-green-500" />
-                    <span className='line-clamp-2'>Disposisi: {extractDisposisi(event.description)}</span>
+                    <span className='line-clamp-2'>Disposisi: {disposisi}</span>
                 </p>
             </div>
             
@@ -360,6 +379,7 @@ const MonthlyView = ({ events, baseDate, onEventClick, onDayClick }: { events: C
 
 const EventDetailContent = ({ event }: { event: CalendarEvent }) => {
     const attachments = useMemo(() => extractAllAttachmentLinks(event.description), [event.description]);
+    const disposisi = useMemo(() => extractDisposisi(event.description), [event.description]);
 
     return (
         <>
@@ -377,7 +397,7 @@ const EventDetailContent = ({ event }: { event: CalendarEvent }) => {
 
                 <div className="flex items-start">
                     <Pin className="mr-3 h-5 w-5 flex-shrink-0 text-green-500" />
-                    <span className="text-foreground">Disposisi: {extractDisposisi(event.description)}</span>
+                    <span className="text-foreground">Disposisi: {disposisi}</span>
                 </div>
 
                 {attachments.length > 0 && (
