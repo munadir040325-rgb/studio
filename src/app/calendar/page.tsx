@@ -538,19 +538,16 @@ export default function CalendarPage() {
 
       let header;
       if (viewMode === 'harian') {
-        header = format(filterDate, 'EEEE, dd MMMM yyyy', { locale: localeId }).toUpperCase();
-      } else if (viewMode === 'mingguan') {
+        header = `*RENGIAT*\n*${format(filterDate, 'EEEE, dd MMMM yyyy', { locale: localeId }).toUpperCase()}*`;
+      } else {
         const start = startOfWeek(filterDate, { weekStartsOn: 1 });
         const end = endOfWeek(filterDate, { weekStartsOn: 1 });
         const startFormat = format(start, 'dd MMM', { locale: localeId });
         const endFormat = format(end, 'dd MMM yyyy', { locale: localeId });
-        header = `MINGGU INI (${startFormat} - ${endFormat})`.toUpperCase();
-      } else { // bulanan
-        header = format(filterDate, 'MMMM yyyy', { locale: localeId }).toUpperCase();
+        header = `*RENGIAT MINGGU INI*\n*${startFormat.toUpperCase()} - ${endFormat.toUpperCase()}*`;
       }
 
-
-      let message = `*JADWAL KEGIATAN - ${header}*\n\n`;
+      let message = `${header}\n\n`;
 
       events.forEach((event, index) => {
           const title = event.summary || '(Tanpa Judul)';
@@ -573,7 +570,7 @@ export default function CalendarPage() {
           message += '\n';
       });
 
-      message += "Mohon untuk segera ditindaklanjuti. Jika ada ralat atau tambahan, harap sampaikan.";
+      message += "Mohon ralat jika ada kekurangan atau tambahan dari bagian lain.";
       setWhatsAppMessage(message);
       setIsWhatsAppModalOpen(true);
   };
