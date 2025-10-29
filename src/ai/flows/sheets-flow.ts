@@ -86,7 +86,7 @@ export const writeToSheetFlow = ai.defineFlow(
         const dateRowResponse = await sheets.spreadsheets.values.get({
             spreadsheetId,
             range: dateRowRange,
-            valueRenderOption: 'UNFORMATTED_VALUE', // Use UNFORMATTED_VALUE to get serial numbers
+            valueRenderOption: 'FORMATTED_STRING', // Get the displayed value e.g. "31"
         });
         dateRowValues = dateRowResponse.data.values ? dateRowResponse.data.values[0] : [];
     } catch(e: any) {
@@ -96,20 +96,18 @@ export const writeToSheetFlow = ai.defineFlow(
         throw e;
     }
 
-    const eventDay = getDate(eventDate);
+    const eventDay = getDate(eventDate); // This gives a number, e.g. 31
     let targetColIndex = -1;
 
+    // Loop through the formatted string dates from the sheet
     for (let i = 0; i < dateRowValues.length; i++) {
-        const cellValue = dateRowValues[i];
-        if (typeof cellValue === 'number') {
-            // Correctly convert Excel/Sheets serial number to a JS Date.
-            // This accounts for the 1900 leap year bug in Excel/Sheets.
-            const date = new Date(Date.UTC(1900, 0, cellValue - 1));
-            
-            if (getDate(date) === eventDay && getMonth(date) === getMonth(eventDate) && getYear(date) === getYear(eventDate)) {
-                targetColIndex = START_COL_INDEX + i;
-                break;
-            }
+        // The value from the sheet is a string, e.g. "31". Convert to number for comparison.
+        const cellValueAsNumber = parseInt(dateRowValues[i], 10);
+        
+        // Compare the number from the sheet with the day of our event
+        if (cellValueAsNumber === eventDay) {
+            targetColIndex = START_COL_INDEX + i;
+            break;
         }
     }
     
