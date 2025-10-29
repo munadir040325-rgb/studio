@@ -17,6 +17,7 @@ import {
 } from 'lucide-react';
 import Link from 'next/link';
 import { AppHeader } from '@/components/app-header';
+import { MobileSidebarHeader } from '@/components/mobile-sidebar-header';
 
 export const metadata: Metadata = {
   title: 'Calendar Manager',
@@ -40,12 +41,13 @@ export default function RootLayout({
           <SidebarProvider>
             <Sidebar>
               <SidebarHeader>
-                <div className="flex items-center gap-2 p-2">
+                <div className="hidden md:flex items-center gap-2 p-2">
                   <CalendarDays className="w-7 h-7 text-primary" />
                   <span className="text-lg font-semibold">
                     <span>Calendar Manager</span>
                   </span>
                 </div>
+                 <MobileSidebarHeader />
               </SidebarHeader>
               <SidebarContent>
                 <SidebarMenu>
