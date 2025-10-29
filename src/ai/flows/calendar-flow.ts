@@ -91,6 +91,13 @@ export const createCalendarEventFlow = ai.defineFlow(
         finalDescription = finalDescription.replace(disposisiRegex, '📍 $1');
     }
 
+    // Set event color based on 'disposisi'
+    // Color IDs: 11 = Red (for 'camat'), 6 = Orange (for others)
+    let colorId = '6'; // Default to Orange
+    if (input.description && /camat/i.test(input.description)) {
+      colorId = '11'; // Red
+    }
+
     // Create the calendar event
     const auth = await getGoogleAuth(['https://www.googleapis.com/auth/calendar']);
     if (!auth) {
@@ -110,6 +117,7 @@ export const createCalendarEventFlow = ai.defineFlow(
         dateTime: input.endDateTime,
         timeZone: 'Asia/Jakarta',
       },
+      colorId: colorId,
     };
 
     try {
@@ -132,5 +140,3 @@ export async function createCalendarEvent(input: CreateEventInput): Promise<Cale
     }
     return createCalendarEventFlow(input);
 }
-
-    

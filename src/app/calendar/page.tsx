@@ -411,12 +411,7 @@ const EventDetailContent = ({ event }: { event: CalendarEvent }) => {
                     </Accordion>
                 )}
                 
-                {cleanDescriptionContent && (
-                    <div className="flex items-start pt-4 border-t">
-                        <Info className="mr-3 h-5 w-5 flex-shrink-0 text-muted-foreground" />
-                        {cleanDescriptionContent}
-                    </div>
-                )}
+                
             </div>
             <DialogFooter>
                 {event.htmlLink && (
