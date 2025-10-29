@@ -118,6 +118,13 @@ export const createCalendarEventFlow = ai.defineFlow(
         timeZone: 'Asia/Jakarta',
       },
       colorId: colorId,
+      reminders: {
+        useDefault: false,
+        overrides: [
+          { method: 'popup', minutes: 60 }, // 1 hour before
+          { method: 'popup', minutes: 5 },   // 5 minutes before
+        ],
+      },
     };
 
     try {
