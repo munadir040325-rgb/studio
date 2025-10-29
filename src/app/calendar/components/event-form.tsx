@@ -22,6 +22,7 @@ import { cn } from '@/lib/utils';
 import { format } from 'date-fns';
 import { id } from 'date-fns/locale';
 import { createCalendarEvent } from '@/ai/flows/calendar-flow';
+import { writeEventToSheet } from '@/ai/flows/sheets-flow';
 import { useToast } from '@/hooks/use-toast';
 import { useState } from 'react';
 
@@ -69,14 +70,12 @@ export function EventForm({ onSuccess }: EventFormProps) {
       
       const userInput = values.description || '';
       
-      // Build the description string sequentially for better control over newlines
       let finalDescription = giatPrefix;
       
       if (userInput) {
         finalDescription += `<br>${userInput}`;
       }
       
-      // Always add a blank line before the timestamp for clear separation
       finalDescription += `<br><br>${timestamp}`;
       
 
@@ -92,6 +91,27 @@ export function EventForm({ onSuccess }: EventFormProps) {
         title: 'Berhasil!',
         description: 'Kegiatan baru telah ditambahkan ke kalender.',
       });
+
+      // Fire-and-forget: write to sheet in the background
+      writeEventToSheet({
+        summary: values.summary,
+        location: values.location,
+        startDateTime: values.startDateTime.toISOString(),
+        description: values.description, // send original description
+      }).then(res => {
+          if(res?.status === 'success') {
+            console.log(`Successfully wrote to sheet cell: ${res.cell}`);
+          }
+      }).catch(err => {
+          console.error("Gagal menulis ke Google Sheet:", err);
+          // Optionally, show a non-blocking warning toast
+          toast({
+            variant: 'destructive',
+            title: 'Gagal Sinkronisasi Sheet',
+            description: `Kegiatan berhasil dibuat di kalender, tapi gagal ditulis ke Google Sheet. Error: ${err.message}`,
+          });
+      });
+
       onSuccess();
     } catch (error: any) {
       console.error('Failed to create event:', error);
@@ -267,7 +287,7 @@ export function EventForm({ onSuccess }: EventFormProps) {
                       <FormLabel>Deskripsi</FormLabel>
                       <FormControl>
                           <Textarea
-                          placeholder="Tambahkan detail kegiatan seperti agenda, peserta, atau catatan penting lainnya."
+                          placeholder="Tambahkan detail kegiatan seperti agenda, peserta, atau catatan penting lainnya. e.g., 'Disposisi: Dihadiri oleh Camat'"
                           {...field}
                           className="h-20"
                           />

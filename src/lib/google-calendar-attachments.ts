@@ -141,7 +141,7 @@ export async function updateEventAttachments(args: UpdateAttachmentArgs, subject
 
   const oldDesc = ev.data.description || "";
   // Hapus blok teks lampiran lama (jika ada) agar tidak dobel
-  const cleanedDescription = oldDesc.replace(/\n\nLampiran \(\d+ file\)[\s\S]*/m, "").trim();
+  const cleanedDescription = oldDesc.replace(/\n\n?Lampiran \(\d+ file\)[\s\S]*/m, "").trim();
   
   // Gabungkan lampiran lama dan baru
   const existingAttachments = ev.data.attachments || [];
