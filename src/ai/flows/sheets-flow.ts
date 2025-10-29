@@ -86,7 +86,7 @@ export const writeToSheetFlow = ai.defineFlow(
         const dateRowResponse = await sheets.spreadsheets.values.get({
             spreadsheetId,
             range: dateRowRange,
-            valueRenderOption: 'FORMATTED_STRING', // Get the displayed value e.g. "31"
+            valueRenderOption: 'FORMATTED_VALUE', // Get the displayed value e.g. "31"
         });
         dateRowValues = dateRowResponse.data.values ? dateRowResponse.data.values[0] : [];
     } catch(e: any) {
