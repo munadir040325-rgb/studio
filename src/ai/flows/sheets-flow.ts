@@ -42,7 +42,7 @@ const writeToSheetInputSchema = z.object({
 export type WriteToSheetInput = z.infer<typeof writeToSheetInputSchema>;
 
 // Constants from your Apps Script
-const START_COL_INDEX = 5; // Column 'E'
+const START_COL_INDEX = 4; // Column 'D'
 
 const extractDisposisiFromDescription = (description?: string): string => {
     if (!description) return '';
@@ -81,7 +81,7 @@ export const writeToSheetFlow = ai.defineFlow(
     const sheetName = `Giat_${monthName}_${yearShort}`;
 
     // 2. Find the correct column for the event date
-    const dateRowRange = `${sheetName}!E17:AI17`; // E17 to AI17
+    const dateRowRange = `${sheetName}!D17:AH17`; // D17 to AH17
     let dateRowValues;
     try {
         const dateRowResponse = await sheets.spreadsheets.values.get({
