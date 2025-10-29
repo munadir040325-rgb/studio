@@ -89,6 +89,7 @@ export async function GET(req: NextRequest) {
       singleEvents: true,
       orderBy: "startTime",
       maxResults: 2500,
+      fields: 'items(id,summary,description,location,start,end,htmlLink,attachments)',
     });
 
     const items = (res.data.items || []).map(ev => ({

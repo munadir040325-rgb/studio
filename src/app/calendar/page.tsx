@@ -24,6 +24,7 @@ type CalendarAttachment = {
   fileUrl: string | null | undefined;
   title: string | null | undefined;
   fileId: string | null | undefined;
+  source: 'google' | 'description';
 }
 
 type CalendarEvent = {
@@ -465,7 +466,39 @@ export default function CalendarPage() {
         throw new Error(data.error || 'Gagal mengambil data dari server.');
       }
       
-      const sortedEvents = (data.items || []).sort((a: CalendarEvent, b: CalendarEvent) => {
+      const processedEvents = (data.items || []).map((event: any) => {
+        const googleAttachments: CalendarAttachment[] = (event.attachments || []).map((att: any) => ({
+          fileUrl: att.fileUrl,
+          title: att.title,
+          fileId: att.fileId,
+          source: 'google'
+        }));
+        
+        const descriptionAttachments: CalendarAttachment[] = [];
+        if (event.description) {
+            const doc = new DOMParser().parseFromString(event.description, 'text/html');
+            const links = doc.querySelectorAll('a');
+            links.forEach(link => {
+                if (link.href && (link.innerText.includes('Lampiran Undangan') || link.href.includes('drive.google.com'))) {
+                    // Check to avoid adding duplicates from google attachments
+                    const isDuplicate = googleAttachments.some(ga => ga.fileUrl === link.href);
+                    if (!isDuplicate) {
+                         descriptionAttachments.push({
+                            fileUrl: link.href,
+                            title: link.textContent || 'File',
+                            fileId: link.href,
+                            source: 'description'
+                        });
+                    }
+                }
+            });
+        }
+        
+        return { ...event, attachments: [...googleAttachments, ...descriptionAttachments] };
+      });
+
+
+      const sortedEvents = processedEvents.sort((a: CalendarEvent, b: CalendarEvent) => {
         if (!a.start || !b.start) return 0;
         return parseISO(a.start).getTime() - parseISO(b.start).getTime();
       });

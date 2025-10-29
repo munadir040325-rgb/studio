@@ -190,5 +190,3 @@ export const useGoogleDriveAuth = ({ folderId }: UseGoogleDriveAuthProps) => {
         uploadToSubfolders,
     };
 };
-
-    

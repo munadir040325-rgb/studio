@@ -231,5 +231,3 @@ export async function updateCalendarEvent(input: UpdateEventInput): Promise<Cale
     }
     return updateCalendarEventFlow(input);
 }
-
-    
