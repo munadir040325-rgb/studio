@@ -1,4 +1,5 @@
 
+
 'use client';
 
 import { useState, useEffect, useCallback, useMemo, Fragment } from 'react';
@@ -109,6 +110,7 @@ const CleanDescription = ({ description }: { description: string | null | undefi
                      textContent.startsWith('Lampiran Undangan:') ||
                      textContent.startsWith('Link Hasil Kegiatan:') ||
                      textContent.startsWith('Giat_') ||
+                     /^\s*📅/.test(textContent) || // Menghapus baris tanggal/waktu
                      textContent.startsWith('Disimpan pada:')
                  );
              });
@@ -549,8 +551,16 @@ export default function CalendarPage() {
       }
 
       let message = `${header}\n\n`;
+      let eventsToFormat = events;
 
-      events.forEach((event, index) => {
+      if (viewMode === 'mingguan') {
+        const start = startOfWeek(filterDate, { weekStartsOn: 1 });
+        const end = endOfWeek(filterDate, { weekStartsOn: 1 });
+        eventsToFormat = events.filter(e => e.start && isWithinInterval(parseISO(e.start), {start, end}));
+      }
+
+
+      eventsToFormat.forEach((event, index) => {
           const title = event.summary || '(Tanpa Judul)';
           const time = formatEventDisplay(event.start, event.end, event.isAllDay);
           const location = event.location;
@@ -778,3 +788,4 @@ export default function CalendarPage() {
     </div>
   );
 }
+
