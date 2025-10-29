@@ -13,7 +13,7 @@ import { ai } from '@/ai/genkit';
 import { z } from 'zod';
 import { google } from 'googleapis';
 import { getGoogleAuth } from './calendar-flow';
-import { format, parseISO, getDate, getMonth, getYear } from 'date-fns';
+import { format, parseISO, isSameDay } from 'date-fns';
 import { id } from 'date-fns/locale';
 import { toZonedTime } from 'date-fns-tz';
 
@@ -49,6 +49,22 @@ export type WriteToSheetInput = z.infer<typeof writeToSheetInputSchema>;
 const START_COL_INDEX = 5; // Column 'E' is index 4 in 0-based, 5 in 1-based.
 
 
+/**
+ * Converts a Google Sheets serial number date to a JavaScript Date object.
+ * Google Sheets stores dates as the number of days since 1899-12-30.
+ * This handles the "1900 is a leap year" bug from Lotus 1-2-3 compatibility.
+ * @param serial The serial number from Google Sheets.
+ * @returns A JavaScript Date object.
+ */
+function sheetSerialNumberToDate(serial: number): Date {
+  // Google Sheets' epoch starts on 1899-12-30
+  const excelEpoch = new Date(Date.UTC(1899, 11, 30));
+  // Add the number of days (the serial number) to the epoch.
+  // The result is in UTC.
+  return new Date(excelEpoch.getTime() + serial * 24 * 60 * 60 * 1000);
+}
+
+
 export const writeToSheetFlow = ai.defineFlow(
   {
     name: 'writeToSheetFlow',
@@ -79,14 +95,14 @@ export const writeToSheetFlow = ai.defineFlow(
     const yearShort = format(eventDate, 'yy');
     const sheetName = `Giat_${monthName}_${yearShort}`;
 
-    // 2. Find the correct column for the event date
+    // 2. Find the correct column for the event date by comparing date objects.
     const dateRowRange = `${sheetName}!E17:AI17`; // E17 to AI17
     let dateRowValues;
     try {
         const dateRowResponse = await sheets.spreadsheets.values.get({
             spreadsheetId,
             range: dateRowRange,
-            valueRenderOption: 'FORMATTED_VALUE', // Get the displayed value e.g. "31/12/2025"
+            valueRenderOption: 'UNFORMATTED_VALUE', // Get serial numbers
         });
         dateRowValues = dateRowResponse.data.values ? dateRowResponse.data.values[0] : [];
     } catch(e: any) {
@@ -96,22 +112,21 @@ export const writeToSheetFlow = ai.defineFlow(
         throw e;
     }
     
-    // The format the app expects to find in the sheet header.
-    const expectedDateFormat = 'dd/MM/yyyy';
-    const eventDateString = format(eventDate, expectedDateFormat);
-    
     let targetColIndex = -1;
 
     for (let i = 0; i < dateRowValues.length; i++) {
-        // Direct string comparison
-        if (dateRowValues[i] === eventDateString) {
-            targetColIndex = START_COL_INDEX + i;
-            break;
+        const cellValue = dateRowValues[i];
+        if (typeof cellValue === 'number' && cellValue > 0) {
+            const sheetDate = sheetSerialNumberToDate(cellValue);
+            if (isSameDay(sheetDate, eventDate)) {
+                targetColIndex = START_COL_INDEX + i;
+                break;
+            }
         }
     }
     
     if (targetColIndex === -1) {
-        throw new Error(`Kolom untuk tanggal ${eventDateString} tidak ditemukan di sheet '${sheetName}'.`);
+        throw new Error(`Kolom untuk tanggal ${format(eventDate, 'dd/MM/yyyy')} tidak ditemukan di sheet '${sheetName}'.`);
     }
 
     const targetColLetter = String.fromCharCode('A'.charCodeAt(0) + targetColIndex - 1);
