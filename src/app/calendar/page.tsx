@@ -169,8 +169,8 @@ const EventCard = ({ event }: { event: CalendarEvent }) => {
             
             {attachments.length > 0 && (
               <Accordion type="single" collapsible className="w-full">
-                <AccordionItem value="item-1" className="border-none pt-3 mt-3">
-                  <AccordionTrigger className='text-sm font-semibold text-muted-foreground hover:no-underline py-2'>
+                <AccordionItem value="item-1" className="border-none">
+                  <AccordionTrigger className='text-sm font-bold text-muted-foreground hover:no-underline py-2'>
                     <div className='flex items-center'>
                       <Paperclip className='mr-2 h-4 w-4'/> Lampiran ({attachments.length})
                     </div>
@@ -389,7 +389,7 @@ const EventDetailContent = ({ event }: { event: CalendarEvent }) => {
                 {attachments.length > 0 && (
                      <Accordion type="single" collapsible className="w-full pt-2">
                         <AccordionItem value="item-1" className="border-t">
-                            <AccordionTrigger className="text-sm font-medium text-muted-foreground hover:no-underline py-3">
+                            <AccordionTrigger className="text-sm font-bold text-muted-foreground hover:no-underline py-3">
                                 <div className="flex items-center">
                                     <Paperclip className="mr-2 h-4 w-4" /> Lampiran ({attachments.length})
                                 </div>
