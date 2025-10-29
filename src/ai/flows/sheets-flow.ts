@@ -86,7 +86,7 @@ export const writeToSheetFlow = ai.defineFlow(
         const dateRowResponse = await sheets.spreadsheets.values.get({
             spreadsheetId,
             range: dateRowRange,
-            valueRenderOption: 'FORMATTED_VALUE', // Get the displayed value e.g. "31"
+            valueRenderOption: 'FORMATTED_VALUE', // Get the displayed value e.g. "31/12/2025"
         });
         dateRowValues = dateRowResponse.data.values ? dateRowResponse.data.values[0] : [];
     } catch(e: any) {
@@ -95,24 +95,23 @@ export const writeToSheetFlow = ai.defineFlow(
         }
         throw e;
     }
-
-    const eventDay = getDate(eventDate); // This gives a number, e.g. 31
+    
+    // The format the app expects to find in the sheet header.
+    const expectedDateFormat = 'dd/MM/yyyy';
+    const eventDateString = format(eventDate, expectedDateFormat);
+    
     let targetColIndex = -1;
 
-    // Loop through the formatted string dates from the sheet
     for (let i = 0; i < dateRowValues.length; i++) {
-        // The value from the sheet is a string, e.g. "31". Convert to number for comparison.
-        const cellValueAsNumber = parseInt(dateRowValues[i], 10);
-        
-        // Compare the number from the sheet with the day of our event
-        if (cellValueAsNumber === eventDay) {
+        // Direct string comparison
+        if (dateRowValues[i] === eventDateString) {
             targetColIndex = START_COL_INDEX + i;
             break;
         }
     }
     
     if (targetColIndex === -1) {
-        throw new Error(`Kolom untuk tanggal ${format(eventDate, 'dd-MM-yyyy')} tidak ditemukan di sheet '${sheetName}'.`);
+        throw new Error(`Kolom untuk tanggal ${eventDateString} tidak ditemukan di sheet '${sheetName}'.`);
     }
 
     const targetColLetter = String.fromCharCode('A'.charCodeAt(0) + targetColIndex - 1);
@@ -183,5 +182,3 @@ export async function writeEventToSheet(input: WriteToSheetInput): Promise<any> 
     // We don't await this on the client, but we return the promise
     return writeToSheetFlow(input);
 }
-
-    
