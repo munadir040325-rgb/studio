@@ -227,85 +227,81 @@ export default function UploadPage() {
             <CardTitle>Detail Lampiran</CardTitle>
             <CardDescription>Pilih kegiatan, bagian, dan file yang akan diunggah ke Google Drive.</CardDescription>
           </CardHeader>
-          <CardContent className="grid grid-cols-1 md:grid-cols-2 gap-8">
-             {driveError && <p className="text-red-500 text-sm md:col-span-2">{driveError}</p>}
-             {eventsError && <p className="text-red-500 text-sm md:col-span-2">Gagal memuat kegiatan: {eventsError.message}</p>}
-             {bagianError && <p className="text-red-500 text-sm md:col-span-2">Gagal memuat bagian: {bagianError.message}</p>}
+          <CardContent className="space-y-8">
+             {driveError && <p className="text-red-500 text-sm">{driveError}</p>}
+             {eventsError && <p className="text-red-500 text-sm">Gagal memuat kegiatan: {eventsError.message}</p>}
+             {bagianError && <p className="text-red-500 text-sm">Gagal memuat bagian: {bagianError.message}</p>}
             
-             <div className="space-y-6">
-                <div className="flex flex-col md:flex-row md:items-start space-y-2 md:space-y-0 md:space-x-4">
-                    <Label className="font-semibold text-base md:w-1/3 md:mt-2">Pilih Kegiatan Berdasarkan Tanggal</Label>
-                    <div className="w-full md:w-2/3">
-                        <Popover>
-                            <PopoverTrigger asChild>
-                                <Button
-                                    variant={"outline"}
-                                    className={cn(
-                                    "w-full justify-start text-left font-normal",
-                                    !selectedDate && "text-muted-foreground"
-                                    )}
-                                >
-                                    <CalendarIcon className="mr-2 h-4 w-4" />
-                                    {selectedDate ? format(selectedDate, "PPP", { locale: localeId }) : <span>Pilih tanggal</span>}
-                                </Button>
-                            </PopoverTrigger>
-                            <PopoverContent className="w-auto p-0">
-                                <Calendar
-                                    mode="single"
-                                    selected={selectedDate}
-                                    onSelect={handleDateSelect}
-                                    initialFocus
-                                    locale={localeId}
-                                />
-                            </PopoverContent>
-                        </Popover>
-
-                        {selectedDate && (
-                            <div className="mt-4 space-y-2">
-                                <Label>Kegiatan pada {format(selectedDate, 'dd MMMM yyyy', { locale: localeId })}</Label>
-                                {isLoadingEvents ? (
-                                    <div className="space-y-2 pt-2">
-                                        <Skeleton className="h-10 w-full" />
-                                    </div>
-                                ) : filteredEvents.length > 0 ? (
-                                <Select onValueChange={(eventId) => setSelectedEvent(events.find(e => e.id === eventId) || null)} value={selectedEvent?.id ?? ''}>
-                                    <SelectTrigger>
-                                        <SelectValue placeholder="Pilih kegiatan..." />
-                                    </SelectTrigger>
-                                    <SelectContent>
-                                        {filteredEvents.map(event => (
-                                        <SelectItem key={event.id} value={event.id}>
-                                            {event.summary} ({format(parseISO(event.start), 'HH:mm')})
-                                        </SelectItem>
-                                        ))}
-                                    </SelectContent>
-                                    </Select>
-                                ) : (
-                                    <p className="text-sm text-muted-foreground pt-2">Tidak ada kegiatan untuk tanggal ini.</p>
+             <div className="space-y-4">
+                <div className="space-y-2">
+                    <Label className="font-semibold text-base">Pilih Kegiatan Berdasarkan Tanggal</Label>
+                    <Popover>
+                        <PopoverTrigger asChild>
+                            <Button
+                                variant={"outline"}
+                                className={cn(
+                                "w-full justify-start text-left font-normal",
+                                !selectedDate && "text-muted-foreground"
                                 )}
+                            >
+                                <CalendarIcon className="mr-2 h-4 w-4" />
+                                {selectedDate ? format(selectedDate, "PPP", { locale: localeId }) : <span>Pilih tanggal</span>}
+                            </Button>
+                        </PopoverTrigger>
+                        <PopoverContent className="w-auto p-0">
+                            <Calendar
+                                mode="single"
+                                selected={selectedDate}
+                                onSelect={handleDateSelect}
+                                initialFocus
+                                locale={localeId}
+                            />
+                        </PopoverContent>
+                    </Popover>
+                </div>
+
+                {selectedDate && (
+                    <div className="space-y-2">
+                        <Label>Kegiatan pada {format(selectedDate, 'dd MMMM yyyy', { locale: localeId })}</Label>
+                        {isLoadingEvents ? (
+                            <div className="space-y-2 pt-2">
+                                <Skeleton className="h-10 w-full" />
                             </div>
+                        ) : filteredEvents.length > 0 ? (
+                        <Select onValueChange={(eventId) => setSelectedEvent(events.find(e => e.id === eventId) || null)} value={selectedEvent?.id ?? ''}>
+                            <SelectTrigger>
+                                <SelectValue placeholder="Pilih kegiatan..." />
+                            </SelectTrigger>
+                            <SelectContent>
+                                {filteredEvents.map(event => (
+                                <SelectItem key={event.id} value={event.id}>
+                                    {event.summary} ({format(parseISO(event.start), 'HH:mm')})
+                                </SelectItem>
+                                ))}
+                            </SelectContent>
+                            </Select>
+                        ) : (
+                            <p className="text-sm text-muted-foreground pt-2">Tidak ada kegiatan untuk tanggal ini.</p>
                         )}
                     </div>
-                </div>
-
-                 <div className="flex flex-col md:flex-row md:items-center space-y-2 md:space-y-0 md:space-x-4">
-                    <Label htmlFor="bagian" className="font-semibold text-base md:w-1/3">Pilih Bagian (Wajib)</Label>
-                    <div className="w-full md:w-2/3">
-                        <Select value={selectedBagian} onValueChange={setSelectedBagian} required disabled={!bagianData || !!bagianError}>
-                        <SelectTrigger>
-                            <SelectValue placeholder={!bagianData ? "Memuat opsi..." : "Pilih bagian"} />
-                        </SelectTrigger>
-                        <SelectContent>
-                            {bagianData?.values?.map((item: string, index: number) => (
-                                <SelectItem key={index} value={item.toLowerCase().replace(/ /g, '_')}>{item}</SelectItem>
-                            ))}
-                        </SelectContent>
-                        </Select>
-                    </div>
-                </div>
+                )}
             </div>
 
-            <div className="space-y-6">
+             <div className="space-y-2">
+                <Label htmlFor="bagian" className="font-semibold text-base">Pilih Bagian (Wajib)</Label>
+                <Select value={selectedBagian} onValueChange={setSelectedBagian} required disabled={!bagianData || !!bagianError}>
+                <SelectTrigger>
+                    <SelectValue placeholder={!bagianData ? "Memuat opsi..." : "Pilih bagian"} />
+                </SelectTrigger>
+                <SelectContent>
+                    {bagianData?.values?.map((item: string, index: number) => (
+                        <SelectItem key={index} value={item.toLowerCase().replace(/ /g, '_')}>{item}</SelectItem>
+                    ))}
+                </SelectContent>
+                </Select>
+            </div>
+
+            <div className="space-y-4">
                 <Label className="font-semibold text-base">Upload File Lampiran</Label>
                 
                 <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
