@@ -8,8 +8,9 @@ import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { Calendar } from '@/components/ui/calendar';
+import { Popover, PopoverContent, PopoverTrigger } from '@/components/ui/popover';
 import { Skeleton } from '@/components/ui/skeleton';
-import { Check, ChevronsUpDown, Loader2, UploadCloud, Trash2 } from 'lucide-react';
+import { Calendar as CalendarIcon, Check, ChevronsUpDown, Loader2, UploadCloud, Trash2 } from 'lucide-react';
 import { useToast } from '@/hooks/use-toast';
 import { cn, getFileIcon } from '@/lib/utils';
 import { parseISO, format, isSameDay, startOfDay } from 'date-fns';
@@ -235,15 +236,30 @@ export default function UploadPage() {
                 {/* Kolom Kiri: Pemilihan Kegiatan */}
                 <div className="space-y-4">
                     <Label className="font-semibold text-base">1. Pilih Kegiatan Berdasarkan Tanggal</Label>
-                    <div className="flex justify-center">
-                        <Calendar
-                            mode="single"
-                            selected={selectedDate}
-                            onSelect={handleDateSelect}
-                            className="rounded-md border"
-                            locale={localeId}
-                        />
-                    </div>
+                    <Popover>
+                        <PopoverTrigger asChild>
+                            <Button
+                                variant={"outline"}
+                                className={cn(
+                                "w-full justify-start text-left font-normal",
+                                !selectedDate && "text-muted-foreground"
+                                )}
+                            >
+                                <CalendarIcon className="mr-2 h-4 w-4" />
+                                {selectedDate ? format(selectedDate, "PPP", { locale: localeId }) : <span>Pilih tanggal</span>}
+                            </Button>
+                        </PopoverTrigger>
+                        <PopoverContent className="w-auto p-0">
+                            <Calendar
+                                mode="single"
+                                selected={selectedDate}
+                                onSelect={handleDateSelect}
+                                initialFocus
+                                locale={localeId}
+                            />
+                        </PopoverContent>
+                    </Popover>
+
                      {selectedDate && (
                         <div className="space-y-2">
                              <Label>Kegiatan pada {format(selectedDate, 'dd MMMM yyyy', { locale: localeId })}</Label>
@@ -257,8 +273,9 @@ export default function UploadPage() {
                                     {filteredEvents.map(event => (
                                         <Button
                                             key={event.id}
+                                            type="button"
                                             variant={selectedEvent?.id === event.id ? 'default' : 'ghost'}
-                                            className="w-full justify-start text-left h-auto"
+                                            className="w-full justify-start text-left h-auto whitespace-normal"
                                             onClick={() => setSelectedEvent(event)}
                                         >
                                             <div className="flex flex-col">
