@@ -238,7 +238,7 @@ export default function UploadPage() {
             
             <div className="space-y-4">
               <div className="space-y-2">
-                <Label className="font-semibold">Pilih Kegiatan Berdasarkan Tanggal</Label>
+                <Label className="font-semibold">Pilih Tanggal Kegiatan</Label>
                 <Popover>
                   <PopoverTrigger asChild>
                     <Button
@@ -266,7 +266,7 @@ export default function UploadPage() {
 
               {selectedDate && (
                 <div className="space-y-2">
-                  <Label>Kegiatan pada {format(selectedDate, 'dd MMMM yyyy', { locale: localeId })}</Label>
+                  <Label>Pilih Kegiatan</Label>
                   {isLoadingEvents ? (
                     <div className="flex items-center text-sm text-muted-foreground">
                       <Loader2 className="mr-2 h-4 w-4 animate-spin" />

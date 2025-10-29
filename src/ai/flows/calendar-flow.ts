@@ -58,6 +58,7 @@ const updateEventInputSchema = z.object({
   })).optional(),
 });
 
+
 export type UpdateEventInput = z.infer<typeof updateEventInputSchema>;
 
 function areCredentialsConfigured() {
