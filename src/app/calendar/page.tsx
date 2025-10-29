@@ -124,7 +124,7 @@ const CleanDescription = ({ description }: { description: string | null | undefi
     }, [description]);
     
     if (!sanitizedHtml || sanitizedHtml === '<br>') {
-        return <span className="text-muted-foreground italic">Tidak ada deskripsi tambahan.</span>;
+        return null;
     }
     
     return <div dangerouslySetInnerHTML={{ __html: sanitizedHtml }} className="whitespace-pre-wrap"/>;
@@ -356,6 +356,7 @@ const MonthlyView = ({ events, baseDate, onEventClick, onDayClick }: { events: C
 const EventDetailContent = ({ event }: { event: CalendarEvent }) => {
     const disposisi = useMemo(() => extractDisposisi(event.description), [event.description]);
     const attachments = event.attachments || [];
+    const cleanDescriptionContent = <CleanDescription description={event.description} />;
 
     return (
         <>
@@ -379,23 +380,43 @@ const EventDetailContent = ({ event }: { event: CalendarEvent }) => {
                 )}
 
                 {attachments.length > 0 && (
-                    <div className="space-y-2 pt-4 border-t">
-                        <h3 className="text-sm font-medium text-muted-foreground">Lampiran</h3>
-                        {attachments.map((att, index) => (
-                           att.fileUrl && att.title && (
-                            <a key={att.fileId || index} href={att.fileUrl} target="_blank" rel="noopener noreferrer" className="flex items-center gap-3 p-2 rounded-md hover:bg-muted">
-                                {getFileIcon(att.title)}
-                                <span className="text-blue-600 truncate">{att.title}</span>
-                            </a>
-                           )
-                        ))}
+                     <Accordion type="single" collapsible className="w-full pt-2">
+                        <AccordionItem value="item-1" className="border-t">
+                            <AccordionTrigger className="text-sm font-medium text-muted-foreground hover:no-underline py-3">
+                                <div className="flex items-center">
+                                    <Paperclip className="mr-2 h-4 w-4" /> Lampiran ({attachments.length})
+                                </div>
+                            </AccordionTrigger>
+                            <AccordionContent className="pt-2 pl-1 max-h-48 overflow-y-auto">
+                                <div className="space-y-1">
+                                    {attachments.map((att, index) =>
+                                        att.fileUrl && att.title && (
+                                            <a
+                                                key={att.fileId || index}
+                                                href={att.fileUrl}
+                                                target="_blank"
+                                                rel="noopener noreferrer"
+                                                className="flex items-center gap-2 p-1.5 rounded-md hover:bg-muted transition-colors group"
+                                            >
+                                                {getFileIcon(att.title)}
+                                                <span className="text-blue-600 group-hover:underline truncate text-xs" title={att.title}>
+                                                    {att.title}
+                                                </span>
+                                            </a>
+                                        )
+                                    )}
+                                </div>
+                            </AccordionContent>
+                        </AccordionItem>
+                    </Accordion>
+                )}
+                
+                {cleanDescriptionContent && (
+                    <div className="flex items-start pt-4 border-t">
+                        <Info className="mr-3 h-5 w-5 flex-shrink-0 text-muted-foreground" />
+                        {cleanDescriptionContent}
                     </div>
                 )}
-
-                 <div className="flex items-start pt-4 border-t">
-                    <Info className="mr-3 h-5 w-5 flex-shrink-0 text-muted-foreground" />
-                    <CleanDescription description={event.description} />
-                </div>
             </div>
             <DialogFooter>
                 {event.htmlLink && (
