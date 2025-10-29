@@ -1,3 +1,4 @@
+
 'use client';
 
 import { useState, useEffect, useCallback, useMemo, Fragment } from 'react';
@@ -500,7 +501,7 @@ export default function CalendarPage() {
 
       const sortedEvents = processedEvents.sort((a: CalendarEvent, b: CalendarEvent) => {
         if (!a.start || !b.start) return 0;
-        return parseISO(a.start).getTime() - parseISO(b.start).getTime();
+        return parseISO(a.start).getTime() - parseISO(a.start).getTime();
       });
 
       setEvents(sortedEvents);
@@ -777,3 +778,5 @@ export default function CalendarPage() {
     </div>
   );
 }
+
+    
