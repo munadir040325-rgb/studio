@@ -14,7 +14,8 @@ import { google } from 'googleapis';
 import { getGoogleAuth } from './calendar-flow';
 import { format, parseISO, getDate, getMonth, getYear } from 'date-fns';
 import { id } from 'date-fns/locale';
-import { utcToZonedTime } from 'date-fns-tz';
+import { toZonedTime } from 'date-fns-tz';
+
 
 const spreadsheetId = process.env.NEXT_PUBLIC_SHEET_ID;
 
@@ -77,7 +78,7 @@ export const writeToSheetFlow = ai.defineFlow(
     const sheets = google.sheets({ version: 'v4', auth });
     
     const eventDateUTC = parseISO(input.startDateTime);
-    const eventDate = utcToZonedTime(eventDateUTC, 'Asia/Jakarta');
+    const eventDate = toZonedTime(eventDateUTC, 'Asia/Jakarta');
 
     // 1. Determine the correct sheet name (e.g., "Giat_Oktober_25")
     const monthName = format(eventDate, 'MMMM', { locale: id });
