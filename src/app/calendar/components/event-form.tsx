@@ -112,8 +112,8 @@ export function EventForm({ onSuccess }: EventFormProps) {
         summary: values.summary,
         location: values.location,
         startDateTime: values.startDateTime.toISOString(),
-        description: values.description, // send original description
-        bagian: values.bagian, // send the selected bagian
+        description: finalDescription, // send final description
+        bagian: values.bagian,
       }).then(res => {
           if(res?.status === 'success') {
             console.log(`Successfully wrote to sheet cell: ${res.cell}`);
@@ -148,18 +148,29 @@ export function EventForm({ onSuccess }: EventFormProps) {
   const handleDateChange = (field: any, date: Date | undefined) => {
     if (!date) return;
     const currentValue = field.value || new Date();
-    const newDate = new Date(date);
-    newDate.setHours(currentValue.getHours());
-    newDate.setMinutes(currentValue.getMinutes());
+    // Reconstruct date without timezone shift
+    const newDate = new Date(
+        date.getFullYear(),
+        date.getMonth(),
+        date.getDate(),
+        currentValue.getHours(),
+        currentValue.getMinutes()
+    );
     field.onChange(newDate);
   };
   
   const handleTimeChange = (field: any, timeValue: string) => {
     if (!timeValue) return;
     const [hours, minutes] = timeValue.split(':').map(Number);
-    const newDate = field.value ? new Date(field.value) : new Date();
-    newDate.setHours(hours);
-    newDate.setMinutes(minutes);
+    const currentValue = field.value ? new Date(field.value) : new Date();
+    // Reconstruct date to avoid timezone issues
+    const newDate = new Date(
+        currentValue.getFullYear(),
+        currentValue.getMonth(),
+        currentValue.getDate(),
+        hours,
+        minutes
+    );
     field.onChange(newDate);
   };
   
