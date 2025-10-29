@@ -56,11 +56,12 @@ const START_COL_INDEX = 5; // Column 'E' is index 5 in 1-based.
  * @returns A JavaScript Date object.
  */
 function sheetSerialNumberToDate(serial: number): Date {
-  // The number of days between 1970-01-01 and 1899-12-30 is 25569.
-  // Google Sheets incorrectly assumes 1900 was a leap year, so we must adjust.
-  // If the serial is greater than 59 (i.e., after Feb 28, 1900), subtract one extra day for the non-existent leap day.
-  const days = serial - (serial > 59 ? 25568 : 25569);
-  return new Date(days * 86400000);
+    // The number of days between 1970-01-01 and 1899-12-30 is 25569.
+    // Google Sheets incorrectly assumes 1900 was a leap year, so we must adjust.
+    // If the serial is greater than 59 (i.e., after Feb 28, 1900), subtract one extra day for the non-existent leap day.
+    const days = serial - (serial > 59 ? 25568 : 25569);
+    // Create date in UTC to avoid timezone shifts from the server's local time
+    return new Date(days * 86400000);
 }
 
 
@@ -97,8 +98,8 @@ export const writeToSheetFlow = ai.defineFlow(
     }
     const sheets = google.sheets({ version: 'v4', auth });
     
-    const eventDateUTC = parseISO(input.startDateTime);
-    const eventDate = toZonedTime(eventDateUTC, 'Asia/Jakarta');
+    // Use toZonedTime to correctly interpret the ISO string in Asia/Jakarta timezone
+    const eventDate = toZonedTime(parseISO(input.startDateTime), 'Asia/Jakarta');
 
     // 1. Determine the correct sheet name (e.g., "Giat_Oktober_25")
     const monthName = format(eventDate, 'MMMM', { locale: id });
@@ -112,7 +113,7 @@ export const writeToSheetFlow = ai.defineFlow(
         const dateRowResponse = await sheets.spreadsheets.values.get({
             spreadsheetId,
             range: dateRowRange,
-            valueRenderOption: 'UNFORMATTED_VALUE',
+            valueRenderOption: 'UNFORMATTED_VALUE', // Get raw serial numbers
         });
         dateRowValues = dateRowResponse.data.values ? dateRowResponse.data.values[0] : [];
     } catch(e: any) {
@@ -128,8 +129,12 @@ export const writeToSheetFlow = ai.defineFlow(
         const cellValue = dateRowValues[i];
         if (typeof cellValue === 'number' && cellValue > 0) {
             const sheetDate = sheetSerialNumberToDate(cellValue);
-            // Compare the sheet date with the event date, ignoring time.
-            if (isSameDay(sheetDate, eventDate)) {
+            
+            // Compare year, month, and day in the target timezone to avoid off-by-one errors
+            if (sheetDate.getUTCFullYear() === eventDate.getFullYear() &&
+                sheetDate.getUTCMonth() === eventDate.getMonth() &&
+                sheetDate.getUTCDate() === eventDate.getDate()) {
+                
                 targetColIndex = START_COL_INDEX + i;
                 break;
             }
