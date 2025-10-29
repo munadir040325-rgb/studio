@@ -140,7 +140,7 @@ export const writeToSheetFlow = ai.defineFlow(
     }
     
     if (firstEmptyRowInBagian === -1) {
-        throw new Error(`Slot untuk bagian '${input.bagian.toUpperCase()}' pada tanggal ${format(eventDate, 'dd-MM-yyyy')} sudah penuh.`);
+        throw new Error(`Slot untuk bagian '${input.bagian.toUpperCase()}' pada tanggal ${format(eventDate, 'dd/MM/yyyy')} sudah penuh.`);
     }
 
 
