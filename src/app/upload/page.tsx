@@ -16,7 +16,7 @@ import { cn, getFileIcon } from '@/lib/utils';
 import { parseISO, format, isSameDay } from 'date-fns';
 import { id as localeId } from 'date-fns/locale';
 import useSWR from 'swr';
-import { updateEventAttachments, type UpdateAttachmentArgs } from '@/lib/google-calendar-attachments';
+import { updateEventAttachments } from '@/lib/google-calendar-attachments';
 import { useGoogleDriveAuth } from '@/hooks/useGoogleDriveAuth';
 
 const ROOT_FOLDER_ID = process.env.NEXT_PUBLIC_DRIVE_FOLDER_ID_HASIL;
@@ -143,7 +143,7 @@ export default function UploadPage() {
         try {
             const allUploadedLinks = result.links || [];
             
-            const attachmentGroups: UpdateAttachmentArgs['groups'] = [];
+            const attachmentGroups = [];
 
             const undanganGroup = allUploadedLinks.filter(l => undanganFiles.some(f => f.name === l.name));
             if (undanganGroup.length > 0) attachmentGroups.push({ label: 'Undangan', files: undanganGroup.map(link => ({
@@ -359,7 +359,9 @@ export default function UploadPage() {
                           onButtonClick={() => handleAuthorizeAndPick(undanganInputRef)}
                       />
                       <p className="text-xs text-muted-foreground">Bisa unggah lebih dari satu file (PDF/DOCX).</p>
-                      <FileList files={undanganFiles} onRemove={(index) => setUndanganFiles(files => files.filter((_, i) => i !== index))} isUploading={isUploading}/>
+                      <div className="overflow-hidden">
+                        <FileList files={undanganFiles} onRemove={(index) => setUndanganFiles(files => files.filter((_, i) => i !== index))} isUploading={isUploading}/>
+                      </div>
                   </div>
 
                   <div className="grid gap-2">
@@ -372,7 +374,9 @@ export default function UploadPage() {
                           onButtonClick={() => handleAuthorizeAndPick(fotoInputRef)}
                       />
                       <p className="text-xs text-muted-foreground">Bisa unggah lebih dari satu file gambar.</p>
-                      <FileList files={fotoFiles} onRemove={(index) => setFotoFiles(files => files.filter((_, i) => i !== index))} isUploading={isUploading}/>
+                      <div className="overflow-hidden">
+                        <FileList files={fotoFiles} onRemove={(index) => setFotoFiles(files => files.filter((_, i) => i !== index))} isUploading={isUploading}/>
+                      </div>
                   </div>
 
                   <div className="grid gap-2">
@@ -387,7 +391,9 @@ export default function UploadPage() {
                           onButtonClick={() => handleAuthorizeAndPick(notulenInputRef)}
                       />
                       <p className="text-xs text-muted-foreground">Hanya satu file (PDF/DOCX).</p>
-                      {notulenFile && <FileList files={[notulenFile]} onRemove={() => setNotulenFile(null)} isUploading={isUploading} />}
+                      <div className="overflow-hidden">
+                        {notulenFile && <FileList files={[notulenFile]} onRemove={() => setNotulenFile(null)} isUploading={isUploading} />}
+                      </div>
                   </div>
 
                   <div className="grid gap-2">
@@ -401,7 +407,9 @@ export default function UploadPage() {
                           onButtonClick={() => handleAuthorizeAndPick(materiInputRef)}
                       />
                       <p className="text-xs text-muted-foreground">Bisa unggah file jenis apa pun.</p>
-                      <FileList files={materiFiles} onRemove={(index) => setMateriFiles(files => files.filter((_, i) => i !== index))} isUploading={isUploading}/>
+                      <div className="overflow-hidden">
+                        <FileList files={materiFiles} onRemove={(index) => setMateriFiles(files => files.filter((_, i) => i !== index))} isUploading={isUploading}/>
+                      </div>
                   </div>
                 </div>
             </div>
@@ -417,5 +425,3 @@ export default function UploadPage() {
     </div>
   );
 }
-
-    
