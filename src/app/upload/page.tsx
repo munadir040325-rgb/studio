@@ -264,8 +264,9 @@ export default function UploadPage() {
                     <div className="space-y-2">
                         <Label>Kegiatan pada {format(selectedDate, 'dd MMMM yyyy', { locale: localeId })}</Label>
                         {isLoadingEvents ? (
-                            <div className="space-y-2 pt-2">
-                                <Skeleton className="h-10 w-full" />
+                            <div className="flex items-center text-sm text-muted-foreground">
+                                <Loader2 className="mr-2 h-4 w-4 animate-spin" />
+                                Memuat kegiatan...
                             </div>
                         ) : filteredEvents.length > 0 ? (
                         <Select onValueChange={(eventId) => setSelectedEvent(events.find(e => e.id === eventId) || null)} value={selectedEvent?.id ?? ''}>
@@ -288,14 +289,14 @@ export default function UploadPage() {
             </div>
 
              <div className="space-y-2">
-                <Label htmlFor="bagian" className="font-semibold text-base">Pilih Bagian (Wajib)</Label>
+                <Label htmlFor="bagian" className="font-semibold text-base">Pilih Bagian</Label>
                 <Select value={selectedBagian} onValueChange={setSelectedBagian} required disabled={!bagianData || !!bagianError}>
                 <SelectTrigger>
                     <SelectValue placeholder={!bagianData ? "Memuat opsi..." : "Pilih bagian"} />
                 </SelectTrigger>
                 <SelectContent>
                     {bagianData?.values?.map((item: string, index: number) => (
-                        <SelectItem key={index} value={item.toLowerCase().replace(/ /g, '_')}>{item}</SelectItem>
+                        <SelectItem key={index} value={item.toLowerCase().replace(/ /g, '_')}>{item.toUpperCase()}</SelectItem>
                     ))}
                 </SelectContent>
                 </Select>
