@@ -21,7 +21,7 @@ import { MobileSidebarHeader } from '@/components/mobile-sidebar-header';
 
 export const metadata: Metadata = {
   title: 'Calendar Manager',
-  description: 'Aplikasi web SPPD integrasi Google Sheets dan Calendar',
+  description: 'Aplikasi Kalender Jadwal Kegiatan dan Upload Lampirannya',
 };
 
 export default function RootLayout({
