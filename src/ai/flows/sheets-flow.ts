@@ -56,10 +56,9 @@ const START_COL_INDEX = 5; // Column 'E' is index 5 in 1-based.
  * @returns A JavaScript Date object.
  */
 function sheetSerialNumberToDate(serial: number): Date {
-  // Google Sheets' epoch starts on 1899-12-30.
-  // JavaScript's epoch is 1970-01-01.
   // The number of days between 1970-01-01 and 1899-12-30 is 25569.
   // Google Sheets incorrectly assumes 1900 was a leap year, so we must adjust.
+  // If the serial is greater than 59 (i.e., after Feb 28, 1900), subtract one extra day for the non-existent leap day.
   const days = serial - (serial > 59 ? 25568 : 25569);
   return new Date(days * 86400000);
 }
