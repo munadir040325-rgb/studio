@@ -43,7 +43,7 @@ const FileList = ({ files, onRemove, isUploading }: { files: File[], onRemove: (
     <div className="space-y-2 mt-2">
         {files.map((file, index) => (
             <div key={index} className="flex items-center justify-between text-sm p-2 bg-muted rounded-md">
-                <div className="flex items-center gap-2 overflow-hidden">
+                <div className="flex items-center gap-2 min-w-0">
                     {getFileIcon(file.name)}
                     <span className="truncate" title={file.name}>{file.name}</span>
                 </div>
@@ -146,16 +146,36 @@ export default function UploadPage() {
             const attachmentGroups: UpdateAttachmentArgs['groups'] = [];
 
             const undanganGroup = allUploadedLinks.filter(l => undanganFiles.some(f => f.name === l.name));
-            if (undanganGroup.length > 0) attachmentGroups.push({ label: 'Undangan', files: undanganGroup });
+            if (undanganGroup.length > 0) attachmentGroups.push({ label: 'Undangan', files: undanganGroup.map(link => ({
+                fileId: link.fileId,
+                name: link.name,
+                webViewLink: link.webViewLink,
+                mimeType: link.mimeType,
+            })) });
 
             const fotoGroup = allUploadedLinks.filter(l => fotoFiles.some(f => f.name === l.name));
-            if (fotoGroup.length > 0) attachmentGroups.push({ label: 'Foto Kegiatan', files: fotoGroup });
+            if (fotoGroup.length > 0) attachmentGroups.push({ label: 'Foto Kegiatan', files: fotoGroup.map(link => ({
+                fileId: link.fileId,
+                name: link.name,
+                webViewLink: link.webViewLink,
+                mimeType: link.mimeType,
+            })) });
 
             const notulenGroup = allUploadedLinks.filter(l => notulenFile && notulenFile.name === l.name);
-            if (notulenGroup.length > 0) attachmentGroups.push({ label: 'Notulen', files: notulenGroup });
+            if (notulenGroup.length > 0) attachmentGroups.push({ label: 'Notulen', files: notulenGroup.map(link => ({
+                fileId: link.fileId,
+                name: link.name,
+                webViewLink: link.webViewLink,
+                mimeType: link.mimeType,
+            })) });
 
             const materiGroup = allUploadedLinks.filter(l => materiFiles.some(f => f.name === l.name));
-            if (materiGroup.length > 0) attachmentGroups.push({ label: 'Materi', files: materiGroup });
+            if (materiGroup.length > 0) attachmentGroups.push({ label: 'Materi', files: materiGroup.map(link => ({
+                fileId: link.fileId,
+                name: link.name,
+                webViewLink: link.webViewLink,
+                mimeType: link.mimeType,
+            })) });
 
 
              await updateEventAttachments({
@@ -397,3 +417,5 @@ export default function UploadPage() {
     </div>
   );
 }
+
+    
