@@ -13,7 +13,7 @@ import { ai } from '@/ai/genkit';
 import { z } from 'zod';
 import { google } from 'googleapis';
 import { getGoogleAuth } from './calendar-flow';
-import { format, parseISO, getDate, getMonth, getYear, parse } from 'date-fns';
+import { format, parseISO, getDate, getMonth, getYear } from 'date-fns';
 import { id } from 'date-fns/locale';
 import { toZonedTime } from 'date-fns-tz';
 
@@ -86,7 +86,7 @@ export const writeToSheetFlow = ai.defineFlow(
         const dateRowResponse = await sheets.spreadsheets.values.get({
             spreadsheetId,
             range: dateRowRange,
-            valueRenderOption: 'UNFORMATTED_VALUE',
+            valueRenderOption: 'UNFORMATTED_VALUE', // Use UNFORMATTED_VALUE to get serial numbers
         });
         dateRowValues = dateRowResponse.data.values ? dateRowResponse.data.values[0] : [];
     } catch(e: any) {
@@ -102,28 +102,14 @@ export const writeToSheetFlow = ai.defineFlow(
     for (let i = 0; i < dateRowValues.length; i++) {
         const cellValue = dateRowValues[i];
         if (typeof cellValue === 'number') {
-            // This is the Excel/Sheets serial number for a date.
-            // Formula: (serial_number - 25569) * 86400 * 1000
-            // 25569 is the number of days from 1900-01-01 to 1970-01-01 (Unix epoch).
-            // This also accounts for the 1900 leap year bug.
-            const excelEpoch = new Date(1899, 11, 30);
-            const date = new Date(excelEpoch.getTime() + cellValue * 24 * 60 * 60 * 1000);
-
+            // Correctly convert Excel/Sheets serial number to a JS Date.
+            // This accounts for the 1900 leap year bug in Excel/Sheets.
+            const date = new Date(Date.UTC(1899, 11, 30 + cellValue));
+            
             if (getDate(date) === eventDay && getMonth(date) === getMonth(eventDate) && getYear(date) === getYear(eventDate)) {
                 targetColIndex = START_COL_INDEX + i;
                 break;
             }
-        } else if (typeof cellValue === 'string') {
-             try {
-                // If the cell is a string, try parsing it. Supports formats like 'd', 'dd/MM', 'dd/MM/yyyy'
-                const parsedDay = parseInt(cellValue, 10);
-                if (!isNaN(parsedDay) && parsedDay === eventDay) {
-                     targetColIndex = START_COL_INDEX + i;
-                     break;
-                }
-             } catch (e) {
-                // Ignore parsing errors and continue
-             }
         }
     }
     
@@ -199,5 +185,3 @@ export async function writeEventToSheet(input: WriteToSheetInput): Promise<any> 
     // We don't await this on the client, but we return the promise
     return writeToSheetFlow(input);
 }
-
-    
