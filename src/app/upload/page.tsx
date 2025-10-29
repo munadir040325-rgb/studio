@@ -274,7 +274,7 @@ export default function UploadPage() {
                     </div>
                   ) : filteredEvents.length > 0 ? (
                     <Select onValueChange={(eventId) => setSelectedEvent(events.find(e => e.id === eventId) || null)} value={selectedEvent?.id ?? ''}>
-                      <SelectTrigger className="md:w-[280px]">
+                      <SelectTrigger className="w-full md:w-auto">
                         <SelectValue placeholder="Pilih kegiatan..." />
                       </SelectTrigger>
                       <SelectContent style={{ width: 'var(--radix-select-trigger-width)' }}>
@@ -295,7 +295,7 @@ export default function UploadPage() {
             <div className="space-y-2">
               <Label htmlFor="bagian" className="font-semibold">Pilih Bagian</Label>
               <Select value={selectedBagian} onValueChange={setSelectedBagian} required disabled={!bagianData || !!bagianError}>
-                <SelectTrigger className="md:w-[280px]">
+                <SelectTrigger className="w-full md:w-auto">
                   <SelectValue placeholder={!bagianData ? "Memuat opsi..." : "Pilih bagian"} />
                 </SelectTrigger>
                 <SelectContent>
