@@ -83,20 +83,13 @@ export const createCalendarEventFlow = ai.defineFlow(
         throw new Error("ID Kalender (NEXT_PUBLIC_CALENDAR_ID) belum diatur di environment variables.");
     }
       
-    let descriptionParts: string[] = [];
+    let finalDescription = input.description || '';
 
-    // Main description
-    if (input.description) {
-        // Check for 'Disposisi' and add pin emoji
-        const disposisiRegex = /^(Disposisi:.*)/im;
-        if (disposisiRegex.test(input.description)) {
-            descriptionParts.push(input.description.replace(disposisiRegex, '📍 $1'));
-        } else {
-            descriptionParts.push(input.description);
-        }
+    // Automatically add the pin emoji if the description contains "Disposisi:"
+    const disposisiRegex = /^(Disposisi:.*)/im;
+    if (disposisiRegex.test(finalDescription)) {
+        finalDescription = finalDescription.replace(disposisiRegex, '📍 $1');
     }
-
-    const finalDescription = descriptionParts.join('<br><br>');
 
     // Create the calendar event
     const auth = await getGoogleAuth(['https://www.googleapis.com/auth/calendar']);
@@ -139,3 +132,5 @@ export async function createCalendarEvent(input: CreateEventInput): Promise<Cale
     }
     return createCalendarEventFlow(input);
 }
+
+    

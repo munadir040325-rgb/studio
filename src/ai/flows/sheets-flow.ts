@@ -1,3 +1,4 @@
+
 'use server';
 
 import 'dotenv/config';
@@ -35,7 +36,8 @@ const writeToSheetInputSchema = z.object({
   summary: z.string(),
   location: z.string().optional(),
   startDateTime: z.string().datetime(),
-  description: z.string().optional(),
+  // Now receiving the raw disposition content, not the full description.
+  disposisi: z.string().optional(),
   bagian: z.string().refine(val => Object.keys(BAGIAN_ROW_MAP).includes(val), {
       message: "Bagian yang dipilih tidak valid."
   }),
@@ -45,14 +47,6 @@ export type WriteToSheetInput = z.infer<typeof writeToSheetInputSchema>;
 
 // Constants from your Apps Script
 const START_COL_INDEX = 5; // Column 'E'
-
-const extractDisposisiFromDescription = (description?: string): string => {
-    if (!description) return '';
-    // This regex now looks for "Disposisi:" and captures everything after it
-    // until it hits a double line break, the end of the string, or another specific marker.
-    const match = description.match(/(?:📍\s*)?Disposisi:\s*([\s\S]*?)(?=<br\s*\/?>\s*<br\s*\/?>|Disimpan pada:|$)/i);
-    return match && match[1] ? match[1].trim() : '';
-};
 
 
 export const writeToSheetFlow = ai.defineFlow(
@@ -153,7 +147,8 @@ export const writeToSheetFlow = ai.defineFlow(
 
     // 4. Format the data and write to the cell
     const timeText = `Pukul ${format(eventDate, 'HH.mm')}`;
-    const disposisi = extractDisposisiFromDescription(input.description);
+    // Use the raw disposisi content directly from the input.
+    const disposisi = input.disposisi || ''; 
     const cellValue = [
         input.summary || 'Kegiatan',
         input.location || '',
@@ -188,3 +183,5 @@ export async function writeEventToSheet(input: WriteToSheetInput): Promise<any> 
     // We don't await this on the client, but we return the promise
     return writeToSheetFlow(input);
 }
+
+    

@@ -1,3 +1,4 @@
+
 'use client';
 
 import { zodResolver } from '@hookform/resolvers/zod';
@@ -85,18 +86,23 @@ export function EventForm({ onSuccess }: EventFormProps) {
       const timestamp = `Disimpan pada: ${format(now, 'dd MMMM yyyy, HH:mm', { locale: id })}`;
       
       const userInput = values.description || '';
+      let calendarDescription = '';
+
+      // If user provides a description, treat it as a disposition.
+      if (userInput) {
+          calendarDescription = `Disposisi: ${userInput}`;
+      }
       
-      let finalDescription = userInput;
-      
-      if (finalDescription) {
-        finalDescription += `<br><br>${timestamp}`;
+      // Append the timestamp
+      if (calendarDescription) {
+        calendarDescription += `<br><br>${timestamp}`;
       } else {
-        finalDescription = timestamp;
+        calendarDescription = timestamp;
       }
 
       await createCalendarEvent({
         summary: values.summary,
-        description: finalDescription,
+        description: calendarDescription, // Send the auto-formatted description
         location: values.location,
         startDateTime: values.startDateTime.toISOString(),
         endDateTime: values.endDateTime.toISOString(),
@@ -112,7 +118,8 @@ export function EventForm({ onSuccess }: EventFormProps) {
         summary: values.summary,
         location: values.location,
         startDateTime: values.startDateTime.toISOString(),
-        description: finalDescription, // send final description
+        // Pass the original user input to the sheet flow.
+        disposisi: userInput,
         bagian: values.bagian,
       }).then(res => {
           if(res?.status === 'success') {
@@ -335,14 +342,17 @@ export function EventForm({ onSuccess }: EventFormProps) {
                   name="description"
                   render={({ field }) => (
                       <FormItem>
-                      <FormLabel>Deskripsi</FormLabel>
+                      <FormLabel>Deskripsi / Disposisi</FormLabel>
                       <FormControl>
                           <Textarea
-                          placeholder="Tambahkan detail kegiatan seperti agenda, peserta, atau catatan penting lainnya. e.g., 'Disposisi: Dihadiri oleh Camat'"
+                          placeholder="e.g., 'Dihadiri oleh Camat, membawa laptop'"
                           {...field}
                           className="h-20"
                           />
                       </FormControl>
+                      <FormDescription>
+                        Teks yang Anda masukkan di sini akan disimpan sebagai "Disposisi" di Google Calendar.
+                      </FormDescription>
                       <FormMessage />
                       </FormItem>
                   )}
