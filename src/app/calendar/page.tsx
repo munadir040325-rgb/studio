@@ -1,5 +1,4 @@
 
-
 'use client';
 
 import { useState, useEffect, useCallback, useMemo, Fragment } from 'react';
@@ -82,16 +81,21 @@ const formatEventDisplay = (startStr: string | null | undefined, endStr: string 
 const extractDisposisi = (description: string | null | undefined): string | null => {
     if (!description) return null;
 
-    // First, clean the description from any known timestamp patterns
+    // Remove any known timestamp patterns, regardless of surrounding HTML tags.
     const cleanedDescription = description
-        .replace(/<br\s*\/?>\s*Disimpan pada:[\s\S]*/i, '') // Remove "Disimpan pada:" and everything after
-        .replace(/<br\s*\/?>\s*📅\s*\d{1,2}\/\d{1,2}\/\d{4}, \d{1,2}:\d{2}:\d{2} (AM|PM)/i, ''); // Remove Apps Script timestamp
+        .replace(/(<br\s*\/?>\s*)*Disimpan pada:[\s\S]*/i, '') 
+        .replace(/(<br\s*\/?>\s*)*📅\s*\d{1,2}\/\d{1,2}\/\d{4}, \d{1,2}:\d{2}:\d{2} (AM|PM)[\s\S]*/i, '');
 
     // Now, extract "Disposisi" from the cleaned description
     const match = cleanedDescription.match(/(?:📍\s*)?Disposisi:\s*([\s\S]*)/i);
     const disposisiText = match && match[1] ? match[1].trim() : null;
+    
+    if (disposisiText) {
+        const finalCleanedText = disposisiText.split('<br>')[0].trim();
+        return finalCleanedText.toLowerCase() !== 'null' ? finalCleanedText : null;
+    }
 
-    return disposisiText && disposisiText.toLowerCase() !== 'null' ? disposisiText : null;
+    return null;
 };
 
 
@@ -109,16 +113,20 @@ const CleanDescription = ({ description }: { description: string | null | undefi
              const tempDiv = document.createElement('div');
              tempDiv.innerHTML = DOMPurify.sanitize(description, { USE_PROFILES: { html: true } });
 
-             const lines = tempDiv.innerHTML.split(/<br\s*\/?>/i);
+             let processedHtml = tempDiv.innerHTML;
+             
+             // Remove all known timestamp patterns globally from the HTML
+             processedHtml = processedHtml.replace(/(<br\s*\/?>\s*)*Disimpan pada:[\s\S]*/gi, '');
+             processedHtml = processedHtml.replace(/(<br\s*\/?>\s*)*📅\s*\d{1,2}\/\d{1,2}\/\d{4}, \d{1,2}:\d{2}:\d{2} (AM|PM)[\s\S]*/gi, '');
+
+             const lines = processedHtml.split(/<br\s*\/?>/i);
 
              const filteredLines = lines.filter(line => {
                  const textContent = line.replace(/<[^>]*>/g, '').trim();
                  return !(
                      textContent.startsWith('📍 Disposisi:') ||
                      textContent.startsWith('Disposisi:') ||
-                     textContent.startsWith('Disimpan pada:') ||
-                     textContent.startsWith('🆔 Giat_') ||
-                     /^\s*📅/.test(textContent)
+                     textContent.startsWith('🆔 Giat_')
                  );
              });
             
@@ -812,3 +820,5 @@ export default function CalendarPage() {
     </div>
   );
 }
+
+    
