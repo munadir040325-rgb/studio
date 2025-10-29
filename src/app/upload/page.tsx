@@ -3,7 +3,7 @@
 import { useState, useRef, useMemo } from 'react';
 import { PageHeader } from '@/components/page-header';
 import { Button } from '@/components/ui/button';
-import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
+import { Card, CardContent, CardDescription, CardFooter, CardHeader, CardTitle } from '@/components/ui/card';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
@@ -232,81 +232,81 @@ export default function UploadPage() {
              {eventsError && <p className="text-red-500 text-sm">Gagal memuat kegiatan: {eventsError.message}</p>}
              {bagianError && <p className="text-red-500 text-sm">Gagal memuat bagian: {bagianError.message}</p>}
             
-             <div className="grid grid-cols-1 gap-6">
-                {/* Step 1: Pilih Kegiatan */}
-                <div className="space-y-4">
-                    <Label className="font-semibold text-base">1. Pilih Kegiatan Berdasarkan Tanggal</Label>
-                    <Popover>
-                        <PopoverTrigger asChild>
-                            <Button
-                                variant={"outline"}
-                                className={cn(
-                                "w-full justify-start text-left font-normal md:w-auto",
-                                !selectedDate && "text-muted-foreground"
+             <div className="grid grid-cols-1 md:grid-cols-2 gap-8">
+                {/* Left Column */}
+                <div className="space-y-6">
+                    <div className="space-y-4">
+                        <Label className="font-semibold text-base">1. Pilih Kegiatan Berdasarkan Tanggal</Label>
+                        <Popover>
+                            <PopoverTrigger asChild>
+                                <Button
+                                    variant={"outline"}
+                                    className={cn(
+                                    "w-full justify-start text-left font-normal md:w-auto",
+                                    !selectedDate && "text-muted-foreground"
+                                    )}
+                                >
+                                    <CalendarIcon className="mr-2 h-4 w-4" />
+                                    {selectedDate ? format(selectedDate, "PPP", { locale: localeId }) : <span>Pilih tanggal</span>}
+                                </Button>
+                            </PopoverTrigger>
+                            <PopoverContent className="w-auto p-0">
+                                <Calendar
+                                    mode="single"
+                                    selected={selectedDate}
+                                    onSelect={handleDateSelect}
+                                    initialFocus
+                                    locale={localeId}
+                                />
+                            </PopoverContent>
+                        </Popover>
+
+                        {selectedDate && (
+                            <div className="space-y-2">
+                                <Label>Kegiatan pada {format(selectedDate, 'dd MMMM yyyy', { locale: localeId })}</Label>
+                                {isLoadingEvents ? (
+                                    <div className="space-y-2 pt-2">
+                                        <Skeleton className="h-10 w-full" />
+                                    </div>
+                                ) : filteredEvents.length > 0 ? (
+                                <Select onValueChange={(eventId) => setSelectedEvent(events.find(e => e.id === eventId) || null)} value={selectedEvent?.id ?? ''}>
+                                    <SelectTrigger>
+                                        <SelectValue placeholder="Pilih kegiatan..." />
+                                    </SelectTrigger>
+                                    <SelectContent>
+                                        {filteredEvents.map(event => (
+                                        <SelectItem key={event.id} value={event.id}>
+                                            {event.summary} ({format(parseISO(event.start), 'HH:mm')})
+                                        </SelectItem>
+                                        ))}
+                                    </SelectContent>
+                                    </Select>
+                                ) : (
+                                    <p className="text-sm text-muted-foreground pt-2">Tidak ada kegiatan untuk tanggal ini.</p>
                                 )}
-                            >
-                                <CalendarIcon className="mr-2 h-4 w-4" />
-                                {selectedDate ? format(selectedDate, "PPP", { locale: localeId }) : <span>Pilih tanggal</span>}
-                            </Button>
-                        </PopoverTrigger>
-                        <PopoverContent className="w-auto p-0">
-                            <Calendar
-                                mode="single"
-                                selected={selectedDate}
-                                onSelect={handleDateSelect}
-                                initialFocus
-                                locale={localeId}
-                            />
-                        </PopoverContent>
-                    </Popover>
-
-                     {selectedDate && (
-                        <div className="space-y-2">
-                             <Label>Kegiatan pada {format(selectedDate, 'dd MMMM yyyy', { locale: localeId })}</Label>
-                            {isLoadingEvents ? (
-                                <div className="space-y-2 pt-2">
-                                    <Skeleton className="h-10 w-full" />
-                                </div>
-                            ) : filteredEvents.length > 0 ? (
-                               <Select onValueChange={(eventId) => setSelectedEvent(events.find(e => e.id === eventId) || null)} value={selectedEvent?.id}>
-                                  <SelectTrigger>
-                                    <SelectValue placeholder="Pilih kegiatan..." />
-                                  </SelectTrigger>
-                                  <SelectContent>
-                                    {filteredEvents.map(event => (
-                                      <SelectItem key={event.id} value={event.id}>
-                                        {event.summary} ({format(parseISO(event.start), 'HH:mm')})
-                                      </SelectItem>
-                                    ))}
-                                  </SelectContent>
-                                </Select>
-                            ) : (
-                                <p className="text-sm text-muted-foreground pt-2">Tidak ada kegiatan untuk tanggal ini.</p>
-                            )}
-                        </div>
-                    )}
+                            </div>
+                        )}
+                    </div>
+                     <div className="space-y-2">
+                        <Label htmlFor="bagian" className="font-semibold text-base">2. Pilih Bagian (Wajib)</Label>
+                        <Select value={selectedBagian} onValueChange={setSelectedBagian} required disabled={!bagianData || !!bagianError}>
+                        <SelectTrigger>
+                            <SelectValue placeholder={!bagianData ? "Memuat opsi..." : "Pilih bagian"} />
+                        </SelectTrigger>
+                        <SelectContent>
+                            {bagianData?.values?.map((item: string, index: number) => (
+                                <SelectItem key={index} value={item.toLowerCase().replace(/ /g, '_')}>{item}</SelectItem>
+                            ))}
+                        </SelectContent>
+                        </Select>
+                    </div>
                 </div>
 
-                {/* Step 2: Pilih Bagian */}
-                <div className="grid gap-2">
-                    <Label htmlFor="bagian" className="font-semibold text-base">2. Pilih Bagian (Wajib)</Label>
-                    <Select value={selectedBagian} onValueChange={setSelectedBagian} required disabled={!bagianData || !!bagianError}>
-                    <SelectTrigger>
-                        <SelectValue placeholder={!bagianData ? "Memuat opsi..." : "Pilih bagian"} />
-                    </SelectTrigger>
-                    <SelectContent>
-                        {bagianData?.values?.map((item: string, index: number) => (
-                            <SelectItem key={index} value={item.toLowerCase().replace(/ /g, '_')}>{item}</SelectItem>
-                        ))}
-                    </SelectContent>
-                    </Select>
-                </div>
-
-                {/* Step 3: Upload File */}
+                {/* Right Column */}
                 <div className="space-y-6">
                     <Label className="font-semibold text-base">3. Upload File Lampiran</Label>
                     
-                    <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                    <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
                       <div className="grid gap-2">
                           <Label htmlFor="undangan-upload">Upload Undangan/Surat Tugas</Label>
                           <FileUploadButton 
@@ -366,14 +366,13 @@ export default function UploadPage() {
                     </div>
                 </div>
             </div>
-
-             <div className="flex justify-end mt-4 border-t pt-6">
+          </CardContent>
+            <CardFooter className="flex justify-end mt-4 border-t pt-6">
               <Button type="submit" disabled={isUploading || !isReady || !!driveError || !selectedEvent || !selectedBagian}>
                 {isUploading ? <Loader2 className="mr-2 h-4 w-4 animate-spin" /> : <UploadCloud className="mr-2 h-4 w-4" />}
                 {isUploading ? 'Mengunggah...' : 'Simpan & Upload Lampiran'}
               </Button>
-            </div>
-          </CardContent>
+            </CardFooter>
         </Card>
       </form>
     </div>
