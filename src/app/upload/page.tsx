@@ -255,6 +255,19 @@ export default function UploadPage() {
             
              <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
                 <div className="space-y-2">
+                  <Label htmlFor="bagian" className="font-semibold">Pilih Bagian</Label>
+                  <Select value={selectedBagian} onValueChange={setSelectedBagian} required disabled={!bagianData || !!bagianError}>
+                    <SelectTrigger id="bagian" className="w-full">
+                      <SelectValue placeholder={!bagianData ? "Memuat opsi..." : "Pilih bagian"} />
+                    </SelectTrigger>
+                    <SelectContent>
+                      {(bagianData?.values || []).map((item: string, index: number) => (
+                        <SelectItem key={index} value={item.toLowerCase().replace(/ /g, '_')}>{item.toUpperCase()}</SelectItem>
+                      ))}
+                    </SelectContent>
+                  </Select>
+                </div>
+                <div className="space-y-2">
                   <Label htmlFor="tanggal-kegiatan" className="font-semibold">Pilih Tanggal Kegiatan</Label>
                   <Popover>
                     <PopoverTrigger asChild>
@@ -280,19 +293,6 @@ export default function UploadPage() {
                       />
                     </PopoverContent>
                   </Popover>
-                </div>
-                <div className="space-y-2">
-                  <Label htmlFor="bagian" className="font-semibold">Pilih Bagian</Label>
-                  <Select value={selectedBagian} onValueChange={setSelectedBagian} required disabled={!bagianData || !!bagianError}>
-                    <SelectTrigger id="bagian" className="w-full">
-                      <SelectValue placeholder={!bagianData ? "Memuat opsi..." : "Pilih bagian"} />
-                    </SelectTrigger>
-                    <SelectContent>
-                      {(bagianData?.values || []).map((item: string, index: number) => (
-                        <SelectItem key={index} value={item.toLowerCase().replace(/ /g, '_')}>{item.toUpperCase()}</SelectItem>
-                      ))}
-                    </SelectContent>
-                  </Select>
                 </div>
             </div>
 
