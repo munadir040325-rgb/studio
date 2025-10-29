@@ -46,7 +46,7 @@ const writeToSheetInputSchema = z.object({
 export type WriteToSheetInput = z.infer<typeof writeToSheetInputSchema>;
 
 // Constants from your Apps Script
-const START_COL_INDEX = 5; // Column 'E'
+const START_COL_INDEX = 5; // Column 'E' is index 4 in 0-based, 5 in 1-based.
 
 
 export const writeToSheetFlow = ai.defineFlow(
@@ -104,7 +104,7 @@ export const writeToSheetFlow = ai.defineFlow(
         if (typeof cellValue === 'number') {
             // Correctly convert Excel/Sheets serial number to a JS Date.
             // This accounts for the 1900 leap year bug in Excel/Sheets.
-            const date = new Date(Date.UTC(1899, 11, 30 + cellValue));
+            const date = new Date(Date.UTC(1900, 0, cellValue - 1));
             
             if (getDate(date) === eventDay && getMonth(date) === getMonth(eventDate) && getYear(date) === getYear(eventDate)) {
                 targetColIndex = START_COL_INDEX + i;
@@ -117,7 +117,7 @@ export const writeToSheetFlow = ai.defineFlow(
         throw new Error(`Kolom untuk tanggal ${format(eventDate, 'dd-MM-yyyy')} tidak ditemukan di sheet '${sheetName}'.`);
     }
 
-    const targetColLetter = String.fromCharCode('A'.charCodeAt(0) + targetColIndex -1);
+    const targetColLetter = String.fromCharCode('A'.charCodeAt(0) + targetColIndex - 1);
     
     // 3. Find the first empty row within the specified 'bagian' range
     const bagianRange = BAGIAN_ROW_MAP[input.bagian];
@@ -185,3 +185,5 @@ export async function writeEventToSheet(input: WriteToSheetInput): Promise<any> 
     // We don't await this on the client, but we return the promise
     return writeToSheetFlow(input);
 }
+
+    
