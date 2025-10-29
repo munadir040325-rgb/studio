@@ -51,18 +51,26 @@ const START_COL_INDEX = 5; // Column 'E' is index 4 in 0-based, 5 in 1-based.
 
 /**
  * Converts a Google Sheets serial number date to a JavaScript Date object.
- * Google Sheets stores dates as the number of days since 1899-12-30.
- * This handles the "1900 is a leap year" bug from Lotus 1-2-3 compatibility.
+ * This function correctly handles the "1900 leap year bug".
  * @param serial The serial number from Google Sheets.
  * @returns A JavaScript Date object.
  */
 function sheetSerialNumberToDate(serial: number): Date {
-  // Google Sheets' epoch starts on 1899-12-30
-  const excelEpoch = new Date(Date.UTC(1899, 11, 30));
-  // Add the number of days (the serial number) to the epoch.
-  // The result is in UTC.
-  return new Date(excelEpoch.getTime() + serial * 24 * 60 * 60 * 1000);
+  // Google Sheets' epoch starts on 1899-12-30, but its serial number calculation
+  // incorrectly assumes 1900 was a leap year.
+  // A serial of 1 is 1899-12-31.
+  // A serial of 60 is 1900-02-29 (which doesn't exist).
+  // A serial of 61 is 1900-03-01.
+  // JavaScript's epoch is 1970-01-01.
+  // The number of days between 1970-01-01 and 1899-12-30 is 25569.
+  if (serial > 59) {
+    // If the date is after the non-existent Feb 29, 1900, we subtract one extra day.
+    return new Date((serial - 25569 - 1) * 86400 * 1000);
+  } else {
+    return new Date((serial - 25569) * 86400 * 1000);
+  }
 }
+
 
 
 export const writeToSheetFlow = ai.defineFlow(
@@ -102,7 +110,7 @@ export const writeToSheetFlow = ai.defineFlow(
         const dateRowResponse = await sheets.spreadsheets.values.get({
             spreadsheetId,
             range: dateRowRange,
-            valueRenderOption: 'UNFORMATTED_VALUE', // Get serial numbers
+            valueRenderOption: 'UNFORMATTED_VALUE',
         });
         dateRowValues = dateRowResponse.data.values ? dateRowResponse.data.values[0] : [];
     } catch(e: any) {
@@ -118,6 +126,7 @@ export const writeToSheetFlow = ai.defineFlow(
         const cellValue = dateRowValues[i];
         if (typeof cellValue === 'number' && cellValue > 0) {
             const sheetDate = sheetSerialNumberToDate(cellValue);
+            // Compare the sheet date with the event date, ignoring time.
             if (isSameDay(sheetDate, eventDate)) {
                 targetColIndex = START_COL_INDEX + i;
                 break;
@@ -126,7 +135,7 @@ export const writeToSheetFlow = ai.defineFlow(
     }
     
     if (targetColIndex === -1) {
-        throw new Error(`Kolom untuk tanggal ${format(eventDate, 'dd/MM/yyyy')} tidak ditemukan di sheet '${sheetName}'.`);
+        throw new Error(`Kolom untuk tanggal ${format(eventDate, 'dd/MM/yyyy')} tidak ditemukan di sheet '${sheetName}'. Periksa header tanggal di baris 17.`);
     }
 
     const targetColLetter = String.fromCharCode('A'.charCodeAt(0) + targetColIndex - 1);
