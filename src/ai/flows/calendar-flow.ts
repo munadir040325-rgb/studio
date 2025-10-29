@@ -92,8 +92,8 @@ export const createCalendarEventFlow = ai.defineFlow(
     }
 
     // Set event color based on 'disposisi'
-    // Color IDs: 11 = Tomato (for 'camat'), 4 = Flamingo (for others)
-    let colorId = '4'; // Default to Flamingo
+    // Color IDs: 11 = Tomato (for 'camat'), 1 = Peacock (for others)
+    let colorId = '1'; // Default to Peacock
     if (input.description && /camat/i.test(input.description)) {
       colorId = '11'; // Tomato
     }
