@@ -107,11 +107,9 @@ const CleanDescription = ({ description }: { description: string | null | undefi
                  return !(
                      textContent.startsWith('📍 Disposisi:') ||
                      textContent.startsWith('Disposisi:') ||
-                     textContent.startsWith('Lampiran Undangan:') ||
-                     textContent.startsWith('Link Hasil Kegiatan:') ||
-                     textContent.startsWith('Giat_') ||
-                     /^\s*📅/.test(textContent) || // Menghapus baris tanggal/waktu
-                     textContent.startsWith('Disimpan pada:')
+                     textContent.startsWith('Disimpan pada:') ||
+                     textContent.startsWith('🆔 Giat_') ||
+                     /^\s*📅/.test(textContent)
                  );
              });
             
@@ -788,4 +786,3 @@ export default function CalendarPage() {
     </div>
   );
 }
-
