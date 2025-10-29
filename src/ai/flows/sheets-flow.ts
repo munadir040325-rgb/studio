@@ -46,7 +46,9 @@ const START_COL_INDEX = 5; // Column 'E'
 
 const extractDisposisiFromDescription = (description?: string): string => {
     if (!description) return '';
-    const match = description.match(/Disposisi:\s*(.*)/i);
+    // This regex now looks for "Disposisi:" and captures everything after it
+    // until it hits a double line break, the end of the string, or another specific marker.
+    const match = description.match(/(?:📍\s*)?Disposisi:\s*([\s\S]*?)(?=<br\s*\/?>\s*<br\s*\/?>|Disimpan pada:|$)/i);
     return match && match[1] ? match[1].trim() : '';
 };
 
@@ -147,7 +149,7 @@ export const writeToSheetFlow = ai.defineFlow(
 
 
     // 4. Format the data and write to the cell
-    const timeText = format(eventDate, 'HH:mm');
+    const timeText = `Pukul ${format(eventDate, 'HH:mm')}`;
     const disposisi = extractDisposisiFromDescription(input.description);
     const cellValue = [
         input.summary || 'Kegiatan',
