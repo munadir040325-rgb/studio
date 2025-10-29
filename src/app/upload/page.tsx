@@ -17,7 +17,7 @@ import { cn, getFileIcon } from '@/lib/utils';
 import { parseISO, format, isSameDay } from 'date-fns';
 import { id as localeId } from 'date-fns/locale';
 import useSWR from 'swr';
-import { updateCalendarEvent } from '@/ai/flows/calendar-flow';
+import { updateEventAttachments, type UpdateAttachmentArgs } from '@/lib/google-calendar-attachments';
 import { useGoogleDriveAuth } from '@/hooks/useGoogleDriveAuth';
 
 const ROOT_FOLDER_ID = process.env.NEXT_PUBLIC_DRIVE_FOLDER_ID_HASIL;
@@ -112,8 +112,10 @@ export default function UploadPage() {
   
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
-    if (!selectedEvent || !selectedBagian) {
-      toast({ variant: 'destructive', title: 'Form Belum Lengkap', description: 'Mohon pilih kegiatan dan bagian.' });
+    const calendarId = process.env.NEXT_PUBLIC_CALENDAR_ID;
+
+    if (!selectedEvent || !selectedBagian || !calendarId) {
+      toast({ variant: 'destructive', title: 'Form Belum Lengkap', description: 'Mohon pilih kegiatan, bagian, atau pastikan ID Kalender sudah diatur.' });
       return;
     }
     if (!undanganFiles.length && !fotoFiles.length && !notulenFile && !materiFiles.length) {
@@ -135,22 +137,29 @@ export default function UploadPage() {
       return;
     }
     
-    const allUploadedLinks = result.links || [];
-    
-    if (result.kegiatanFolderLink || allUploadedLinks.length > 0) {
+    if (result.kegiatanFolderLink || (result.links && result.links.length > 0)) {
         toast({ title: 'Berhasil!', description: 'Semua file telah berhasil diunggah ke Google Drive.' });
         
         toast({ description: "Memperbarui acara di kalender..." });
         try {
-             await updateCalendarEvent({
+            const attachmentGroups: UpdateAttachmentArgs['groups'] = [];
+            const allLinks = result.links || [];
+
+            const undanganLinks = allLinks.filter(l => undanganFiles.some(f => f.name === l.name));
+            const fotoLinks = allLinks.filter(l => fotoFiles.some(f => f.name === l.name));
+            const notulenLinks = allLinks.filter(l => notulenFile && notulenFile.name === l.name);
+            const materiLinks = allLinks.filter(l => materiFiles.some(f => f.name === l.name));
+
+            if(undanganLinks.length > 0) attachmentGroups.push({ label: 'Undangan', files: undanganLinks });
+            if(fotoLinks.length > 0) attachmentGroups.push({ label: 'Foto Kegiatan', files: fotoLinks });
+            if(notulenLinks.length > 0) attachmentGroups.push({ label: 'Notulen', files: notulenLinks });
+            if(materiLinks.length > 0) attachmentGroups.push({ label: 'Materi', files: materiLinks });
+
+             await updateEventAttachments({
+                calendarId: calendarId,
                 eventId: selectedEvent.id,
                 resultFolderUrl: result.kegiatanFolderLink,
-                attachments: allUploadedLinks.map(link => ({
-                    name: link.name,
-                    fileUrl: `https://drive.google.com/file/d/${link.fileId}/view?usp=drivesdk`,
-                    fileId: link.fileId,
-                    mimeType: link.mimeType,
-                }))
+                groups: attachmentGroups,
             });
             toast({ title: 'Berhasil!', description: 'Lampiran & link hasil kegiatan telah ditambahkan ke acara kalender.' });
 
@@ -300,7 +309,7 @@ export default function UploadPage() {
                   <SelectValue placeholder={!bagianData ? "Memuat opsi..." : "Pilih bagian"} />
                 </SelectTrigger>
                 <SelectContent>
-                  {bagianData?.values?.map((item: string, index: number) => (
+                  {(bagianData?.values || []).map((item: string, index: number) => (
                     <SelectItem key={index} value={item.toLowerCase().replace(/ /g, '_')}>{item.toUpperCase()}</SelectItem>
                   ))}
                 </SelectContent>
@@ -327,8 +336,7 @@ export default function UploadPage() {
                   </div>
 
                   <div className="grid gap-2">
-                      <Label htmlFor="foto-upload">Upload Foto Kegiatan</Label>
-                      <FileUploadButton 
+                      <Label htmlFor="foto-upload">Upload Foto Kegiatan</Label>                      <FileUploadButton 
                           pickerRef={fotoInputRef} 
                           label="Pilih foto..." 
                           files={fotoFiles} 

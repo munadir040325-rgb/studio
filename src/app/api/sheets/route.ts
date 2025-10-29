@@ -36,8 +36,8 @@ export async function GET(req: NextRequest) {
     } catch (err: any) {
         let errorMessage = err?.message || String(err);
         const spreadsheetId = process.env.NEXT_PUBLIC_SHEET_ID;
-        if (errorMessage.includes('client_email') || errorMessage.includes('DECODER')) {
-            errorMessage = 'Kredensial Google Service Account (client_email atau private_key) di file .env tidak valid, kosong, atau salah format. Pastikan kuncinya disalin dengan benar.';
+        if (errorMessage.includes('client_email') || errorMessage.includes('private_key') || errorMessage.includes('DECODER')) {
+            errorMessage = 'Kredensial Google Service Account (GOOGLE_CLIENT_EMAIL atau GOOGLE_PRIVATE_KEY) di file .env tidak valid, kosong, atau salah format. Pastikan kuncinya disalin dengan benar.';
         } else if (errorMessage.includes('Requested entity was not found')) {
             errorMessage = `Spreadsheet dengan ID '${spreadsheetId}' tidak ditemukan atau belum dibagikan ke email Service Account.`;
         } else if (errorMessage.includes('Unable to parse range')) {
