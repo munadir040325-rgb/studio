@@ -13,7 +13,7 @@ import { ai } from '@/ai/genkit';
 import { z } from 'zod';
 import { google } from 'googleapis';
 import { getGoogleAuth } from './calendar-flow';
-import { format, parseISO, isSameDay } from 'date-fns';
+import { format, parseISO } from 'date-fns';
 import { id } from 'date-fns/locale';
 import { toZonedTime } from 'date-fns-tz';
 
@@ -56,12 +56,14 @@ const START_COL_INDEX = 5; // Column 'E' is index 5 in 1-based.
  * @returns A JavaScript Date object.
  */
 function sheetSerialNumberToDate(serial: number): Date {
-    // The number of days between 1970-01-01 and 1899-12-30 is 25569.
-    // Google Sheets incorrectly assumes 1900 was a leap year, so we must adjust.
-    // If the serial is greater than 59 (i.e., after Feb 28, 1900), subtract one extra day for the non-existent leap day.
-    const days = serial - (serial > 59 ? 25568 : 25569);
-    // Create date in UTC to avoid timezone shifts from the server's local time
-    return new Date(days * 86400000);
+  // Rumus dasar konversi serial number ke UTC Date
+  const utcDays = Math.floor(serial - 25569);
+  const utcValue = utcDays * 86400 * 1000;
+  const dateInUTC = new Date(utcValue);
+
+  // Koreksi agar jam diubah ke WIB (Asia/Jakarta)
+  const jakartaDate = new Date(dateInUTC.getTime() + (7 * 60 * 60 * 1000));
+  return jakartaDate;
 }
 
 
@@ -129,13 +131,13 @@ export const writeToSheetFlow = ai.defineFlow(
         const cellValue = dateRowValues[i];
         if (typeof cellValue === 'number' && cellValue > 0) {
             const sheetDate = sheetSerialNumberToDate(cellValue);
-            const sheetDateJakarta = toZonedTime(sheetDate, 'Asia/Jakarta');
             
-            // Compare year, month, and day in the target timezone to avoid off-by-one errors
-            if (sheetDateJakarta.getFullYear() === eventDate.getFullYear() &&
-                sheetDateJakarta.getMonth() === eventDate.getMonth() &&
-                sheetDateJakarta.getDate() === eventDate.getDate()) {
-                
+            // Compare year, month, and day to avoid off-by-one errors
+            if (
+              sheetDate.getFullYear() === eventDate.getFullYear() &&
+              sheetDate.getMonth() === eventDate.getMonth() &&
+              sheetDate.getDate() === eventDate.getDate()
+            ) {
                 targetColIndex = START_COL_INDEX + i;
                 break;
             }
