@@ -7,12 +7,21 @@ export const dynamic = "force-dynamic";
 import { NextRequest, NextResponse } from "next/server";
 import { google } from "googleapis";
 import { getGoogleAuth } from "@/ai/flows/calendar-flow";
+import { format } from 'date-fns';
+import { id } from 'date-fns/locale';
 
 export async function GET(req: NextRequest) {
     try {
         const spreadsheetId = process.env.NEXT_PUBLIC_SHEET_ID;
-        // Updated range to fetch 'Bagian' from 'Pilihan!A2:A'
-        const range = 'Pilihan!A2:A'; 
+        
+        // Determine the sheet name for the current month.
+        const now = new Date();
+        const monthName = format(now, 'MMMM', { locale: id });
+        const yearShort = format(now, 'yy');
+        const sheetName = `Giat_${monthName}_${yearShort}`;
+
+        // The range for 'Bagian' names from the matrix.
+        const range = `${sheetName}!A18:A52`;
 
         if (!spreadsheetId) {
             return NextResponse.json({ error: "ID Google Sheet (NEXT_PUBLIC_SHEET_ID) belum diatur." }, { status: 500 });
@@ -30,9 +39,11 @@ export async function GET(req: NextRequest) {
             range,
         });
         
-        const values = res.data.values ? res.data.values.flat().filter(Boolean) : [];
+        // Flatten the array, filter out empty values, and get unique values.
+        const rawValues = res.data.values ? res.data.values.flat().filter(Boolean) : [];
+        const uniqueValues = [...new Set(rawValues)];
 
-        return NextResponse.json({ values });
+        return NextResponse.json({ values: uniqueValues });
 
     } catch (err: any) {
         let errorMessage = err?.message || String(err);
@@ -42,7 +53,11 @@ export async function GET(req: NextRequest) {
         } else if (errorMessage.includes('Requested entity was not found')) {
             errorMessage = `Spreadsheet dengan ID '${spreadsheetId}' tidak ditemukan atau belum dibagikan ke email Service Account.`;
         } else if (errorMessage.includes('Unable to parse range')) {
-            errorMessage = `Range '${'Pilihan!A2:A'}' tidak valid atau sheet 'Pilihan' tidak ada.`;
+             const now = new Date();
+             const monthName = format(now, 'MMMM', { locale: id });
+             const yearShort = format(now, 'yy');
+             const sheetName = `Giat_${monthName}_${yearShort}`;
+            errorMessage = `Range '${sheetName}!A18:A52' tidak valid atau sheet '${sheetName}' tidak ada.`;
         }
         return NextResponse.json({ error: errorMessage }, { status: 500 });
     }

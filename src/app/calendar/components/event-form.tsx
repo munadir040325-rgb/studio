@@ -82,19 +82,17 @@ export function EventForm({ onSuccess }: EventFormProps) {
       toast({ description: "Menyimpan kegiatan ke Google Calendar..." });
       
       const now = new Date();
-      const giatPrefix = `Giat_${format(now, 'MMMM', { locale: id })}_${format(now, 'yy', { locale: id })}`;
       const timestamp = `Disimpan pada: ${format(now, 'dd MMMM yyyy, HH:mm', { locale: id })}`;
       
       const userInput = values.description || '';
       
-      let finalDescription = giatPrefix;
+      let finalDescription = userInput;
       
-      if (userInput) {
-        finalDescription += `<br>${userInput}`;
+      if (finalDescription) {
+        finalDescription += `<br><br>${timestamp}`;
+      } else {
+        finalDescription = timestamp;
       }
-      
-      finalDescription += `<br><br>${timestamp}`;
-      
 
       await createCalendarEvent({
         summary: values.summary,
