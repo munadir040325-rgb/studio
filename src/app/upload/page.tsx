@@ -237,14 +237,14 @@ export default function UploadPage() {
              {bagianError && <p className="text-red-500 text-sm">Gagal memuat bagian: {bagianError.message}</p>}
             
             <div className="space-y-4">
-               <div className="space-y-2">
+              <div className="space-y-2">
                 <Label className="font-semibold">Pilih Kegiatan Berdasarkan Tanggal</Label>
                 <Popover>
                   <PopoverTrigger asChild>
                     <Button
                       variant={"outline"}
                       className={cn(
-                        "w-full justify-start text-left font-normal md:w-auto",
+                        "w-full justify-start text-left font-normal md:w-[280px]",
                         !selectedDate && "text-muted-foreground"
                       )}
                     >
@@ -274,7 +274,7 @@ export default function UploadPage() {
                     </div>
                   ) : filteredEvents.length > 0 ? (
                     <Select onValueChange={(eventId) => setSelectedEvent(events.find(e => e.id === eventId) || null)} value={selectedEvent?.id ?? ''}>
-                      <SelectTrigger>
+                      <SelectTrigger className="md:w-[280px]">
                         <SelectValue placeholder="Pilih kegiatan..." />
                       </SelectTrigger>
                       <SelectContent style={{ width: 'var(--radix-select-trigger-width)' }}>
@@ -295,7 +295,7 @@ export default function UploadPage() {
             <div className="space-y-2">
               <Label htmlFor="bagian" className="font-semibold">Pilih Bagian</Label>
               <Select value={selectedBagian} onValueChange={setSelectedBagian} required disabled={!bagianData || !!bagianError}>
-                <SelectTrigger>
+                <SelectTrigger className="md:w-[280px]">
                   <SelectValue placeholder={!bagianData ? "Memuat opsi..." : "Pilih bagian"} />
                 </SelectTrigger>
                 <SelectContent>
