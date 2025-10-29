@@ -141,10 +141,15 @@ export default function UploadPage() {
         
         toast({ description: "Memperbarui acara di kalender..." });
         try {
-            await updateCalendarEvent({
+             await updateCalendarEvent({
                 eventId: selectedEvent.id,
                 resultFolderUrl: result.kegiatanFolderLink,
-                attachments: allUploadedLinks
+                attachments: allUploadedLinks.map(link => ({
+                    name: link.name,
+                    webViewLink: link.webViewLink,
+                    fileId: link.fileId,
+                    mimeType: link.mimeType,
+                }))
             });
             toast({ title: 'Berhasil!', description: 'Lampiran & link hasil kegiatan telah ditambahkan ke acara kalender.' });
 
@@ -232,7 +237,7 @@ export default function UploadPage() {
              {bagianError && <p className="text-red-500 text-sm">Gagal memuat bagian: {bagianError.message}</p>}
             
             <div className="space-y-4">
-              <div className="space-y-2">
+               <div className="space-y-2">
                 <Label className="font-semibold">Pilih Kegiatan Berdasarkan Tanggal</Label>
                 <Popover>
                   <PopoverTrigger asChild>
