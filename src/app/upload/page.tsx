@@ -234,7 +234,7 @@ export default function UploadPage() {
             
              <div className="space-y-4">
                 <div className="space-y-2">
-                    <Label className="font-semibold text-base">Pilih Kegiatan Berdasarkan Tanggal</Label>
+                    <Label className="font-semibold">Pilih Kegiatan Berdasarkan Tanggal</Label>
                     <Popover>
                         <PopoverTrigger asChild>
                             <Button
@@ -273,7 +273,7 @@ export default function UploadPage() {
                             <SelectTrigger>
                                 <SelectValue placeholder="Pilih kegiatan..." />
                             </SelectTrigger>
-                            <SelectContent>
+                            <SelectContent style={{ width: 'var(--radix-select-trigger-width)' }}>
                                 {filteredEvents.map(event => (
                                 <SelectItem key={event.id} value={event.id}>
                                     {event.summary} ({format(parseISO(event.start), 'HH:mm')})
@@ -289,7 +289,7 @@ export default function UploadPage() {
             </div>
 
              <div className="space-y-2">
-                <Label htmlFor="bagian" className="font-semibold text-base">Pilih Bagian</Label>
+                <Label htmlFor="bagian" className="font-semibold">Pilih Bagian</Label>
                 <Select value={selectedBagian} onValueChange={setSelectedBagian} required disabled={!bagianData || !!bagianError}>
                 <SelectTrigger>
                     <SelectValue placeholder={!bagianData ? "Memuat opsi..." : "Pilih bagian"} />
@@ -303,7 +303,7 @@ export default function UploadPage() {
             </div>
 
             <div className="space-y-4">
-                <Label className="font-semibold text-base">Upload File Lampiran</Label>
+                <Label className="font-semibold">Upload File Lampiran</Label>
                 
                 <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
                   <div className="grid gap-2">
