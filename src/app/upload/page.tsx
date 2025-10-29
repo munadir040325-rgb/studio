@@ -1,4 +1,3 @@
-
 'use client';
 
 import { useState, useRef, useMemo } from 'react';
@@ -142,18 +141,22 @@ export default function UploadPage() {
         
         toast({ description: "Memperbarui acara di kalender..." });
         try {
+            const allUploadedLinks = result.links || [];
+            
             const attachmentGroups: UpdateAttachmentArgs['groups'] = [];
-            const allLinks = result.links || [];
 
-            const undanganLinks = allLinks.filter(l => undanganFiles.some(f => f.name === l.name));
-            const fotoLinks = allLinks.filter(l => fotoFiles.some(f => f.name === l.name));
-            const notulenLinks = allLinks.filter(l => notulenFile && notulenFile.name === l.name);
-            const materiLinks = allLinks.filter(l => materiFiles.some(f => f.name === l.name));
+            const undanganGroup = allUploadedLinks.filter(l => undanganFiles.some(f => f.name === l.name));
+            if (undanganGroup.length > 0) attachmentGroups.push({ label: 'Undangan', files: undanganGroup });
 
-            if(undanganLinks.length > 0) attachmentGroups.push({ label: 'Undangan', files: undanganLinks });
-            if(fotoLinks.length > 0) attachmentGroups.push({ label: 'Foto Kegiatan', files: fotoLinks });
-            if(notulenLinks.length > 0) attachmentGroups.push({ label: 'Notulen', files: notulenLinks });
-            if(materiLinks.length > 0) attachmentGroups.push({ label: 'Materi', files: materiLinks });
+            const fotoGroup = allUploadedLinks.filter(l => fotoFiles.some(f => f.name === l.name));
+            if (fotoGroup.length > 0) attachmentGroups.push({ label: 'Foto Kegiatan', files: fotoGroup });
+
+            const notulenGroup = allUploadedLinks.filter(l => notulenFile && notulenFile.name === l.name);
+            if (notulenGroup.length > 0) attachmentGroups.push({ label: 'Notulen', files: notulenGroup });
+
+            const materiGroup = allUploadedLinks.filter(l => materiFiles.some(f => f.name === l.name));
+            if (materiGroup.length > 0) attachmentGroups.push({ label: 'Materi', files: materiGroup });
+
 
              await updateEventAttachments({
                 calendarId: calendarId,
@@ -173,7 +176,11 @@ export default function UploadPage() {
             setMateriFiles([]);
 
         } catch (updateError: any) {
-            toast({ variant: 'destructive', title: 'Gagal Memperbarui Kalender', description: updateError.message });
+             let errorMessage = updateError.message || 'Terjadi kesalahan saat memperbarui acara di kalender.';
+             if (errorMessage.includes('INVALID_ARGUMENT')) {
+                errorMessage = "Gagal memperbarui kalender: Format lampiran tidak valid. Pastikan fileId benar.";
+             }
+             toast({ variant: 'destructive', title: 'Gagal Memperbarui Kalender', description: errorMessage });
         }
     }
   };
@@ -246,37 +253,52 @@ export default function UploadPage() {
              {eventsError && <p className="text-red-500 text-sm">Gagal memuat kegiatan: {eventsError.message}</p>}
              {bagianError && <p className="text-red-500 text-sm">Gagal memuat bagian: {bagianError.message}</p>}
             
-            <div className="space-y-4">
-              <div className="space-y-2">
-                <Label className="font-semibold">Pilih Tanggal Kegiatan</Label>
-                <Popover>
-                  <PopoverTrigger asChild>
-                    <Button
-                      variant={"outline"}
-                      className={cn(
-                        "w-full justify-start text-left font-normal md:w-[280px]",
-                        !selectedDate && "text-muted-foreground"
-                      )}
-                    >
-                      <CalendarIcon className="mr-2 h-4 w-4" />
-                      {selectedDate ? format(selectedDate, "PPP", { locale: localeId }) : <span>Pilih tanggal</span>}
-                    </Button>
-                  </PopoverTrigger>
-                  <PopoverContent className="w-auto p-0">
-                    <Calendar
-                      mode="single"
-                      selected={selectedDate}
-                      onSelect={handleDateSelect}
-                      initialFocus
-                      locale={localeId}
-                    />
-                  </PopoverContent>
-                </Popover>
-              </div>
+             <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+                <div className="space-y-2">
+                  <Label htmlFor="tanggal-kegiatan" className="font-semibold">Pilih Tanggal Kegiatan</Label>
+                  <Popover>
+                    <PopoverTrigger asChild>
+                      <Button
+                        id="tanggal-kegiatan"
+                        variant={"outline"}
+                        className={cn(
+                          "w-full justify-start text-left font-normal",
+                          !selectedDate && "text-muted-foreground"
+                        )}
+                      >
+                        <CalendarIcon className="mr-2 h-4 w-4" />
+                        {selectedDate ? format(selectedDate, "PPP", { locale: localeId }) : <span>Pilih tanggal</span>}
+                      </Button>
+                    </PopoverTrigger>
+                    <PopoverContent className="w-auto p-0">
+                      <Calendar
+                        mode="single"
+                        selected={selectedDate}
+                        onSelect={handleDateSelect}
+                        initialFocus
+                        locale={localeId}
+                      />
+                    </PopoverContent>
+                  </Popover>
+                </div>
+                <div className="space-y-2">
+                  <Label htmlFor="bagian" className="font-semibold">Pilih Bagian</Label>
+                  <Select value={selectedBagian} onValueChange={setSelectedBagian} required disabled={!bagianData || !!bagianError}>
+                    <SelectTrigger id="bagian" className="w-full">
+                      <SelectValue placeholder={!bagianData ? "Memuat opsi..." : "Pilih bagian"} />
+                    </SelectTrigger>
+                    <SelectContent>
+                      {(bagianData?.values || []).map((item: string, index: number) => (
+                        <SelectItem key={index} value={item.toLowerCase().replace(/ /g, '_')}>{item.toUpperCase()}</SelectItem>
+                      ))}
+                    </SelectContent>
+                  </Select>
+                </div>
+            </div>
 
               {selectedDate && (
                 <div className="space-y-2">
-                  <Label>Pilih Kegiatan</Label>
+                  <Label htmlFor="kegiatan" className="font-semibold">Pilih Kegiatan</Label>
                   {isLoadingEvents ? (
                     <div className="flex items-center text-sm text-muted-foreground">
                       <Loader2 className="mr-2 h-4 w-4 animate-spin" />
@@ -284,7 +306,7 @@ export default function UploadPage() {
                     </div>
                   ) : filteredEvents.length > 0 ? (
                     <Select onValueChange={(eventId) => setSelectedEvent(events.find(e => e.id === eventId) || null)} value={selectedEvent?.id ?? ''}>
-                      <SelectTrigger className="w-full">
+                      <SelectTrigger id="kegiatan" className="w-full">
                         <SelectValue placeholder="Pilih kegiatan..." />
                       </SelectTrigger>
                       <SelectContent style={{ width: 'var(--radix-select-trigger-width)' }}>
@@ -300,21 +322,6 @@ export default function UploadPage() {
                   )}
                 </div>
               )}
-            </div>
-
-            <div className="space-y-2">
-              <Label htmlFor="bagian" className="font-semibold">Pilih Bagian</Label>
-              <Select value={selectedBagian} onValueChange={setSelectedBagian} required disabled={!bagianData || !!bagianError}>
-                <SelectTrigger className="w-full">
-                  <SelectValue placeholder={!bagianData ? "Memuat opsi..." : "Pilih bagian"} />
-                </SelectTrigger>
-                <SelectContent>
-                  {(bagianData?.values || []).map((item: string, index: number) => (
-                    <SelectItem key={index} value={item.toLowerCase().replace(/ /g, '_')}>{item.toUpperCase()}</SelectItem>
-                  ))}
-                </SelectContent>
-              </Select>
-            </div>
 
 
             <div className="space-y-4">
