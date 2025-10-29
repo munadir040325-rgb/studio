@@ -134,8 +134,7 @@ export default function UploadPage() {
       return;
     }
     
-    // Create attachment links for calendar description
-    const allUploadedLinks: { webViewLink: string; name: string }[] = result.links || [];
+    const allUploadedLinks = result.links || [];
     
     if (result.kegiatanFolderLink || allUploadedLinks.length > 0) {
         toast({ title: 'Berhasil!', description: 'Semua file telah berhasil diunggah ke Google Drive.' });
@@ -147,7 +146,7 @@ export default function UploadPage() {
                 resultFolderUrl: result.kegiatanFolderLink,
                 attachments: allUploadedLinks
             });
-            toast({ title: 'Berhasil!', description: 'Link lampiran & hasil kegiatan telah ditambahkan ke acara kalender.' });
+            toast({ title: 'Berhasil!', description: 'Lampiran & link hasil kegiatan telah ditambahkan ke acara kalender.' });
 
             // Reset form
             setSelectedDate(undefined);

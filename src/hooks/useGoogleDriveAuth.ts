@@ -10,9 +10,16 @@ interface UseGoogleDriveAuthProps {
     folderId?: string;
 }
 
+interface UploadedFileLink {
+    fileId: string;
+    webViewLink: string;
+    name: string;
+    mimeType: string;
+}
+
 interface UploadResult {
     error?: string;
-    links?: { fileId: string; webViewLink: string; name: string }[];
+    links?: UploadedFileLink[];
     kegiatanFolderLink?: string;
 }
 
@@ -111,13 +118,13 @@ export const useGoogleDriveAuth = ({ folderId }: UseGoogleDriveAuthProps) => {
     }, []);
 
 
-    const uploadFile = useCallback(async (file: File, targetFolderId: string, token: string): Promise<{ fileId: string; webViewLink: string; name: string }> => {
+    const uploadFile = useCallback(async (file: File, targetFolderId: string, token: string): Promise<UploadedFileLink> => {
         const metadata = { name: file.name, parents: [targetFolderId] };
         const form = new FormData();
         form.append('metadata', new Blob([JSON.stringify(metadata)], { type: 'application/json' }));
         form.append('file', file);
 
-        const res = await fetch('https://www.googleapis.com/upload/drive/v3/files?uploadType=multipart&fields=id,webViewLink,name', {
+        const res = await fetch('https://www.googleapis.com/upload/drive/v3/files?uploadType=multipart&fields=id,webViewLink,name,mimeType', {
             method: 'POST',
             headers: { 'Authorization': `Bearer ${token}` },
             body: form,
@@ -146,7 +153,7 @@ export const useGoogleDriveAuth = ({ folderId }: UseGoogleDriveAuthProps) => {
     // Advanced version for post-event subfolder structure
     const uploadToSubfolders = async (bagian: string, kegiatan: string, subfolders: SubfolderUpload[]): Promise<UploadResult> => {
         setIsUploading(true);
-        let allUploadedLinks: { fileId: string; webViewLink: string; name: string }[] = [];
+        let allUploadedLinks: UploadedFileLink[] = [];
 
         try {
             if (!folderId) throw new Error("Root folder ID is not configured.");

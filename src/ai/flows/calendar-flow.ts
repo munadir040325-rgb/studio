@@ -53,6 +53,8 @@ const updateEventInputSchema = z.object({
   attachments: z.array(z.object({
     name: z.string(),
     webViewLink: z.string().url(),
+    fileId: z.string(),
+    mimeType: z.string(),
   })).optional(),
 });
 
@@ -135,6 +137,7 @@ export const createCalendarEventFlow = ai.defineFlow(
         const response = await calendar.events.insert({
             calendarId: calendarId,
             requestBody: event,
+            supportsAttachments: true,
         });
         return response.data as CalendarEvent;
     } catch (error: any) {
@@ -171,22 +174,8 @@ export const updateCalendarEventFlow = ai.defineFlow(
                 throw new Error("Kegiatan yang akan diperbarui tidak ditemukan.");
             }
 
-            // 2. Prepare the new description using HTML
+            // 2. Prepare the new description with link to result folder
             let description = existingEvent.data.description || '';
-            
-            // Add invitation attachments
-            if (input.attachments && input.attachments.length > 0) {
-                 const attachmentLinks = input.attachments
-                    .map(att => `Lampiran Undangan: <a href="${att.webViewLink}">${att.name}</a>`)
-                    .join('<br>');
-                if (description) {
-                    description += `<br><br>${attachmentLinks}`;
-                } else {
-                    description = attachmentLinks;
-                }
-            }
-
-            // Add result folder link
             if (input.resultFolderUrl) {
                 const resultLinkText = `Link Hasil Kegiatan: <a href="${input.resultFolderUrl}">Folder Hasil</a>`;
                 // Avoid adding duplicate links
@@ -198,20 +187,43 @@ export const updateCalendarEventFlow = ai.defineFlow(
                     }
                 }
             }
+            
+            // 3. Prepare the new attachments
+            const existingAttachments = existingEvent.data.attachments || [];
+            const newAttachments = (input.attachments || []).map(att => ({
+                fileId: att.fileId,
+                title: att.name,
+                mimeType: att.mimeType,
+                fileUrl: att.webViewLink, // API needs this, even though fileId is primary
+            }));
 
-            // 3. Update the event with the new description
+            // Combine existing attachments with new ones, avoiding duplicates by fileId
+            const combinedAttachments = [...existingAttachments];
+            newAttachments.forEach(newAtt => {
+                if (!existingAttachments.some(exAtt => exAtt.fileId === newAtt.fileId)) {
+                    combinedAttachments.push(newAtt);
+                }
+            });
+
+
+            // 4. Update the event with the new description and attachments
             const response = await calendar.events.patch({
                 calendarId: calendarId,
                 eventId: input.eventId,
                 requestBody: {
                     description: description.trim(),
+                    attachments: combinedAttachments,
                 },
+                supportsAttachments: true,
             });
 
             return response.data as CalendarEvent;
 
         } catch (error: any) {
             console.error("Error updating Google Calendar event:", error);
+            if (error.message.includes('supportsAttachments')) {
+                 throw new Error(`Gagal menambahkan lampiran ke acara. Pastikan fitur "Lampiran" diaktifkan untuk kalender Anda.`);
+            }
             throw new Error(`Gagal memperbarui kegiatan di Google Calendar: ${error.message}`);
         }
     }
