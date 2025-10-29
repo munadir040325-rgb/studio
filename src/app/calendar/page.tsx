@@ -81,10 +81,19 @@ const formatEventDisplay = (startStr: string | null | undefined, endStr: string 
 
 const extractDisposisi = (description: string | null | undefined): string | null => {
     if (!description) return null;
-    const match = description.match(/(?:📍\s*)?Disposisi:\s*([\s\S]*?)(?=<br\s*\/?>\s*<br\s*\/?>|Disimpan pada:|$)/i);
+
+    // First, clean the description from any known timestamp patterns
+    const cleanedDescription = description
+        .replace(/<br\s*\/?>\s*Disimpan pada:[\s\S]*/i, '') // Remove "Disimpan pada:" and everything after
+        .replace(/<br\s*\/?>\s*📅\s*\d{1,2}\/\d{1,2}\/\d{4}, \d{1,2}:\d{2}:\d{2} (AM|PM)/i, ''); // Remove Apps Script timestamp
+
+    // Now, extract "Disposisi" from the cleaned description
+    const match = cleanedDescription.match(/(?:📍\s*)?Disposisi:\s*([\s\S]*)/i);
     const disposisiText = match && match[1] ? match[1].trim() : null;
+
     return disposisiText && disposisiText.toLowerCase() !== 'null' ? disposisiText : null;
 };
+
 
 const extractTimestamp = (description: string | null | undefined): string | null => {
     if (!description) return null;
@@ -157,12 +166,6 @@ const EventCard = ({ event }: { event: CalendarEvent }) => {
                     <p className="flex items-start">
                         <Pin className="h-4 w-4 mr-2 mt-0.5 flex-shrink-0 text-green-500" />
                         <span className='line-clamp-2'>Disposisi: {disposisi}</span>
-                    </p>
-                )}
-                 {timestamp && (
-                    <p className="flex items-start">
-                        <PenSquare className="h-4 w-4 mr-2 mt-0.5 flex-shrink-0 text-yellow-600" />
-                        <span className='line-clamp-2 italic text-xs'>Disimpan: {timestamp}</span>
                     </p>
                 )}
             </div>
@@ -388,7 +391,7 @@ const EventDetailContent = ({ event }: { event: CalendarEvent }) => {
 
                 {attachments.length > 0 && (
                      <Accordion type="single" collapsible className="w-full pt-2">
-                        <AccordionItem value="item-1" className="border-t">
+                        <AccordionItem value="item-1">
                             <AccordionTrigger className="text-sm font-bold text-muted-foreground hover:no-underline py-3">
                                 <div className="flex items-center">
                                     <Paperclip className="mr-2 h-4 w-4" /> Lampiran ({attachments.length})
