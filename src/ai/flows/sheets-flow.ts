@@ -3,9 +3,9 @@
 import 'dotenv/config';
 
 /**
- * @fileOverview Flow for writing data to Google Sheets.
+ * @fileOverview Flow for writing data to Google Sheets based on a matrix layout.
  *
- * - writeToSheet - Writes a new event to the appropriate Google Sheet based on date.
+ * - writeEventToSheet - Writes a new event to the appropriate cell in the Google Sheet.
  */
 
 import { ai } from '@/ai/genkit';
@@ -17,19 +17,32 @@ import { id } from 'date-fns/locale';
 
 const spreadsheetId = process.env.NEXT_PUBLIC_SHEET_ID;
 
+// Map 'bagian' values to their specific row ranges in the sheet.
+const BAGIAN_ROW_MAP: Record<string, { start: number, end: number }> = {
+    'setcam': { start: 18, end: 22 },
+    'tapem': { start: 23, end: 27 },
+    'trantib': { start: 28, end: 32 },
+    'kesra': { start: 33, end: 37 },
+    'pm': { start: 38, end: 42 },
+    'perkeu': { start: 43, end: 47 },
+    'paten': { start: 48, end: 52 }
+};
+
+
 const writeToSheetInputSchema = z.object({
   summary: z.string(),
   location: z.string().optional(),
   startDateTime: z.string().datetime(),
   description: z.string().optional(),
+  bagian: z.string().refine(val => Object.keys(BAGIAN_ROW_MAP).includes(val), {
+      message: "Bagian yang dipilih tidak valid."
+  }),
 });
 
 export type WriteToSheetInput = z.infer<typeof writeToSheetInputSchema>;
 
 // Constants from your Apps Script
-const START_ROW_INDEX = 16; // 17 in 1-based index
-const START_COL_INDEX = 4; // 5 in 1-based index (E)
-const DATE_ROW_INDEX = 16; // Row 17
+const START_COL_INDEX = 5; // Column 'E'
 
 const extractDisposisiFromDescription = (description?: string): string => {
     if (!description) return '';
@@ -105,19 +118,33 @@ export const writeToSheetFlow = ai.defineFlow(
 
     const targetColLetter = String.fromCharCode('A'.charCodeAt(0) + targetColIndex -1);
     
-    // 3. Find the first empty row in that column (starting from row 18)
-    const colRange = `${sheetName}!${targetColLetter}18:${targetColLetter}52`;
+    // 3. Find the first empty row within the specified 'bagian' range
+    const bagianRange = BAGIAN_ROW_MAP[input.bagian];
+    if (!bagianRange) {
+        throw new Error(`Rentang baris untuk bagian '${input.bagian}' tidak ditemukan.`);
+    }
+
+    const colRangeForBagian = `${sheetName}!${targetColLetter}${bagianRange.start}:${targetColLetter}${bagianRange.end}`;
+    
     const colValuesResponse = await sheets.spreadsheets.values.get({
         spreadsheetId,
-        range: colRange,
+        range: colRangeForBagian,
     });
 
     const colValues = colValuesResponse.data.values ? colValuesResponse.data.values.flat() : [];
-    const firstEmptyRowIndex = START_ROW_INDEX + 1 + colValues.length; // Find next empty row
+    let firstEmptyRowInBagian = -1;
 
-    if (firstEmptyRowIndex > 52) {
-        throw new Error(`Kolom untuk tanggal ${format(eventDate, 'dd-MM-yyyy')} sudah penuh.`);
+    for(let i = 0; i <= (bagianRange.end - bagianRange.start); i++) {
+        if (!colValues[i] || colValues[i] === '') {
+            firstEmptyRowInBagian = bagianRange.start + i;
+            break;
+        }
     }
+    
+    if (firstEmptyRowInBagian === -1) {
+        throw new Error(`Slot untuk bagian '${input.bagian.toUpperCase()}' pada tanggal ${format(eventDate, 'dd-MM-yyyy')} sudah penuh.`);
+    }
+
 
     // 4. Format the data and write to the cell
     const timeText = format(eventDate, 'HH:mm');
@@ -129,7 +156,7 @@ export const writeToSheetFlow = ai.defineFlow(
         disposisi
     ].join('|');
 
-    const targetCell = `${sheetName}!${targetColLetter}${firstEmptyRowIndex}`;
+    const targetCell = `${sheetName}!${targetColLetter}${firstEmptyRowInBagian}`;
 
     await sheets.spreadsheets.values.update({
         spreadsheetId,

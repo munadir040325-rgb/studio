@@ -25,6 +25,20 @@ import { createCalendarEvent } from '@/ai/flows/calendar-flow';
 import { writeEventToSheet } from '@/ai/flows/sheets-flow';
 import { useToast } from '@/hooks/use-toast';
 import { useState } from 'react';
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
+import useSWR from 'swr';
+
+
+const fetcher = (url: string) => fetch(url).then(res => {
+    if (!res.ok) {
+        const error = new Error('Gagal mengambil data dari server.');
+        return res.json().then(data => {
+            error.message = data.error || error.message;
+            throw error;
+        });
+    }
+    return res.json();
+});
 
 const formSchema = z.object({
   summary: z.string().min(2, {
@@ -38,6 +52,7 @@ const formSchema = z.object({
   endDateTime: z.date({
     required_error: 'Tanggal & waktu selesai harus diisi.',
   }),
+  bagian: z.string().min(1, { message: 'Bagian harus dipilih.' }),
 });
 
 
@@ -49,6 +64,7 @@ type EventFormProps = {
 export function EventForm({ onSuccess }: EventFormProps) {
   const { toast } = useToast();
   const [isSubmitting, setIsSubmitting] = useState(false);
+  const { data: bagianData, error: bagianError } = useSWR('/api/sheets', fetcher);
   
   const form = useForm<z.infer<typeof formSchema>>({
     resolver: zodResolver(formSchema),
@@ -56,6 +72,7 @@ export function EventForm({ onSuccess }: EventFormProps) {
       summary: '',
       description: '',
       location: '',
+      bagian: '',
     },
   });
 
@@ -98,6 +115,7 @@ export function EventForm({ onSuccess }: EventFormProps) {
         location: values.location,
         startDateTime: values.startDateTime.toISOString(),
         description: values.description, // send original description
+        bagian: values.bagian, // send the selected bagian
       }).then(res => {
           if(res?.status === 'success') {
             console.log(`Successfully wrote to sheet cell: ${res.cell}`);
@@ -174,6 +192,42 @@ export function EventForm({ onSuccess }: EventFormProps) {
             )}
           />
           <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+               <FormField
+                control={form.control}
+                name="bagian"
+                render={({ field }) => (
+                    <FormItem>
+                        <FormLabel>Bagian (Wajib)</FormLabel>
+                        <Select onValueChange={field.onChange} defaultValue={field.value} disabled={!bagianData || !!bagianError}>
+                            <FormControl>
+                                <SelectTrigger>
+                                    <SelectValue placeholder={!bagianData ? "Memuat..." : "Pilih bagian pelaksana"} />
+                                </SelectTrigger>
+                            </FormControl>
+                            <SelectContent>
+                                {(bagianData?.values || []).map((item: string, index: number) => (
+                                    <SelectItem key={index} value={item.toLowerCase().replace(/ /g, '_')}>{item.toUpperCase()}</SelectItem>
+                                ))}
+                            </SelectContent>
+                        </Select>
+                        <FormMessage />
+                         {bagianError && <p className="text-red-500 text-xs mt-1">Gagal memuat daftar bagian: {bagianError.message}</p>}
+                    </FormItem>
+                )}
+                />
+              <FormField
+                  control={form.control}
+                  name="location"
+                  render={({ field }) => (
+                      <FormItem>
+                      <FormLabel>Lokasi</FormLabel>
+                      <FormControl>
+                          <Input placeholder="e.g., Aula Kecamatan" {...field} />
+                      </FormControl>
+                      <FormMessage />
+                      </FormItem>
+                  )}
+                  />
               <FormField
               control={form.control}
               name="startDateTime"
@@ -266,20 +320,8 @@ export function EventForm({ onSuccess }: EventFormProps) {
                   </FormItem>
               )}
               />
-              <FormField
-                  control={form.control}
-                  name="location"
-                  render={({ field }) => (
-                      <FormItem>
-                      <FormLabel>Lokasi</FormLabel>
-                      <FormControl>
-                          <Input placeholder="e.g., Aula Kecamatan" {...field} />
-                      </FormControl>
-                      <FormMessage />
-                      </FormItem>
-                  )}
-                  />
-              <FormField
+          </div>
+           <FormField
                   control={form.control}
                   name="description"
                   render={({ field }) => (
@@ -296,7 +338,6 @@ export function EventForm({ onSuccess }: EventFormProps) {
                       </FormItem>
                   )}
               />
-          </div>
 
           <div className="flex justify-end">
               <Button type="submit" disabled={isSubmitting}>

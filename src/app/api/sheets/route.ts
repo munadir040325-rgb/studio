@@ -11,7 +11,8 @@ import { getGoogleAuth } from "@/ai/flows/calendar-flow";
 export async function GET(req: NextRequest) {
     try {
         const spreadsheetId = process.env.NEXT_PUBLIC_SHEET_ID;
-        const range = 'Pilihan!Q2:Q'; // Hardcoded as per request
+        // Updated range to fetch 'Bagian' from 'Pilihan!A2:A'
+        const range = 'Pilihan!A2:A'; 
 
         if (!spreadsheetId) {
             return NextResponse.json({ error: "ID Google Sheet (NEXT_PUBLIC_SHEET_ID) belum diatur." }, { status: 500 });
@@ -41,7 +42,7 @@ export async function GET(req: NextRequest) {
         } else if (errorMessage.includes('Requested entity was not found')) {
             errorMessage = `Spreadsheet dengan ID '${spreadsheetId}' tidak ditemukan atau belum dibagikan ke email Service Account.`;
         } else if (errorMessage.includes('Unable to parse range')) {
-            errorMessage = `Range '${'Pilihan!Q2:Q'}' tidak valid atau sheet 'Pilihan' tidak ada.`;
+            errorMessage = `Range '${'Pilihan!A2:A'}' tidak valid atau sheet 'Pilihan' tidak ada.`;
         }
         return NextResponse.json({ error: errorMessage }, { status: 500 });
     }
