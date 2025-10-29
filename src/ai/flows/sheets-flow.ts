@@ -46,7 +46,7 @@ const writeToSheetInputSchema = z.object({
 export type WriteToSheetInput = z.infer<typeof writeToSheetInputSchema>;
 
 // Constants from your Apps Script
-const START_COL_INDEX = 5; // Column 'E' is index 4 in 0-based, 5 in 1-based.
+const START_COL_INDEX = 5; // Column 'E' is index 5 in 1-based.
 
 
 /**
@@ -56,21 +56,24 @@ const START_COL_INDEX = 5; // Column 'E' is index 4 in 0-based, 5 in 1-based.
  * @returns A JavaScript Date object.
  */
 function sheetSerialNumberToDate(serial: number): Date {
-  // Google Sheets' epoch starts on 1899-12-30, but its serial number calculation
-  // incorrectly assumes 1900 was a leap year.
-  // A serial of 1 is 1899-12-31.
-  // A serial of 60 is 1900-02-29 (which doesn't exist).
-  // A serial of 61 is 1900-03-01.
+  // Google Sheets' epoch starts on 1899-12-30.
   // JavaScript's epoch is 1970-01-01.
   // The number of days between 1970-01-01 and 1899-12-30 is 25569.
-  if (serial > 59) {
-    // If the date is after the non-existent Feb 29, 1900, we subtract one extra day.
-    return new Date((serial - 25569 - 1) * 86400 * 1000);
-  } else {
-    return new Date((serial - 25569) * 86400 * 1000);
-  }
+  // Google Sheets incorrectly assumes 1900 was a leap year, so we must adjust.
+  const days = serial - (serial > 59 ? 25568 : 25569);
+  return new Date(days * 86400000);
 }
 
+
+function getColumnLetter(colIndex: number): string {
+  let letter = '';
+  while (colIndex > 0) {
+    const remainder = (colIndex - 1) % 26;
+    letter = String.fromCharCode(65 + remainder) + letter;
+    colIndex = Math.floor((colIndex - 1) / 26);
+  }
+  return letter;
+}
 
 
 export const writeToSheetFlow = ai.defineFlow(
@@ -138,7 +141,7 @@ export const writeToSheetFlow = ai.defineFlow(
         throw new Error(`Kolom untuk tanggal ${format(eventDate, 'dd/MM/yyyy')} tidak ditemukan di sheet '${sheetName}'. Periksa header tanggal di baris 17.`);
     }
 
-    const targetColLetter = String.fromCharCode('A'.charCodeAt(0) + targetColIndex - 1);
+    const targetColLetter = getColumnLetter(targetColIndex);
     
     // 3. Find the first empty row within the specified 'bagian' range
     const bagianRange = BAGIAN_ROW_MAP[input.bagian];
