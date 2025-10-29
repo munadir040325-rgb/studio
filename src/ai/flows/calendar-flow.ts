@@ -189,13 +189,13 @@ export const updateCalendarEventFlow = ai.defineFlow(
                 }
             }
             
-            // 3. Prepare the new attachments
+            // 3. Prepare the new attachments in the correct Google Calendar API format
             const existingAttachments = existingEvent.data.attachments || [];
             const newAttachments = (input.attachments || []).map(att => ({
                 fileId: att.fileId,
                 title: att.name,
                 mimeType: att.mimeType,
-                fileUrl: att.webViewLink, // API needs this, even though fileId is primary
+                fileUrl: att.webViewLink, // Google Calendar API requires fileUrl for attachments
             }));
 
             // Combine existing attachments with new ones, avoiding duplicates by fileId
@@ -222,6 +222,11 @@ export const updateCalendarEventFlow = ai.defineFlow(
 
         } catch (error: any) {
             console.error("Error updating Google Calendar event:", error);
+            if (error.response?.data?.error?.message) {
+                // Extract more specific error from Google API response
+                const gapiError = error.response.data.error;
+                throw new Error(`Gagal memperbarui kegiatan di Google Calendar: ${gapiError.message} (Code: ${gapiError.code})`);
+            }
             if (error.message.includes('supportsAttachments')) {
                  throw new Error(`Gagal menambahkan lampiran ke acara. Pastikan fitur "Lampiran" diaktifkan untuk kalender Anda.`);
             }
