@@ -82,29 +82,6 @@ async function ensureAnyoneViewer(drive: any, fileId: string) {
   }
 }
 
-function buildDescriptionBlock(args: UpdateAttachmentArgs) {
-  const totalFiles = args.groups.reduce((sum, g) => sum + (g.files?.length || 0), 0);
-  if (totalFiles === 0) return '';
-  
-  const lines: string[] = [];
-  lines.push("");
-  lines.push(`Lampiran (${totalFiles} file)`);
-  if (args.resultFolderUrl) lines.push(`Folder Hasil: ${args.resultFolderUrl}`);
-
-  for (const g of args.groups) {
-    const count = g.files?.length || 0;
-    if (count === 0) continue;
-
-    const base = `- ${g.label} (${count})`;
-    if (g.folderUrl) {
-      lines.push(`${base}: ${g.folderUrl}`);
-    } else {
-      lines.push(base);
-    }
-  }
-  return lines.join("\n");
-}
-
 /**
  * Update event: tambah attachments + update deskripsi dengan ringkasan lampiran.
  */
@@ -155,7 +132,7 @@ export async function updateEventAttachments(args: UpdateAttachmentArgs, subject
     }
   }
 
-  // Ambil event existing → gabungkan deskripsi lama + blok lampiran
+  // Ambil event existing → hapus blok lampiran lama dari deskripsi
   const ev = await calendar.events.get({
     calendarId: args.calendarId,
     eventId: args.eventId,
@@ -163,10 +140,8 @@ export async function updateEventAttachments(args: UpdateAttachmentArgs, subject
   });
 
   const oldDesc = ev.data.description || "";
-  const block = buildDescriptionBlock(args);
-  // hapus blok lama (jika ada) yang diawali "Lampiran (" agar tidak dobel
-  const cleaned = oldDesc.replace(/\n?Lampiran \(\d+ file\)[\s\S]*/m, "").trim();
-  const newDescription = [cleaned, block].filter(Boolean).join("\n\n");
+  // Hapus blok teks lampiran lama (jika ada) agar tidak dobel
+  const cleanedDescription = oldDesc.replace(/\n\nLampiran \(\d+ file\)[\s\S]*/m, "").trim();
   
   // Gabungkan lampiran lama dan baru
   const existingAttachments = ev.data.attachments || [];
@@ -184,8 +159,8 @@ export async function updateEventAttachments(args: UpdateAttachmentArgs, subject
     eventId: args.eventId,
     supportsAttachments: true,
     requestBody: {
-      description: newDescription,
-      attachments: combinedAttachments, // ← format yang benar
+      description: cleanedDescription, // Gunakan deskripsi yang sudah dibersihkan
+      attachments: combinedAttachments,
     },
   });
 
