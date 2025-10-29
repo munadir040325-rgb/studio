@@ -52,7 +52,7 @@ const updateEventInputSchema = z.object({
   resultFolderUrl: z.string().url().optional(),
   attachments: z.array(z.object({
     name: z.string(),
-    webViewLink: z.string().url(),
+    fileUrl: z.string().url(),
     fileId: z.string(),
     mimeType: z.string(),
   })).optional(),
@@ -195,7 +195,7 @@ export const updateCalendarEventFlow = ai.defineFlow(
                 fileId: att.fileId,
                 title: att.name,
                 mimeType: att.mimeType,
-                fileUrl: att.webViewLink, // Google Calendar API requires fileUrl for attachments
+                fileUrl: att.fileUrl,
             }));
 
             // Combine existing attachments with new ones, avoiding duplicates by fileId

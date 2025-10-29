@@ -1,3 +1,4 @@
+
 'use client';
 
 import { useState, useRef, useMemo } from 'react';
@@ -146,7 +147,7 @@ export default function UploadPage() {
                 resultFolderUrl: result.kegiatanFolderLink,
                 attachments: allUploadedLinks.map(link => ({
                     name: link.name,
-                    webViewLink: link.webViewLink,
+                    fileUrl: `https://drive.google.com/file/d/${link.fileId}/view?usp=drivesdk`,
                     fileId: link.fileId,
                     mimeType: link.mimeType,
                 }))
