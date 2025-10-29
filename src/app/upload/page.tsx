@@ -1,21 +1,21 @@
 'use client';
 
-import { useState, useRef } from 'react';
+import { useState, useRef, useMemo } from 'react';
 import { PageHeader } from '@/components/page-header';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
-import { Command, CommandEmpty, CommandGroup, CommandInput, CommandItem, CommandList } from '@/components/ui/command';
-import { Popover, PopoverContent, PopoverTrigger } from '@/components/ui/popover';
+import { Calendar } from '@/components/ui/calendar';
+import { Skeleton } from '@/components/ui/skeleton';
 import { Check, ChevronsUpDown, Loader2, UploadCloud, Trash2 } from 'lucide-react';
 import { useToast } from '@/hooks/use-toast';
 import { cn, getFileIcon } from '@/lib/utils';
-import { parseISO, format } from 'date-fns';
+import { parseISO, format, isSameDay, startOfDay } from 'date-fns';
 import { id as localeId } from 'date-fns/locale';
 import useSWR from 'swr';
-import { updateCalendarEvent, createCalendarEvent } from '@/ai/flows/calendar-flow';
+import { updateCalendarEvent } from '@/ai/flows/calendar-flow';
 import { useGoogleDriveAuth } from '@/hooks/useGoogleDriveAuth';
 
 const ROOT_FOLDER_ID = process.env.NEXT_PUBLIC_DRIVE_FOLDER_ID_HASIL;
@@ -28,10 +28,15 @@ type CalendarEvent = {
 
 const fetcher = (url: string) => fetch(url).then(res => {
     if (!res.ok) {
-        throw new Error('Gagal mengambil data');
+        const error = new Error('Gagal mengambil data dari server.');
+        return res.json().then(data => {
+            error.message = data.error || error.message;
+            throw error;
+        });
     }
     return res.json();
 });
+
 
 const FileList = ({ files, onRemove, isUploading }: { files: File[], onRemove: (index: number) => void, isUploading: boolean }) => (
     <div className="space-y-2 mt-2">
@@ -63,8 +68,8 @@ export default function UploadPage() {
   } = useGoogleDriveAuth({ folderId: ROOT_FOLDER_ID });
 
   // Form state
+  const [selectedDate, setSelectedDate] = useState<Date | undefined>();
   const [selectedEvent, setSelectedEvent] = useState<CalendarEvent | null>(null);
-  const [openEvent, setOpenEvent] = useState(false);
   const [selectedBagian, setSelectedBagian] = useState('');
 
   // File state
@@ -82,6 +87,12 @@ export default function UploadPage() {
   const { data: bagianData, error: bagianError } = useSWR('/api/sheets', fetcher);
   
   const events: CalendarEvent[] = eventsData?.items.sort((a: CalendarEvent, b: CalendarEvent) => parseISO(b.start).getTime() - parseISO(a.start).getTime()) || [];
+  
+  const filteredEvents = useMemo(() => {
+    if (!selectedDate) return [];
+    return events.filter(event => isSameDay(parseISO(event.start), selectedDate));
+  }, [events, selectedDate]);
+
 
   const handleAuthorizeAndPick = async (pickerRef: React.RefObject<HTMLInputElement>) => {
     if (!isReady || isUploading || driveError) return;
@@ -124,14 +135,8 @@ export default function UploadPage() {
     
     // Create attachment links for calendar description
     const allUploadedLinks: { webViewLink: string; name: string }[] = result.links || [];
-    let attachmentLinksDescription = '';
-    if (allUploadedLinks.length > 0) {
-        attachmentLinksDescription = allUploadedLinks
-            .map(link => `Lampiran: <a href="${link.webViewLink}">${link.name}</a>`)
-            .join('<br>');
-    }
     
-    if (result.kegiatanFolderLink || attachmentLinksDescription) {
+    if (result.kegiatanFolderLink || allUploadedLinks.length > 0) {
         toast({ title: 'Berhasil!', description: 'Semua file telah berhasil diunggah ke Google Drive.' });
         
         toast({ description: "Memperbarui acara di kalender..." });
@@ -144,6 +149,7 @@ export default function UploadPage() {
             toast({ title: 'Berhasil!', description: 'Link lampiran & hasil kegiatan telah ditambahkan ke acara kalender.' });
 
             // Reset form
+            setSelectedDate(undefined);
             setSelectedEvent(null);
             setSelectedBagian('');
             setUndanganFiles([]);
@@ -156,6 +162,12 @@ export default function UploadPage() {
         }
     }
   };
+
+  const handleDateSelect = (date: Date | undefined) => {
+    setSelectedDate(date);
+    setSelectedEvent(null); // Reset selected event when date changes
+  };
+
 
   const handleFileChange = (setter: React.Dispatch<React.SetStateAction<any>>, multiple: boolean) => (e: React.ChangeEvent<HTMLInputElement>) => {
     if (!e.target.files) return;
@@ -218,135 +230,132 @@ export default function UploadPage() {
              {driveError && <p className="text-red-500 text-sm">{driveError}</p>}
              {eventsError && <p className="text-red-500 text-sm">Gagal memuat kegiatan: {eventsError.message}</p>}
              {bagianError && <p className="text-red-500 text-sm">Gagal memuat bagian: {bagianError.message}</p>}
-            <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-              <div className="grid gap-2">
-                <Label htmlFor="kegiatan">Pilih Kegiatan (Wajib)</Label>
-                <Popover open={openEvent} onOpenChange={setOpenEvent}>
-                    <PopoverTrigger asChild>
-                        <Button
-                        variant="outline"
-                        role="combobox"
-                        aria-expanded={openEvent}
-                        className="w-full justify-between h-auto min-h-10"
-                        disabled={isLoadingEvents}
-                        >
-                        <span className="whitespace-normal text-left">
-                            {isLoadingEvents 
-                                ? "Memuat kegiatan..." 
-                                : selectedEvent
-                                ? selectedEvent.summary
-                                : "Pilih kegiatan..."}
-                        </span>
-                        <ChevronsUpDown className="ml-2 h-4 w-4 shrink-0 opacity-50" />
-                        </Button>
-                    </PopoverTrigger>
-                    <PopoverContent className="w-[--radix-popover-trigger-width] p-0">
-                        <Command>
-                            <CommandInput placeholder="Cari kegiatan..." />
-                            <CommandList>
-                                <CommandEmpty>Kegiatan tidak ditemukan.</CommandEmpty>
-                                <CommandGroup>
-                                {events.map((event) => (
-                                    <CommandItem
-                                    key={event.id}
-                                    value={event.summary}
-                                    onSelect={() => {
-                                        setSelectedEvent(event);
-                                        setOpenEvent(false);
-                                    }}
-                                    >
-                                    <Check
-                                        className={cn(
-                                        "mr-2 h-4 w-4",
-                                        selectedEvent?.id === event.id ? "opacity-100" : "opacity-0"
-                                        )}
-                                    />
-                                    <div className="flex flex-col overflow-hidden">
-                                        <span className='truncate'>{event.summary}</span>
-                                        <span className="text-xs text-muted-foreground">
-                                            {format(parseISO(event.start), 'dd MMM yyyy', { locale: localeId })}
-                                        </span>
-                                    </div>
-                                    </CommandItem>
-                                ))}
-                                </CommandGroup>
-                            </CommandList>
-                        </Command>
-                    </PopoverContent>
-                </Popover>
-              </div>
-              <div className="grid gap-2">
-                <Label htmlFor="bagian">Pilih Bagian (Wajib)</Label>
-                <Select value={selectedBagian} onValueChange={setSelectedBagian} required disabled={!bagianData || !!bagianError}>
-                  <SelectTrigger>
-                    <SelectValue placeholder={!bagianData ? "Memuat opsi..." : "Pilih bagian"} />
-                  </SelectTrigger>
-                  <SelectContent>
-                    {bagianData?.values?.map((item: string, index: number) => (
-                        <SelectItem key={index} value={item.toLowerCase().replace(/ /g, '_')}>{item}</SelectItem>
-                    ))}
-                  </SelectContent>
-                </Select>
-              </div>
+            
+            <div className="grid grid-cols-1 md:grid-cols-2 gap-8">
+                {/* Kolom Kiri: Pemilihan Kegiatan */}
+                <div className="space-y-4">
+                    <Label className="font-semibold text-base">1. Pilih Kegiatan Berdasarkan Tanggal</Label>
+                    <div className="flex justify-center">
+                        <Calendar
+                            mode="single"
+                            selected={selectedDate}
+                            onSelect={handleDateSelect}
+                            className="rounded-md border"
+                            locale={localeId}
+                        />
+                    </div>
+                     {selectedDate && (
+                        <div className="space-y-2">
+                             <Label>Kegiatan pada {format(selectedDate, 'dd MMMM yyyy', { locale: localeId })}</Label>
+                            {isLoadingEvents ? (
+                                <div className="space-y-2 pt-2">
+                                    <Skeleton className="h-10 w-full" />
+                                    <Skeleton className="h-10 w-full" />
+                                </div>
+                            ) : filteredEvents.length > 0 ? (
+                               <div className="max-h-60 overflow-y-auto space-y-2 rounded-md border p-2">
+                                    {filteredEvents.map(event => (
+                                        <Button
+                                            key={event.id}
+                                            variant={selectedEvent?.id === event.id ? 'default' : 'ghost'}
+                                            className="w-full justify-start text-left h-auto"
+                                            onClick={() => setSelectedEvent(event)}
+                                        >
+                                            <div className="flex flex-col">
+                                                <span>{event.summary}</span>
+                                                <span className="text-xs opacity-80">{format(parseISO(event.start), 'HH:mm')}</span>
+                                            </div>
+                                        </Button>
+                                    ))}
+                               </div>
+                            ) : (
+                                <p className="text-sm text-muted-foreground pt-2">Tidak ada kegiatan untuk tanggal ini.</p>
+                            )}
+                        </div>
+                    )}
+                </div>
+
+                {/* Kolom Kanan: Pilihan & Upload */}
+                <div className="space-y-6">
+                    <div className="grid gap-2">
+                        <Label htmlFor="bagian" className="font-semibold text-base">2. Pilih Bagian (Wajib)</Label>
+                        <Select value={selectedBagian} onValueChange={setSelectedBagian} required disabled={!bagianData || !!bagianError}>
+                        <SelectTrigger>
+                            <SelectValue placeholder={!bagianData ? "Memuat opsi..." : "Pilih bagian"} />
+                        </SelectTrigger>
+                        <SelectContent>
+                            {bagianData?.values?.map((item: string, index: number) => (
+                                <SelectItem key={index} value={item.toLowerCase().replace(/ /g, '_')}>{item}</SelectItem>
+                            ))}
+                        </SelectContent>
+                        </Select>
+                    </div>
+
+                    <div className="space-y-4">
+                        <Label className="font-semibold text-base">3. Upload File Lampiran</Label>
+                        
+                        <div className="grid gap-2">
+                            <Label htmlFor="undangan-upload">Upload Undangan/Surat Tugas</Label>
+                            <FileUploadButton 
+                                pickerRef={undanganInputRef} 
+                                label="Pilih file..." 
+                                files={undanganFiles} 
+                                isUploading={isUploading} 
+                                isDisabled={!isReady || !!driveError}
+                                onButtonClick={() => handleAuthorizeAndPick(undanganInputRef)}
+                            />
+                            <p className="text-xs text-muted-foreground">Bisa unggah lebih dari satu file (PDF/DOCX).</p>
+                            <FileList files={undanganFiles} onRemove={(index) => setUndanganFiles(files => files.filter((_, i) => i !== index))} isUploading={isUploading}/>
+                        </div>
+
+                        <div className="grid gap-2">
+                            <Label htmlFor="foto-upload">Upload Foto Kegiatan</Label>
+                            <FileUploadButton 
+                                pickerRef={fotoInputRef} 
+                                label="Pilih foto..." 
+                                files={fotoFiles} 
+                                isUploading={isUploading} 
+                                isDisabled={!isReady || !!driveError}
+                                onButtonClick={() => handleAuthorizeAndPick(fotoInputRef)}
+                            />
+                            <p className="text-xs text-muted-foreground">Bisa unggah lebih dari satu file gambar.</p>
+                            <FileList files={fotoFiles} onRemove={(index) => setFotoFiles(files => files.filter((_, i) => i !== index))} isUploading={isUploading}/>
+                        </div>
+
+                        <div className="grid gap-2">
+                            <Label htmlFor="notulen-upload">Upload Notulen/Laporan</Label>
+                            <FileUploadButton 
+                                pickerRef={notulenInputRef} 
+                                label="Pilih file..." 
+                                files={notulenFile ? [notulenFile] : null} 
+                                isSingle 
+                                isUploading={isUploading} 
+                                isDisabled={!isReady || !!driveError}
+                                onButtonClick={() => handleAuthorizeAndPick(notulenInputRef)}
+                            />
+                            <p className="text-xs text-muted-foreground">Hanya satu file (PDF/DOCX).</p>
+                            {notulenFile && <FileList files={[notulenFile]} onRemove={() => setNotulenFile(null)} isUploading={isUploading} />}
+                        </div>
+
+                        <div className="grid gap-2">
+                            <Label htmlFor="materi-upload">Upload Materi</Label>
+                            <FileUploadButton 
+                                pickerRef={materiInputRef} 
+                                label="Pilih file..." 
+                                files={materiFiles} 
+                                isUploading={isUploading} 
+                                isDisabled={!isReady || !!driveError}
+                                onButtonClick={() => handleAuthorizeAndPick(materiInputRef)}
+                            />
+                            <p className="text-xs text-muted-foreground">Bisa unggah file jenis apa pun.</p>
+                            <FileList files={materiFiles} onRemove={(index) => setMateriFiles(files => files.filter((_, i) => i !== index))} isUploading={isUploading}/>
+                        </div>
+                    </div>
+                </div>
             </div>
 
-            <div className="grid grid-cols-1 lg:grid-cols-2 gap-y-6 gap-x-4">
-                <div className="grid gap-2">
-                    <Label htmlFor="undangan-upload">Upload Undangan/Surat Tugas</Label>
-                     <FileUploadButton 
-                        pickerRef={undanganInputRef} 
-                        label="Pilih file..." 
-                        files={undanganFiles} 
-                        isUploading={isUploading} 
-                        isDisabled={!isReady || !!driveError}
-                        onButtonClick={() => handleAuthorizeAndPick(undanganInputRef)}
-                     />
-                    <p className="text-xs text-muted-foreground">Bisa unggah lebih dari satu file (PDF/DOCX).</p>
-                    <FileList files={undanganFiles} onRemove={(index) => setUndanganFiles(files => files.filter((_, i) => i !== index))} isUploading={isUploading}/>
-                </div>
-                <div className="grid gap-2">
-                    <Label htmlFor="foto-upload">Upload Foto Kegiatan</Label>
-                     <FileUploadButton 
-                        pickerRef={fotoInputRef} 
-                        label="Pilih foto..." 
-                        files={fotoFiles} 
-                        isUploading={isUploading} 
-                        isDisabled={!isReady || !!driveError}
-                        onButtonClick={() => handleAuthorizeAndPick(fotoInputRef)}
-                     />
-                    <p className="text-xs text-muted-foreground">Bisa unggah lebih dari satu file gambar.</p>
-                    <FileList files={fotoFiles} onRemove={(index) => setFotoFiles(files => files.filter((_, i) => i !== index))} isUploading={isUploading}/>
-                </div>
-                <div className="grid gap-2">
-                    <Label htmlFor="notulen-upload">Upload Notulen/Laporan</Label>
-                    <FileUploadButton 
-                        pickerRef={notulenInputRef} 
-                        label="Pilih file..." 
-                        files={notulenFile ? [notulenFile] : null} 
-                        isSingle 
-                        isUploading={isUploading} 
-                        isDisabled={!isReady || !!driveError}
-                        onButtonClick={() => handleAuthorizeAndPick(notulenInputRef)}
-                    />
-                    <p className="text-xs text-muted-foreground">Hanya satu file (PDF/DOCX).</p>
-                    {notulenFile && <FileList files={[notulenFile]} onRemove={() => setNotulenFile(null)} isUploading={isUploading} />}
-                </div>
-                <div className="grid gap-2">
-                    <Label htmlFor="materi-upload">Upload Materi</Label>
-                    <FileUploadButton 
-                        pickerRef={materiInputRef} 
-                        label="Pilih file..." 
-                        files={materiFiles} 
-                        isUploading={isUploading} 
-                        isDisabled={!isReady || !!driveError}
-                        onButtonClick={() => handleAuthorizeAndPick(materiInputRef)}
-                    />
-                    <p className="text-xs text-muted-foreground">Bisa unggah file jenis apa pun.</p>
-                     <FileList files={materiFiles} onRemove={(index) => setMateriFiles(files => files.filter((_, i) => i !== index))} isUploading={isUploading}/>
-                </div>
-            </div>
-             <div className="flex justify-end mt-4">
-              <Button type="submit" disabled={isUploading || !isReady || !!driveError}>
+             <div className="flex justify-end mt-4 border-t pt-6">
+              <Button type="submit" disabled={isUploading || !isReady || !!driveError || !selectedEvent || !selectedBagian}>
                 {isUploading ? <Loader2 className="mr-2 h-4 w-4 animate-spin" /> : <UploadCloud className="mr-2 h-4 w-4" />}
                 {isUploading ? 'Mengunggah...' : 'Simpan & Upload Lampiran'}
               </Button>
@@ -357,5 +366,3 @@ export default function UploadPage() {
     </div>
   );
 }
-
-    
