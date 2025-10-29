@@ -565,7 +565,7 @@ export default function CalendarPage() {
           if (location) {
               message += `- 📍 *Lokasi:* ${location}\n`;
           }
-          if (disposisi && disposisi !== '-') {
+          if (disposisi) {
               message += `- ✍️ *Disposisi:* ${disposisi}\n`;
           }
           message += '\n';
