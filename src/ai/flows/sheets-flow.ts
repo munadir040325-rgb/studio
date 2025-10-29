@@ -13,7 +13,7 @@ import { ai } from '@/ai/genkit';
 import { z } from 'zod';
 import { google } from 'googleapis';
 import { getGoogleAuth } from './calendar-flow';
-import { format, parseISO, getDate, getMonth, getYear } from 'date-fns';
+import { format, parseISO, getDate, getMonth, getYear, parse } from 'date-fns';
 import { id } from 'date-fns/locale';
 import { toZonedTime } from 'date-fns-tz';
 
@@ -102,12 +102,28 @@ export const writeToSheetFlow = ai.defineFlow(
     for (let i = 0; i < dateRowValues.length; i++) {
         const cellValue = dateRowValues[i];
         if (typeof cellValue === 'number') {
-            // Google Sheets dates are serial numbers, difference from 1899-12-30
-            const date = new Date(1899, 11, 30 + cellValue);
+            // This is the Excel/Sheets serial number for a date.
+            // Formula: (serial_number - 25569) * 86400 * 1000
+            // 25569 is the number of days from 1900-01-01 to 1970-01-01 (Unix epoch).
+            // This also accounts for the 1900 leap year bug.
+            const excelEpoch = new Date(1899, 11, 30);
+            const date = new Date(excelEpoch.getTime() + cellValue * 24 * 60 * 60 * 1000);
+
             if (getDate(date) === eventDay && getMonth(date) === getMonth(eventDate) && getYear(date) === getYear(eventDate)) {
                 targetColIndex = START_COL_INDEX + i;
                 break;
             }
+        } else if (typeof cellValue === 'string') {
+             try {
+                // If the cell is a string, try parsing it. Supports formats like 'd', 'dd/MM', 'dd/MM/yyyy'
+                const parsedDay = parseInt(cellValue, 10);
+                if (!isNaN(parsedDay) && parsedDay === eventDay) {
+                     targetColIndex = START_COL_INDEX + i;
+                     break;
+                }
+             } catch (e) {
+                // Ignore parsing errors and continue
+             }
         }
     }
     
