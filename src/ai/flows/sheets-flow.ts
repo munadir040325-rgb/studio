@@ -129,11 +129,12 @@ export const writeToSheetFlow = ai.defineFlow(
         const cellValue = dateRowValues[i];
         if (typeof cellValue === 'number' && cellValue > 0) {
             const sheetDate = sheetSerialNumberToDate(cellValue);
+            const sheetDateJakarta = toZonedTime(sheetDate, 'Asia/Jakarta');
             
             // Compare year, month, and day in the target timezone to avoid off-by-one errors
-            if (sheetDate.getUTCFullYear() === eventDate.getFullYear() &&
-                sheetDate.getUTCMonth() === eventDate.getMonth() &&
-                sheetDate.getUTCDate() === eventDate.getDate()) {
+            if (sheetDateJakarta.getFullYear() === eventDate.getFullYear() &&
+                sheetDateJakarta.getMonth() === eventDate.getMonth() &&
+                sheetDateJakarta.getDate() === eventDate.getDate()) {
                 
                 targetColIndex = START_COL_INDEX + i;
                 break;
