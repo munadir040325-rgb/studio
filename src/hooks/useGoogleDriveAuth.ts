@@ -99,40 +99,28 @@ export const useGoogleDriveAuth = ({ folderId }: UseGoogleDriveAuthProps) => {
     }, []);
     
     const getOrCreateFolder = useCallback(async (name: string, parentId: string, token: string, isBagianFolder: boolean = false): Promise<string> => {
-        let folderName = name;
-        // For 'bagian' folders, search case-insensitively.
-        if (isBagianFolder) {
-            const listRes = await fetch(`https://www.googleapis.com/drive/v3/files?q=${encodeURIComponent(`'${parentId}' in parents and mimeType='application/vnd.google-apps.folder' and trashed=false`)}&fields=files(id,name)`, {
-                headers: { 'Authorization': `Bearer ${token}` }
-            });
-            const listBody = await listRes.json();
-            if (listBody.files && listBody.files.length > 0) {
-                const existingFolder = listBody.files.find((f: any) => f.name.toLowerCase() === name.toLowerCase());
-                if (existingFolder) {
-                    // Use the existing folder's name and ID
-                    folderName = existingFolder.name;
-                    return existingFolder.id;
-                }
-            }
-        }
+        // For 'bagian' folders, force UPPERCASE to ensure consistency.
+        const folderNameToFind = isBagianFolder ? name.toUpperCase() : name;
 
-        // Standard case-sensitive search for other folders (like 'kegiatan')
-        const q = `'${parentId}' in parents and name='${name}' and mimeType='application/vnd.google-apps.folder' and trashed=false`;
+        // Search for the folder. The Drive API's 'name' query is case-insensitive.
+        const q = `'${parentId}' in parents and name='${folderNameToFind}' and mimeType='application/vnd.google-apps.folder' and trashed=false`;
         const res = await fetch(`https://www.googleapis.com/drive/v3/files?q=${encodeURIComponent(q)}&fields=files(id)`, {
             headers: { 'Authorization': `Bearer ${token}` }
         });
         const body = await res.json();
-        if (body.files && body.files.length > 0) return body.files[0].id;
+        if (body.files && body.files.length > 0) {
+            return body.files[0].id;
+        }
 
-        // If not found, create it. Use the potentially corrected folderName for 'bagian'.
-        const metadata = { name: folderName, mimeType: 'application/vnd.google-apps.folder', parents: [parentId] };
+        // If not found, create it with the consistent name.
+        const metadata = { name: folderNameToFind, mimeType: 'application/vnd.google-apps.folder', parents: [parentId] };
         const createRes = await fetch('https://www.googleapis.com/drive/v3/files', {
             method: 'POST',
             headers: { 'Authorization': `Bearer ${token}`, 'Content-Type': 'application/json' },
             body: JSON.stringify(metadata)
         });
         const createBody = await createRes.json();
-        if (!createRes.ok) throw new Error(`Gagal membuat folder '${name}': ${createBody.error?.message}`);
+        if (!createRes.ok) throw new Error(`Gagal membuat folder '${folderNameToFind}': ${createBody.error?.message}`);
         return createBody.id;
     }, []);
 
@@ -177,8 +165,9 @@ export const useGoogleDriveAuth = ({ folderId }: UseGoogleDriveAuthProps) => {
         try {
             if (!folderId) throw new Error("Root folder ID is not configured.");
             const token = await requestAccessToken();
-
-            const bagianFolderId = await getOrCreateFolder(bagian, folderId, token, true); // Pass true for 'isBagianFolder'
+            
+            // Pass true for 'isBagianFolder' to trigger the UPPERCASE logic
+            const bagianFolderId = await getOrCreateFolder(bagian, folderId, token, true);
             const kegiatanFolderId = await getOrCreateFolder(kegiatan, bagianFolderId, token);
 
             for (const sub of subfolders) {
