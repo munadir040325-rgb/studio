@@ -81,18 +81,26 @@ const formatEventDisplay = (startStr: string | null | undefined, endStr: string 
 const extractDisposisi = (description: string | null | undefined): string | null => {
     if (!description) return null;
 
-    // Remove any known timestamp patterns, regardless of surrounding HTML tags.
-    const cleanedDescription = description
+    // Remove any known timestamp patterns first.
+    let cleanedDescription = description
         .replace(/(<br\s*\/?>\s*)*Disimpan pada:[\s\S]*/i, '') 
         .replace(/(<br\s*\/?>\s*)*📅\s*\d{1,2}\/\d{1,2}\/\d{4}, \d{1,2}:\d{2}:\d{2} (AM|PM)[\s\S]*/i, '');
 
-    // Now, extract "Disposisi" from the cleaned description
+    // Now, extract "Disposisi" content.
     const match = cleanedDescription.match(/(?:📍\s*)?Disposisi:\s*([\s\S]*)/i);
-    const disposisiText = match && match[1] ? match[1].trim() : null;
-    
-    if (disposisiText) {
-        const finalCleanedText = disposisiText.split('<br>')[0].trim();
-        return finalCleanedText.toLowerCase() !== 'null' ? finalCleanedText : null;
+    let disposisiText = match && match[1] ? match[1] : null;
+
+    if (disposisiText !== null) {
+        // Clean up HTML tags and leading/trailing whitespace from the extracted text.
+        const plainText = disposisiText.replace(/<[^>]*>/g, '').trim();
+        
+        // If the result is an empty string or the literal string "null", return null.
+        if (plainText === '' || plainText.toLowerCase() === 'null') {
+            return null;
+        }
+        
+        // Return the first line of the cleaned text.
+        return plainText.split('\n')[0].trim();
     }
 
     return null;
@@ -820,5 +828,7 @@ export default function CalendarPage() {
     </div>
   );
 }
+
+    
 
     
