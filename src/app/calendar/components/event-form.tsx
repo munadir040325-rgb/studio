@@ -83,16 +83,10 @@ export function EventForm({ onSuccess }: EventFormProps) {
       toast({ description: "Menyimpan kegiatan ke Google Calendar..." });
       
       const userInput = values.description || '';
-      let calendarDescription = '';
-
-      // If user provides a description, treat it as a disposition.
-      if (userInput) {
-          calendarDescription = `Disposisi: ${userInput}`;
-      }
 
       await createCalendarEvent({
         summary: values.summary,
-        description: calendarDescription, // Send the auto-formatted description
+        description: userInput, // Send the raw description
         location: values.location,
         startDateTime: values.startDateTime.toISOString(),
         endDateTime: values.endDateTime.toISOString(),

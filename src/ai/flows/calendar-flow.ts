@@ -83,13 +83,9 @@ export const createCalendarEventFlow = ai.defineFlow(
         throw new Error("ID Kalender (NEXT_PUBLIC_CALENDAR_ID) belum diatur di environment variables.");
     }
       
-    let finalDescription = input.description || '';
-
-    // Automatically add the pin emoji if the description contains "Disposisi:"
-    const disposisiRegex = /^(Disposisi:.*)/im;
-    if (disposisiRegex.test(finalDescription)) {
-        finalDescription = finalDescription.replace(disposisiRegex, '📍 $1');
-    }
+    // Always format the description with the pin emoji and "Disposisi: " prefix.
+    // If input.description is empty, it will result in "📍 Disposisi: "
+    const finalDescription = `📍 Disposisi: ${input.description || ''}`;
 
     // Set event color based on 'disposisi'
     // Color IDs: 11 = Tomato (for 'camat'), 1 = Peacock (for others)
