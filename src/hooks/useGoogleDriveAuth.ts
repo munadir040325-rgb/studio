@@ -62,7 +62,7 @@ export const useGoogleDriveAuth = ({ folderId }: UseGoogleDriveAuthProps) => {
             if (google?.accounts?.oauth2) {
                 tokenClient.current = google.accounts.oauth2.initTokenClient({
                     client_id: CLIENT_ID,
-                    scope: 'https://www.googleapis.com/auth/drive.file',
+                    scope: 'https://www.googleapis.com/auth/drive',
                     callback: '', // Handled in promise
                 });
                 setIsGisLoaded(true);
@@ -98,45 +98,73 @@ export const useGoogleDriveAuth = ({ folderId }: UseGoogleDriveAuthProps) => {
         });
     }, []);
     
-    const getOrCreateFolder = useCallback(async (name: string, parentId: string, token: string, isBagianFolder: boolean = false): Promise<string> => {
-        // For 'bagian' folders, force UPPERCASE to ensure consistency.
-        const folderNameToFind = isBagianFolder ? name.toUpperCase() : name;
+    const getOrCreateFolder = useCallback(async (
+    name: string,
+    parentId: string,
+    token: string,
+    isBagianFolder: boolean = false
+): Promise<string> => {
+    if (!name || !parentId) {
+        throw new Error(`getOrCreateFolder: Parameter tidak valid (name=${name}, parentId=${parentId})`);
+    }
 
-        // Search for the folder. The Drive API's 'name' query is case-insensitive, but this will be improved.
-        const q = `'${parentId}' in parents and name='${folderNameToFind}' and mimeType='application/vnd.google-apps.folder' and trashed=false`;
-        
-        // Build the URL with parameters to search in shared folders
-        const searchUrl = new URL('https://www.googleapis.com/drive/v3/files');
-        searchUrl.searchParams.append('q', q);
-        searchUrl.searchParams.append('fields', 'files(id)');
-        searchUrl.searchParams.append('supportsAllDrives', 'true');
-        searchUrl.searchParams.append('includeItemsFromAllDrives', 'true');
+    // ✨ Sanitasi nama
+    const folderNameToFind = (isBagianFolder ? name.toUpperCase() : name)
+        .normalize('NFKC') // normalisasi unicode
+        .replace(/\s+/g, ' ') // hapus spasi ganda
+        .trim();
 
+    console.log(`🔍 Cari folder "${folderNameToFind}" di parent ${parentId}`);
 
-        const res = await fetch(searchUrl.toString(), {
-            headers: { 'Authorization': `Bearer ${token}` }
-        });
+    // 🔹 Query folder di dalam parent (termasuk Shared Drives)
+    const q = `'${parentId}' in parents and mimeType='application/vnd.google-apps.folder' and trashed=false`;
+    const url = `https://www.googleapis.com/drive/v3/files?q=${encodeURIComponent(q)}&fields=files(id,name)&supportsAllDrives=true&includeItemsFromAllDrives=true`;
 
-        const body = await res.json();
-        if (body.files && body.files.length > 0) {
-            return body.files[0].id;
-        }
+    const res = await fetch(url, {
+        headers: { 'Authorization': `Bearer ${token}` }
+    });
 
-        // If not found, create it with the consistent name.
-        const metadata = { name: folderNameToFind, mimeType: 'application/vnd.google-apps.folder', parents: [parentId] };
-        
-        const createUrl = new URL('https://www.googleapis.com/drive/v3/files');
-        createUrl.searchParams.append('supportsAllDrives', 'true');
+    if (!res.ok) {
+        const err = await res.text();
+        throw new Error(`Drive query gagal: ${err}`);
+    }
 
-        const createRes = await fetch(createUrl.toString(), {
-            method: 'POST',
-            headers: { 'Authorization': `Bearer ${token}`, 'Content-Type': 'application/json' },
-            body: JSON.stringify(metadata)
-        });
-        const createBody = await createRes.json();
-        if (!createRes.ok) throw new Error(`Gagal membuat folder '${folderNameToFind}': ${createBody.error?.message}`);
-        return createBody.id;
-    }, []);
+    const body = await res.json();
+
+    // 🔎 Cari folder cocok (case-insensitive dan trimmed)
+    const existing = body.files?.find((f: any) =>
+        f.name?.normalize('NFKC')?.trim()?.toUpperCase() === folderNameToFind.toUpperCase()
+    );
+
+    if (existing) {
+        console.log(`📁 Folder ditemukan: ${existing.name} (${existing.id})`);
+        return existing.id;
+    }
+
+    // 🆕 Buat folder baru kalau belum ada
+    console.log(`🆕 Membuat folder baru: ${folderNameToFind} di parent ${parentId}`);
+    const metadata = {
+        name: folderNameToFind,
+        mimeType: 'application/vnd.google-apps.folder',
+        parents: [parentId]
+    };
+
+    const createRes = await fetch('https://www.googleapis.com/drive/v3/files?supportsAllDrives=true', {
+        method: 'POST',
+        headers: {
+            'Authorization': `Bearer ${token}`,
+            'Content-Type': 'application/json',
+        },
+        body: JSON.stringify(metadata),
+    });
+
+    const createBody = await createRes.json();
+    if (!createRes.ok) {
+        throw new Error(`Gagal membuat folder '${folderNameToFind}': ${createBody.error?.message}`);
+    }
+
+    return createBody.id;
+}, []);
 
 
     const uploadFile = useCallback(async (file: File, targetFolderId: string, token: string): Promise<UploadedFileLink> => {
