@@ -102,11 +102,21 @@ export const useGoogleDriveAuth = ({ folderId }: UseGoogleDriveAuthProps) => {
         // For 'bagian' folders, force UPPERCASE to ensure consistency.
         const folderNameToFind = isBagianFolder ? name.toUpperCase() : name;
 
-        // Search for the folder. The Drive API's 'name' query is case-insensitive.
+        // Search for the folder. The Drive API's 'name' query is case-insensitive, but this will be improved.
         const q = `'${parentId}' in parents and name='${folderNameToFind}' and mimeType='application/vnd.google-apps.folder' and trashed=false`;
-        const res = await fetch(`https://www.googleapis.com/drive/v3/files?q=${encodeURIComponent(q)}&fields=files(id)`, {
+        
+        // Build the URL with parameters to search in shared folders
+        const searchUrl = new URL('https://www.googleapis.com/drive/v3/files');
+        searchUrl.searchParams.append('q', q);
+        searchUrl.searchParams.append('fields', 'files(id)');
+        searchUrl.searchParams.append('supportsAllDrives', 'true');
+        searchUrl.searchParams.append('includeItemsFromAllDrives', 'true');
+
+
+        const res = await fetch(searchUrl.toString(), {
             headers: { 'Authorization': `Bearer ${token}` }
         });
+
         const body = await res.json();
         if (body.files && body.files.length > 0) {
             return body.files[0].id;
@@ -114,7 +124,11 @@ export const useGoogleDriveAuth = ({ folderId }: UseGoogleDriveAuthProps) => {
 
         // If not found, create it with the consistent name.
         const metadata = { name: folderNameToFind, mimeType: 'application/vnd.google-apps.folder', parents: [parentId] };
-        const createRes = await fetch('https://www.googleapis.com/drive/v3/files', {
+        
+        const createUrl = new URL('https://www.googleapis.com/drive/v3/files');
+        createUrl.searchParams.append('supportsAllDrives', 'true');
+
+        const createRes = await fetch(createUrl.toString(), {
             method: 'POST',
             headers: { 'Authorization': `Bearer ${token}`, 'Content-Type': 'application/json' },
             body: JSON.stringify(metadata)
@@ -130,8 +144,14 @@ export const useGoogleDriveAuth = ({ folderId }: UseGoogleDriveAuthProps) => {
         const form = new FormData();
         form.append('metadata', new Blob([JSON.stringify(metadata)], { type: 'application/json' }));
         form.append('file', file);
+        
+        const uploadUrl = new URL('https://www.googleapis.com/upload/drive/v3/files');
+        uploadUrl.searchParams.append('uploadType', 'multipart');
+        uploadUrl.searchParams.append('fields', 'id,webViewLink,name,mimeType');
+        uploadUrl.searchParams.append('supportsAllDrives', 'true');
 
-        const res = await fetch('https://www.googleapis.com/upload/drive/v3/files?uploadType=multipart&fields=id,webViewLink,name,mimeType', {
+
+        const res = await fetch(uploadUrl.toString(), {
             method: 'POST',
             headers: { 'Authorization': `Bearer ${token}` },
             body: form,
@@ -143,7 +163,10 @@ export const useGoogleDriveAuth = ({ folderId }: UseGoogleDriveAuthProps) => {
         }
         
         // Make file public
-        await fetch(`https://www.googleapis.com/drive/v3/files/${body.id}/permissions`, {
+        const permissionsUrl = new URL(`https://www.googleapis.com/drive/v3/files/${body.id}/permissions`);
+        permissionsUrl.searchParams.append('supportsAllDrives', 'true');
+
+        await fetch(permissionsUrl.toString(), {
             method: 'POST',
             headers: { 'Authorization': `Bearer ${token}`, 'Content-Type': 'application/json' },
             body: JSON.stringify({ role: 'reader', type: 'anyone' }),
@@ -176,8 +199,13 @@ export const useGoogleDriveAuth = ({ folderId }: UseGoogleDriveAuthProps) => {
                 const uploadedLinks = await Promise.all(uploadPromises);
                 allUploadedLinks.push(...uploadedLinks);
             }
+            
+            const folderInfoUrl = new URL(`https://www.googleapis.com/drive/v3/files/${kegiatanFolderId}`);
+            folderInfoUrl.searchParams.append('fields', 'webViewLink');
+            folderInfoUrl.searchParams.append('supportsAllDrives', 'true');
 
-            const kegiatanFolderLinkRes = await fetch(`https://www.googleapis.com/drive/v3/files/${kegiatanFolderId}?fields=webViewLink`, {
+
+            const kegiatanFolderLinkRes = await fetch(folderInfoUrl.toString(), {
                 headers: { 'Authorization': `Bearer ${token}` }
             });
             const linkBody = await kegiatanFolderLinkRes.json();
