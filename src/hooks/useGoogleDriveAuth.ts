@@ -80,91 +80,90 @@ export const useGoogleDriveAuth = ({ folderId }: UseGoogleDriveAuthProps) => {
             if (accessTokenRef.current) {
                 return resolve(accessTokenRef.current);
             }
-
-            const client = tokenClient.current;
-            if (!client) {
-                return reject(new Error("Google Identity client belum siap."));
+            
+            if (!(window as any).google) {
+                return reject(new Error("Google script belum dimuat."));
             }
 
-            client.callback = (resp: any) => {
-                if (resp.error) {
-                    reject(new Error(`Gagal mendapatkan izin: ${resp.error_description || resp.error}`));
-                } else {
-                    accessTokenRef.current = resp.access_token;
-                    resolve(resp.access_token);
-                }
-            };
-            client.requestAccessToken({ prompt: 'consent' });
+            const client = (window as any).google.accounts.oauth2.initTokenClient({
+                client_id: CLIENT_ID,
+                scope: 'https://www.googleapis.com/auth/drive',
+                callback: (resp: any) => {
+                    if (resp.error) {
+                        reject(new Error(`Gagal mendapatkan izin: ${resp.error_description || resp.error}`));
+                    } else {
+                        accessTokenRef.current = resp.access_token;
+                        resolve(resp.access_token);
+                    }
+                },
+            });
+            client.requestAccessToken({ prompt: '' });
         });
     }, []);
     
     const getOrCreateFolder = useCallback(async (
-    name: string,
-    parentId: string,
-    token: string,
-    isBagianFolder: boolean = false
-): Promise<string> => {
-    if (!name || !parentId) {
-        throw new Error(`getOrCreateFolder: Parameter tidak valid (name=${name}, parentId=${parentId})`);
-    }
-
-    // ✨ Sanitasi nama
-    const folderNameToFind = (isBagianFolder ? name.toUpperCase() : name)
-        .normalize('NFKC') // normalisasi unicode
-        .replace(/\s+/g, ' ') // hapus spasi ganda
-        .trim();
-
-    console.log(`🔍 Cari folder "${folderNameToFind}" di parent ${parentId}`);
-
-    // 🔹 Query folder di dalam parent (termasuk Shared Drives)
-    const q = `'${parentId}' in parents and mimeType='application/vnd.google-apps.folder' and trashed=false`;
-    const url = `https://www.googleapis.com/drive/v3/files?q=${encodeURIComponent(q)}&fields=files(id,name)&supportsAllDrives=true&includeItemsFromAllDrives=true`;
-
-    const res = await fetch(url, {
-        headers: { 'Authorization': `Bearer ${token}` }
-    });
-
-    if (!res.ok) {
-        const err = await res.text();
-        throw new Error(`Drive query gagal: ${err}`);
-    }
-
-    const body = await res.json();
-
-    // 🔎 Cari folder cocok (case-insensitive dan trimmed)
-    const existing = body.files?.find((f: any) =>
-        f.name?.normalize('NFKC')?.trim()?.toUpperCase() === folderNameToFind.toUpperCase()
-    );
-
-    if (existing) {
-        console.log(`📁 Folder ditemukan: ${existing.name} (${existing.id})`);
-        return existing.id;
-    }
-
-    // 🆕 Buat folder baru kalau belum ada
-    console.log(`🆕 Membuat folder baru: ${folderNameToFind} di parent ${parentId}`);
-    const metadata = {
-        name: folderNameToFind,
-        mimeType: 'application/vnd.google-apps.folder',
-        parents: [parentId]
-    };
-
-    const createRes = await fetch('https://www.googleapis.com/drive/v3/files?supportsAllDrives=true', {
-        method: 'POST',
-        headers: {
-            'Authorization': `Bearer ${token}`,
-            'Content-Type': 'application/json',
-        },
-        body: JSON.stringify(metadata),
-    });
-
-    const createBody = await createRes.json();
-    if (!createRes.ok) {
-        throw new Error(`Gagal membuat folder '${folderNameToFind}': ${createBody.error?.message}`);
-    }
-
-    return createBody.id;
-}, []);
+        name: string,
+        parentId: string,
+        token: string
+    ): Promise<string> => {
+        if (!name || !parentId) {
+            throw new Error(`getOrCreateFolder: Parameter tidak valid (name=${name}, parentId=${parentId})`);
+        }
+    
+        // ✨ Sanitasi nama
+        const folderNameToFind = name.normalize('NFKC').replace(/\s+/g, ' ').trim();
+    
+        console.log(`🔍 Cari folder "${folderNameToFind}" di parent ${parentId}`);
+    
+        // 🔹 Query folder di dalam parent (termasuk Shared Drives)
+        const q = `'${parentId}' in parents and mimeType='application/vnd.google-apps.folder' and trashed=false`;
+        const url = `https://www.googleapis.com/drive/v3/files?q=${encodeURIComponent(q)}&fields=files(id,name)&supportsAllDrives=true&includeItemsFromAllDrives=true`;
+    
+        const res = await fetch(url, {
+            headers: { 'Authorization': `Bearer ${token}` }
+        });
+    
+        if (!res.ok) {
+            const err = await res.text();
+            throw new Error(`Drive query gagal: ${err}`);
+        }
+    
+        const body = await res.json();
+    
+        // 🔎 Cari folder cocok (case-insensitive dan trimmed)
+        const existing = body.files?.find((f: any) =>
+            f.name?.normalize('NFKC')?.trim()?.toUpperCase() === folderNameToFind.toUpperCase()
+        );
+    
+        if (existing) {
+            console.log(`📁 Folder ditemukan: ${existing.name} (${existing.id})`);
+            return existing.id;
+        }
+    
+        // 🆕 Buat folder baru kalau belum ada
+        console.log(`🆕 Membuat folder baru: ${folderNameToFind} di parent ${parentId}`);
+        const metadata = {
+            name: folderNameToFind,
+            mimeType: 'application/vnd.google-apps.folder',
+            parents: [parentId]
+        };
+    
+        const createRes = await fetch('https://www.googleapis.com/drive/v3/files?supportsAllDrives=true', {
+            method: 'POST',
+            headers: {
+                'Authorization': `Bearer ${token}`,
+                'Content-Type': 'application/json',
+            },
+            body: JSON.stringify(metadata),
+        });
+    
+        const createBody = await createRes.json();
+        if (!createRes.ok) {
+            throw new Error(`Gagal membuat folder '${folderNameToFind}': ${createBody.error?.message}`);
+        }
+    
+        return createBody.id;
+    }, []);
 
 
     const uploadFile = useCallback(async (file: File, targetFolderId: string, token: string): Promise<UploadedFileLink> => {
@@ -202,13 +201,7 @@ export const useGoogleDriveAuth = ({ folderId }: UseGoogleDriveAuthProps) => {
 
         return body;
     }, []);
-
-    // Deprecated - no longer used
-    const authorizeAndUpload = async (file: File, bagian: string, kegiatan: string): Promise<UploadResult> => {
-        return { error: 'This function is deprecated.' };
-    };
     
-    // Advanced version for post-event subfolder structure
     const uploadToSubfolders = async (bagian: string, kegiatan: string, subfolders: SubfolderUpload[]): Promise<UploadResult> => {
         setIsUploading(true);
         let allUploadedLinks: UploadedFileLink[] = [];
@@ -217,8 +210,9 @@ export const useGoogleDriveAuth = ({ folderId }: UseGoogleDriveAuthProps) => {
             if (!folderId) throw new Error("Root folder ID is not configured.");
             const token = await requestAccessToken();
             
-            // Pass true for 'isBagianFolder' to trigger the UPPERCASE logic
-            const bagianFolderId = await getOrCreateFolder(bagian, folderId, token, true);
+            // Logika .toUpperCase() dipindahkan ke sini, sebelum memanggil getOrCreateFolder
+            const bagianFolderName = bagian.toUpperCase();
+            const bagianFolderId = await getOrCreateFolder(bagianFolderName, folderId, token);
             const kegiatanFolderId = await getOrCreateFolder(kegiatan, bagianFolderId, token);
 
             for (const sub of subfolders) {
@@ -257,7 +251,6 @@ export const useGoogleDriveAuth = ({ folderId }: UseGoogleDriveAuthProps) => {
         isUploading,
         error,
         requestAccessToken,
-        authorizeAndUpload, // Kept for compatibility, but deprecated
         uploadToSubfolders,
     };
 };
