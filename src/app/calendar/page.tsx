@@ -158,30 +158,29 @@ const CleanDescription = ({ description }: { description: string | null | undefi
 
 const EventCard = ({ event, onEdit }: { event: CalendarEvent, onEdit: (event: CalendarEvent) => void }) => {
   const disposisi = useMemo(() => extractDisposisi(event.description), [event.description]);
-  const timestamp = useMemo(() => extractTimestamp(event.description), [event.description]);
   const attachments = event.attachments || [];
 
   return (
     <Card key={event.id} className="flex flex-col">
-        <CardHeader className="pb-4">
+        <CardHeader className="py-3 px-4">
             <CardTitle className="text-base line-clamp-2 leading-snug">{event.summary || '(Tanpa Judul)'}</CardTitle>
         </CardHeader>
-        <CardContent className="flex-grow space-y-3 text-sm text-muted-foreground">
-            <div className="space-y-2">
+        <CardContent className="flex-grow space-y-2 text-sm text-muted-foreground px-4 pb-3">
+            <div className="space-y-1.5">
                 <p className="flex items-start">
-                    <Clock className="h-4 w-4 mr-2 mt-0.5 flex-shrink-0 text-blue-500" />
-                    <span className='font-medium text-foreground'>{formatEventDisplay(event.start, event.end, event.isAllDay)}</span>
+                    <Clock className="h-3.5 w-3.5 mr-2 mt-0.5 flex-shrink-0 text-blue-500" />
+                    <span className='font-medium text-foreground text-xs'>{formatEventDisplay(event.start, event.end, event.isAllDay)}</span>
                 </p>
                 {event.location && (
                 <p className="flex items-start">
-                    <MapPin className="h-4 w-4 mr-2 mt-0.5 flex-shrink-0 text-red-500" />
-                    <span>{event.location}</span>
+                    <MapPin className="h-3.5 w-3.5 mr-2 mt-0.5 flex-shrink-0 text-red-500" />
+                    <span className="text-xs">{event.location}</span>
                 </p>
                 )}
                 {disposisi && (
                     <p className="flex items-start">
-                        <Pin className="h-4 w-4 mr-2 mt-0.5 flex-shrink-0 text-green-500" />
-                        <span className='line-clamp-2'>Disposisi: {disposisi}</span>
+                        <Pin className="h-3.5 w-3.5 mr-2 mt-0.5 flex-shrink-0 text-green-500" />
+                        <span className='line-clamp-1 text-xs'>Disposisi: {disposisi}</span>
                     </p>
                 )}
             </div>
@@ -189,13 +188,13 @@ const EventCard = ({ event, onEdit }: { event: CalendarEvent, onEdit: (event: Ca
             {attachments.length > 0 && (
               <Accordion type="single" collapsible className="w-full">
                 <AccordionItem value="item-1" className="border-none">
-                  <AccordionTrigger className='text-sm font-bold text-muted-foreground hover:no-underline py-2'>
+                  <AccordionTrigger className='text-xs font-bold text-muted-foreground hover:no-underline py-1'>
                     <div className='flex items-center'>
-                      <Paperclip className='mr-2 h-4 w-4'/> Lampiran ({attachments.length})
+                      <Paperclip className='mr-2 h-3.5 w-3.5'/> Lampiran ({attachments.length})
                     </div>
                   </AccordionTrigger>
-                  <AccordionContent className='pt-2 pl-1'>
-                    <div>
+                  <AccordionContent className='pt-1 pl-1'>
+                    <div className="max-h-24 overflow-y-auto">
                       {attachments.map((att, index) => (
                         att.fileUrl && att.title && (
                           <a 
@@ -203,9 +202,9 @@ const EventCard = ({ event, onEdit }: { event: CalendarEvent, onEdit: (event: Ca
                             href={att.fileUrl} 
                             target="_blank" 
                             rel="noopener noreferrer" 
-                            className="flex items-center gap-2 p-1.5 rounded-md hover:bg-muted transition-colors group"
+                            className="flex items-center gap-2 p-1 rounded-md hover:bg-muted transition-colors group"
                           >
-                              {getFileIcon(att.title)}
+                              {getFileIcon(att.title, 'h-4 w-4')}
                               <span className="text-blue-600 group-hover:underline truncate text-xs" title={att.title}>
                                   {att.title}
                               </span>
@@ -219,15 +218,15 @@ const EventCard = ({ event, onEdit }: { event: CalendarEvent, onEdit: (event: Ca
             )}
 
         </CardContent>
-        <CardFooter className="flex flex-wrap justify-between items-center gap-2 pt-4 mt-auto">
-            <Button variant="ghost" size="icon" className="h-8 w-8" onClick={() => onEdit(event)}>
+        <CardFooter className="flex flex-wrap justify-between items-center gap-2 px-4 py-2 mt-auto border-t">
+            <Button variant="ghost" size="icon" className="h-7 w-7" onClick={() => onEdit(event)}>
                 <PenSquare className="h-4 w-4 text-muted-foreground" />
                 <span className="sr-only">Edit Kegiatan</span>
             </Button>
             {event.htmlLink && (
-            <Button variant="ghost" size="sm" asChild>
+            <Button variant="ghost" size="sm" className="h-7 text-xs" asChild>
                 <a href={event.htmlLink} target="_blank" rel="noopener noreferrer">
-                    <ExternalLink className='mr-2 h-4 w-4' />
+                    <ExternalLink className='mr-1.5 h-3.5 w-3.5' />
                     Detail
                 </a>
             </Button>
@@ -772,7 +771,7 @@ export default function CalendarPage() {
             <Tabs value={viewMode} onValueChange={(value) => setViewMode(value as any)} className="w-full">
                  <TabsContent value="harian" className="mt-0">
                      <div className="flex flex-col gap-4">
-                        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
+                        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-4">
                             {events.map(event => event.id && <EventCard event={event} key={event.id} onEdit={() => handleOpenForm('edit', event)} />)}
                         </div>
                     </div>
@@ -839,3 +838,5 @@ export default function CalendarPage() {
     </div>
   );
 }
+
+    
