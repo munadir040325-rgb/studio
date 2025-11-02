@@ -3,6 +3,7 @@
 
 import 'dotenv/config'
 import { google } from "googleapis";
+import { getGoogleAuth } from '@/ai/google-services';
 
 type InputFile = {
   fileId?: string;              // opsional kalau sudah punya
@@ -23,22 +24,6 @@ export type UpdateAttachmentArgs = {
   resultFolderUrl?: string;     // url folder induk "nama kegiatan"
   groups: AttachmentGroup[];
 };
-
-// ---- AUTH (service account) ----
-function getAuth(subjectEmail?: string) {
-  const scopes = [
-    "https://www.googleapis.com/auth/calendar",
-    "https://www.googleapis.com/auth/drive.file",
-  ];
-  const jwt = new google.auth.JWT(
-    process.env.GOOGLE_CLIENT_EMAIL,
-    undefined,
-    (process.env.GOOGLE_PRIVATE_KEY || "").replace(/\\n/g, "\n"),
-    scopes,
-    subjectEmail || undefined // isi jika DWD
-  );
-  return jwt;
-}
 
 // ---- Helpers ----
 function extractFileId(urlOrId?: string): string | null {
@@ -72,6 +57,7 @@ async function ensureAnyoneViewer(drive: any, fileId: string) {
     await drive.permissions.create({
       fileId,
       requestBody: { role: "reader", type: "anyone" },
+      supportsAllDrives: true,
     });
   } catch (e: any) {
     // jika no permission karena file bukan milik SA, pastikan SA editor di file/folder
@@ -85,11 +71,12 @@ async function ensureAnyoneViewer(drive: any, fileId: string) {
 /**
  * Update event: tambah attachments + update deskripsi dengan ringkasan lampiran.
  */
-export async function updateEventAttachments(args: UpdateAttachmentArgs, subjectEmail?: string) {
-  if (!process.env.GOOGLE_CLIENT_EMAIL || !process.env.GOOGLE_PRIVATE_KEY) {
-      throw new Error("Kredensial Google Service Account (GOOGLE_CLIENT_EMAIL, GOOGLE_PRIVATE_KEY) belum dikonfigurasi di file .env Anda.");
-  }
-  const auth = getAuth(subjectEmail);
+export async function updateEventAttachments(args: UpdateAttachmentArgs) {
+  const scopes = [
+    "https://www.googleapis.com/auth/calendar",
+    "https://www.googleapis.com/auth/drive.readonly", // drive.readonly cukup untuk get metadata
+  ];
+  const auth = await getGoogleAuth(scopes);
   const calendar = google.calendar({ version: "v3", auth });
   const drive = google.drive({ version: "v3", auth });
 
@@ -106,7 +93,7 @@ export async function updateEventAttachments(args: UpdateAttachmentArgs, subject
       let mimeType = f.mimeType;
       if (!name || !mimeType) {
         try {
-            const meta = await drive.files.get({ fileId: id, fields: "name,mimeType,webViewLink" });
+            const meta = await drive.files.get({ fileId: id, fields: "name,mimeType,webViewLink", supportsAllDrives: true });
             name = name || meta.data.name || id;
             mimeType = mimeType || meta.data.mimeType || "application/octet-stream";
             // Simpan link balik agar user bisa klik di deskripsi
