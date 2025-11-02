@@ -6,7 +6,7 @@ import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardFooter, CardHeader, CardTitle } from '@/components/ui/card';
 import { Popover, PopoverContent, PopoverTrigger } from '@/components/ui/popover';
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger, DialogFooter, DialogDescription } from '@/components/ui/dialog';
-import { Calendar as CalendarIcon, ExternalLink, PlusCircle, RefreshCw, MapPin, Clock, ChevronLeft, ChevronRight, Pin, Copy, Info, Link as LinkIcon, FolderOpen, Paperclip, Folder, PenSquare } from 'lucide-react';
+import { Calendar as CalendarIcon, ExternalLink, PlusCircle, RefreshCw, MapPin, Clock, ChevronLeft, ChevronRight, Pin, Copy, Info, Link as LinkIcon, FolderOpen, Paperclip, Folder, PenSquare, Trash2 } from 'lucide-react';
 import { Calendar } from '@/components/ui/calendar';
 import { format, parseISO, isSameDay, startOfDay, endOfDay, startOfWeek, endOfWeek, startOfMonth, endOfMonth, isWithinInterval, eachDayOfInterval, getDay, isSameMonth, getDate, addDays, subDays, addWeeks, subMonths, addMonths } from 'date-fns';
 import { id as localeId } from 'date-fns/locale';
@@ -163,10 +163,10 @@ const EventCard = ({ event, onEdit }: { event: CalendarEvent, onEdit: (event: Ca
   return (
     <Card key={event.id} className="flex flex-col">
         <CardHeader className="py-2 px-3">
-            <CardTitle className="text-base line-clamp-2 leading-snug">{event.summary || '(Tanpa Judul)'}</CardTitle>
+            <CardTitle className="text-base leading-snug">{event.summary || '(Tanpa Judul)'}</CardTitle>
         </CardHeader>
-        <CardContent className="flex-grow space-y-1.5 text-sm text-muted-foreground px-3 pb-2">
-            <div className="space-y-1">
+        <CardContent className="flex-grow space-y-1 text-sm text-muted-foreground px-3 pb-2">
+            <div className="space-y-0.5">
                 <p className="flex items-start">
                     <Clock className="h-3 w-3 mr-1.5 mt-0.5 flex-shrink-0 text-blue-500" />
                     <span className='font-medium text-foreground text-xs'>{formatEventDisplay(event.start, event.end, event.isAllDay)}</span>
@@ -218,7 +218,7 @@ const EventCard = ({ event, onEdit }: { event: CalendarEvent, onEdit: (event: Ca
             )}
 
         </CardContent>
-        <CardFooter className="flex flex-wrap justify-between items-center gap-2 px-3 py-2 mt-auto border-t">
+        <CardFooter className="flex flex-wrap justify-between items-center gap-2 px-3 py-1.5 mt-auto border-t">
             <Button variant="ghost" size="icon" className="h-7 w-7" onClick={() => onEdit(event)}>
                 <PenSquare className="h-4 w-4 text-muted-foreground" />
                 <span className="sr-only">Edit Kegiatan</span>

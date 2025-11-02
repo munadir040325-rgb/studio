@@ -8,6 +8,7 @@ import 'dotenv/config'
  *
  * - createCalendarEvent - Creates a new event in a specified Google Calendar.
  * - updateCalendarEvent - Updates an existing event in a specified Google Calendar.
+ * - deleteCalendarEvent - Deletes an event from a specified Google Calendar.
  */
 
 import { ai } from '@/ai/genkit';
@@ -51,6 +52,11 @@ const updateEventInputSchema = eventInputSchema.extend({
     eventId: z.string(),
 });
 export type UpdateEventInput = z.infer<typeof updateEventInputSchema>;
+
+const deleteEventInputSchema = z.object({
+    eventId: z.string(),
+});
+export type DeleteEventInput = z.infer<typeof deleteEventInputSchema>;
 
 
 const createOrUpdateEvent = async (input: CreateEventInput | UpdateEventInput, isUpdate: boolean) => {
@@ -126,6 +132,36 @@ export const updateCalendarEventFlow = ai.defineFlow(
   async (input) => createOrUpdateEvent(input, true)
 );
 
+export const deleteCalendarEventFlow = ai.defineFlow(
+    {
+        name: 'deleteCalendarEventFlow',
+        inputSchema: deleteEventInputSchema,
+        outputSchema: z.object({ status: z.string() }),
+    },
+    async (input) => {
+        if (!calendarId) {
+            throw new Error("ID Kalender (NEXT_PUBLIC_CALENDAR_ID) belum diatur.");
+        }
+        const auth = await getGoogleAuth(['https://www.googleapis.com/auth/calendar']);
+        const calendar = google.calendar({ version: 'v3', auth });
+
+        try {
+            await calendar.events.delete({
+                calendarId,
+                eventId: input.eventId,
+            });
+            return { status: 'deleted' };
+        } catch (error: any) {
+             if (error.code === 410) { // Gone, already deleted
+                console.log(`Event ${input.eventId} sudah dihapus sebelumnya.`);
+                return { status: 'already_deleted' };
+            }
+            throw new Error(`Gagal menghapus acara dari Google Calendar: ${error.message}`);
+        }
+    }
+);
+
+
 // Wrapper function to call the flow
 export async function createCalendarEvent(input: CreateEventInput): Promise<CalendarEvent> {
     return createCalendarEventFlow(input);
@@ -134,4 +170,9 @@ export async function createCalendarEvent(input: CreateEventInput): Promise<Cale
 // Wrapper function to call the flow
 export async function updateCalendarEvent(input: UpdateEventInput): Promise<CalendarEvent> {
     return updateCalendarEventFlow(input);
+}
+
+// Wrapper function to call the flow
+export async function deleteCalendarEvent(input: DeleteEventInput): Promise<{ status: string }> {
+    return deleteCalendarEventFlow(input);
 }

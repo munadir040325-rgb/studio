@@ -14,15 +14,26 @@ import {
   FormLabel,
   FormMessage,
 } from '@/components/ui/form';
+import {
+  AlertDialog,
+  AlertDialogAction,
+  AlertDialogCancel,
+  AlertDialogContent,
+  AlertDialogDescription,
+  AlertDialogFooter,
+  AlertDialogHeader,
+  AlertDialogTitle,
+  AlertDialogTrigger,
+} from "@/components/ui/alert-dialog"
 import { Input } from '@/components/ui/input';
 import { Textarea } from '@/components/ui/textarea';
 import { Popover, PopoverContent, PopoverTrigger } from '@/components/ui/popover';
 import { Calendar } from '@/components/ui/calendar';
-import { CalendarIcon, Loader2 } from 'lucide-react';
+import { CalendarIcon, Loader2, Trash2 } from 'lucide-react';
 import { cn } from '@/lib/utils';
 import { format, parseISO } from 'date-fns';
 import { id } from 'date-fns/locale';
-import { createCalendarEvent, updateCalendarEvent, CalendarEvent } from '@/ai/flows/calendar-flow';
+import { createCalendarEvent, updateCalendarEvent, deleteCalendarEvent, CalendarEvent } from '@/ai/flows/calendar-flow';
 import { writeEventToSheet, deleteSheetEntry } from '@/ai/flows/sheets-flow';
 import { useToast } from '@/hooks/use-toast';
 import { useState, useEffect } from 'react';
@@ -67,6 +78,7 @@ type EventFormProps = {
 export function EventForm({ onSuccess, eventToEdit }: EventFormProps) {
   const { toast } = useToast();
   const [isSubmitting, setIsSubmitting] = useState(false);
+  const [isDeleting, setIsDeleting] = useState(false);
   const { data: bagianData, error: bagianError } = useSWR('/api/sheets', fetcher);
   
   const isEditMode = !!eventToEdit;
@@ -174,6 +186,41 @@ export function EventForm({ onSuccess, eventToEdit }: EventFormProps) {
         setIsSubmitting(false);
     }
   }
+
+  async function handleDelete() {
+    if (!isEditMode || !eventToEdit?.id) return;
+
+    setIsDeleting(true);
+    toast({ description: "Menghapus kegiatan..." });
+
+    try {
+        // Step 1: Delete from Google Calendar
+        await deleteCalendarEvent({ eventId: eventToEdit.id });
+        
+        // Step 2: Delete from Google Sheet (fire-and-forget is okay here)
+        deleteSheetEntry({ eventId: eventToEdit.id }).catch(err => {
+            // Log the error, but don't block the UI since the primary deletion (Calendar) was successful.
+            console.error("Gagal menghapus entri dari sheet setelah penghapusan kalender:", err);
+        });
+
+        toast({
+            title: "Berhasil Dihapus",
+            description: "Kegiatan telah dihapus dari Kalender dan Sheet.",
+        });
+        onSuccess(); // Close the modal and refresh the list
+
+    } catch (error: any) {
+        console.error("Failed to delete event:", error);
+        toast({
+            variant: 'destructive',
+            title: "Gagal Menghapus Kegiatan",
+            description: error.message || "Terjadi kesalahan saat menghapus kegiatan.",
+        });
+    } finally {
+        setIsDeleting(false);
+    }
+  }
+
 
   const handleDateChange = (field: any, date: Date | undefined) => {
     if (!date) return;
@@ -382,11 +429,38 @@ export function EventForm({ onSuccess, eventToEdit }: EventFormProps) {
                   )}
               />
 
-          <div className="flex justify-end">
-              <Button type="submit" disabled={isSubmitting}>
-              {isSubmitting && <Loader2 className="mr-2 h-4 w-4 animate-spin" />}
-              {getButtonText()}
-              </Button>
+          <div className="flex justify-between items-center">
+            {isEditMode && (
+                <AlertDialog>
+                    <AlertDialogTrigger asChild>
+                        <Button type="button" variant="destructive" disabled={isSubmitting || isDeleting}>
+                            {isDeleting ? <Loader2 className="mr-2 h-4 w-4 animate-spin" /> : <Trash2 className="mr-2 h-4 w-4" />}
+                            {isDeleting ? "Menghapus..." : "Hapus Kegiatan"}
+                        </Button>
+                    </AlertDialogTrigger>
+                    <AlertDialogContent>
+                        <AlertDialogHeader>
+                            <AlertDialogTitle>Apakah Anda benar-benar yakin?</AlertDialogTitle>
+                            <AlertDialogDescription>
+                                Tindakan ini akan menghapus kegiatan secara permanen dari Google Calendar dan Google Sheet.
+                                Tindakan ini tidak dapat dibatalkan.
+                            </AlertDialogDescription>
+                        </AlertDialogHeader>
+                        <AlertDialogFooter>
+                            <AlertDialogCancel>Batal</AlertDialogCancel>
+                            <AlertDialogAction onClick={handleDelete} className="bg-destructive hover:bg-destructive/90">
+                                Ya, Hapus
+                            </AlertDialogAction>
+                        </AlertDialogFooter>
+                    </AlertDialogContent>
+                </AlertDialog>
+            )}
+             <div className={!isEditMode ? 'w-full flex justify-end' : ''}>
+                <Button type="submit" disabled={isSubmitting || isDeleting}>
+                    {isSubmitting && <Loader2 className="mr-2 h-4 w-4 animate-spin" />}
+                    {getButtonText()}
+                </Button>
+             </div>
           </div>
         </form>
       </Form>
