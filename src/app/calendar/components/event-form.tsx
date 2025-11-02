@@ -133,6 +133,10 @@ export function EventForm({ onSuccess, eventToEdit }: EventFormProps) {
             endDateTime: values.endDateTime.toISOString(),
          });
          
+        // Explicitly delete the old sheet entry first
+        await deleteSheetEntry({ eventId: eventToEdit.id! });
+        
+        // Then, write the new entry
         await writeEventToSheet({
             summary: values.summary,
             location: values.location,
@@ -152,20 +156,13 @@ export function EventForm({ onSuccess, eventToEdit }: EventFormProps) {
          });
 
          if (resultingEvent && resultingEvent.id) {
-            writeEventToSheet({
+            await writeEventToSheet({
               summary: values.summary,
               location: values.location,
               startDateTime: values.startDateTime.toISOString(),
               disposisi: userInput,
               bagian: values.bagian,
               eventId: resultingEvent.id,
-            }).catch(err => {
-                console.error("Gagal menulis ke Google Sheet:", err);
-                toast({
-                  variant: 'destructive',
-                  title: 'Gagal Sinkronisasi Sheet',
-                  description: `Kegiatan berhasil dibuat, tapi gagal ditulis ke Google Sheet. Error: ${err.message}`,
-                });
             });
          }
       }
@@ -208,49 +205,43 @@ export function EventForm({ onSuccess, eventToEdit }: EventFormProps) {
 
     try {
         toast({ description: "Menghapus kegiatan dari Kalender dan Sheet..." });
-        // Step 1 & 2: Delete from Google Calendar and Sheet
+        
         await Promise.all([
              deleteCalendarEvent({ eventId: eventToEdit.id }),
              deleteSheetEntry({ eventId: eventToEdit.id })
         ]);
 
-        toast({ description: "Menghapus folder kegiatan dari Google Drive..." });
+        toast({ description: "Mencoba menghapus folder kegiatan dari Google Drive..." });
         
-        // Step 3: Delete from Google Drive using the service account flow
         const trashResult = await trashKegiatanFolder({
             namaBagian: bagianToDeleteFrom,
             namaKegiatan: summaryToDelete,
         });
 
-        if (trashResult.status === 'success' || trashResult.status === 'not_found') {
-            driveFolderDeleted = true;
-            let finalMessage = "Kegiatan telah dihapus dari Kalender dan Sheet.";
-            if (trashResult.status === 'success') {
-                finalMessage = "Kegiatan telah dihapus dari Kalender, Sheet, dan folder di Drive dipindahkan ke Sampah.";
-            } else {
-                 finalMessage += " Folder di Drive tidak ditemukan (mungkin belum pernah dibuat).";
-            }
-             toast({
-                title: "Berhasil Dihapus",
-                description: finalMessage,
-            });
+        let finalMessage = "Kegiatan telah dihapus dari Kalender dan Sheet.";
+        if (trashResult.status === 'success') {
+            finalMessage = "Kegiatan telah dihapus dari Kalender, Sheet, dan folder di Drive dipindahkan ke Sampah.";
+        } else if (trashResult.status === 'not_found') {
+             finalMessage += " Folder di Drive tidak ditemukan (mungkin belum pernah dibuat atau namanya berbeda).";
+        } else if (trashResult.status === 'skipped'){
+            finalMessage += " Proses hapus folder di Drive dilewati karena nama bagian/kegiatan kosong.";
         } else {
-            // Error handled inside the flow and thrown
             throw new Error(trashResult.message);
         }
+        
+        toast({
+            title: "Proses Hapus Selesai",
+            description: finalMessage,
+        });
 
         onSuccess();
 
     } catch (error: any) {
         console.error("Failed to delete event:", error);
-        let description = `Gagal menghapus folder di Drive: ${error.message}.`;
-        if (driveFolderDeleted) {
-            description = `Sebagian berhasil: Kegiatan dihapus dari Kalender & Sheet, tapi folder gagal dihapus dari Drive. Error: ${error.message}`;
-        }
         toast({
             variant: 'destructive',
-            title: "Gagal Menghapus",
-            description: description,
+            title: "Gagal Menghapus Sebagian",
+            description: `Kegiatan berhasil dihapus dari Kalender & Sheet, tapi folder gagal dihapus dari Drive. Error: ${error.message}`,
         });
     } finally {
         setIsDeleting(false);
