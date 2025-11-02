@@ -4,9 +4,10 @@
 import 'dotenv/config';
 
 /**
- * @fileOverview Flow for writing data to Google Sheets based on a matrix layout.
+ * @fileOverview Flow for writing and deleting data in Google Sheets.
  *
  * - writeEventToSheet - Writes a new event to the appropriate cell in the Google Sheet.
+ * - deleteSheetEntry - Finds and deletes an event entry from the Google Sheet based on eventId.
  */
 
 import { ai } from '@/ai/genkit';
@@ -40,10 +41,16 @@ const writeToSheetInputSchema = z.object({
   bagian: z.string().refine(val => Object.keys(BAGIAN_ROW_MAP).includes(val), {
       message: "Bagian yang dipilih tidak valid."
   }),
-  eventId: z.string(), // ID dari Google Calendar Event
+  eventId: z.string(),
 });
 
 export type WriteToSheetInput = z.infer<typeof writeToSheetInputSchema>;
+
+const deleteSheetEntryInputSchema = z.object({
+    eventId: z.string(),
+});
+export type DeleteSheetEntryInput = z.infer<typeof deleteSheetEntryInputSchema>;
+
 
 // Constants from your Apps Script
 const START_COL_INDEX = 5; // Column 'E' is index 5 in 1-based.
@@ -209,12 +216,104 @@ export const writeToSheetFlow = ai.defineFlow(
   }
 );
 
-// Wrapper function to be called from the client
-export async function writeEventToSheet(input: WriteToSheetInput): Promise<any> {
+
+export const deleteSheetEntryFlow = ai.defineFlow(
+    {
+        name: 'deleteSheetEntryFlow',
+        inputSchema: deleteSheetEntryInputSchema,
+        outputSchema: z.object({
+            status: z.string(),
+            cell: z.string().optional(),
+        }),
+    },
+    async (input) => {
+        if (!spreadsheetId) {
+            throw new Error("ID Google Sheet (NEXT_PUBLIC_SHEET_ID) belum diatur.");
+        }
+
+        const auth = await getGoogleAuth(['https://www.googleapis.com/auth/spreadsheets']);
+        if (!auth) {
+            throw new Error("Kredensial Google Service Account tidak dikonfigurasi.");
+        }
+        const sheets = google.sheets({ version: 'v4', auth });
+        
+        const spreadsheetMeta = await sheets.spreadsheets.get({ spreadsheetId });
+        const allSheets = spreadsheetMeta.data.sheets || [];
+
+        const searchPromises = allSheets.map(async (sheet) => {
+            const sheetName = sheet.properties?.title;
+            if (!sheetName || !sheetName.startsWith('Giat_')) {
+                return null;
+            }
+
+            const searchRange = `${sheetName}!E18:AI52`;
+            try {
+                const response = await sheets.spreadsheets.values.get({
+                    spreadsheetId,
+                    range: searchRange,
+                });
+
+                const rows = response.data.values;
+                if (!rows) return null;
+
+                for (let r = 0; r < rows.length; r++) {
+                    const row = rows[r];
+                    for (let c = 0; c < row.length; c++) {
+                        const cellValue = row[c];
+                        if (typeof cellValue === 'string' && cellValue.includes(`eventId:${input.eventId}`)) {
+                            const targetRow = 18 + r;
+                            const targetCol = 5 + c;
+                            const targetCell = `${sheetName}!${getColumnLetter(targetCol)}}${targetRow}`;
+                            
+                            await sheets.spreadsheets.values.clear({
+                                spreadsheetId,
+                                range: targetCell,
+                            });
+                            
+                            return targetCell;
+                        }
+                    }
+                }
+            } catch (e: any) {
+                if (!e.message.includes('Unable to parse range')) {
+                    console.error(`Error searching in sheet '${sheetName}':`, e.message);
+                }
+            }
+            return null;
+        });
+
+        const results = await Promise.all(searchPromises);
+        const foundCell = results.find(res => res !== null);
+
+        if (foundCell) {
+            return { status: 'deleted', cell: foundCell };
+        } else {
+            return { status: 'not_found' };
+        }
+    }
+);
+
+
+// Wrapper functions
+const checkSheetId = () => {
     if (!process.env.NEXT_PUBLIC_SHEET_ID) {
-      console.warn("Penulisan ke Sheet dilewati: NEXT_PUBLIC_SHEET_ID tidak diatur.");
+        console.warn("Operation skipped: NEXT_PUBLIC_SHEET_ID is not set.");
+        return false;
+    }
+    return true;
+};
+
+export async function writeEventToSheet(input: WriteToSheetInput): Promise<any> {
+    if (!checkSheetId()) {
       return { status: 'skipped', reason: 'Sheet ID not configured.'};
     }
-    // We don't await this on the client, but we return the promise
     return writeToSheetFlow(input);
+}
+
+
+export async function deleteSheetEntry(input: DeleteSheetEntryInput): Promise<any> {
+    if (!checkSheetId()) {
+        return { status: 'skipped', reason: 'Sheet ID not configured.' };
+    }
+    return deleteSheetEntryFlow(input);
 }

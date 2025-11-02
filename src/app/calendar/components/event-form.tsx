@@ -20,14 +20,15 @@ import { Popover, PopoverContent, PopoverTrigger } from '@/components/ui/popover
 import { Calendar } from '@/components/ui/calendar';
 import { CalendarIcon, Loader2 } from 'lucide-react';
 import { cn } from '@/lib/utils';
-import { format } from 'date-fns';
+import { format, parseISO } from 'date-fns';
 import { id } from 'date-fns/locale';
-import { createCalendarEvent } from '@/ai/flows/calendar-flow';
-import { writeEventToSheet } from '@/ai/flows/sheets-flow';
+import { createCalendarEvent, updateCalendarEvent, CalendarEvent } from '@/ai/flows/calendar-flow';
+import { writeEventToSheet, deleteSheetEntry } from '@/ai/flows/sheets-flow';
 import { useToast } from '@/hooks/use-toast';
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import useSWR from 'swr';
+import { extractDisposisi } from '../page';
 
 
 const fetcher = (url: string) => fetch(url).then(res => {
@@ -59,14 +60,17 @@ const formSchema = z.object({
 
 type EventFormProps = {
   onSuccess: () => void;
+  eventToEdit?: CalendarEvent | null;
 };
 
 
-export function EventForm({ onSuccess }: EventFormProps) {
+export function EventForm({ onSuccess, eventToEdit }: EventFormProps) {
   const { toast } = useToast();
   const [isSubmitting, setIsSubmitting] = useState(false);
   const { data: bagianData, error: bagianError } = useSWR('/api/sheets', fetcher);
   
+  const isEditMode = !!eventToEdit;
+
   const form = useForm<z.infer<typeof formSchema>>({
     resolver: zodResolver(formSchema),
     defaultValues: {
@@ -77,63 +81,94 @@ export function EventForm({ onSuccess }: EventFormProps) {
     },
   });
 
+  useEffect(() => {
+    if (isEditMode && eventToEdit) {
+      form.reset({
+        summary: eventToEdit.summary || '',
+        description: extractDisposisi(eventToEdit.description) || '',
+        location: eventToEdit.location || '',
+        startDateTime: eventToEdit.start ? parseISO(eventToEdit.start) : new Date(),
+        endDateTime: eventToEdit.end ? parseISO(eventToEdit.end) : new Date(),
+        // Bagian cannot be pre-filled easily as it's not stored in the calendar event.
+        // The user will have to re-select it.
+        bagian: '', 
+      });
+    }
+  }, [isEditMode, eventToEdit, form]);
+
   async function onSubmit(values: z.infer<typeof formSchema>) {
     setIsSubmitting(true);
+    const toastAction = isEditMode ? 'memperbarui' : 'menyimpan';
+    
     try {
-      toast({ description: "Menyimpan kegiatan ke Google Calendar..." });
+      toast({ description: `Sedang ${toastAction} kegiatan...` });
       
       const userInput = values.description || '';
+      let resultingEvent: CalendarEvent;
 
-      const calendarEvent = await createCalendarEvent({
-        summary: values.summary,
-        description: userInput,
-        location: values.location,
-        startDateTime: values.startDateTime.toISOString(),
-        endDateTime: values.endDateTime.toISOString(),
-      });
+      if (isEditMode && eventToEdit?.id) {
+         resultingEvent = await updateCalendarEvent({
+            eventId: eventToEdit.id,
+            summary: values.summary,
+            description: userInput,
+            location: values.location,
+            startDateTime: values.startDateTime.toISOString(),
+            endDateTime: values.endDateTime.toISOString(),
+         });
+         
+         // Fire-and-forget: update sheet
+         // Strategy: Delete old entry, then write new one. This handles date changes gracefully.
+         deleteSheetEntry({ eventId: eventToEdit.id }).then(() => {
+            writeEventToSheet({
+                summary: values.summary,
+                location: values.location,
+                startDateTime: values.startDateTime.toISOString(),
+                disposisi: userInput,
+                bagian: values.bagian,
+                eventId: eventToEdit.id!,
+            }).catch(err => console.error("Gagal menulis ulang ke sheet setelah update:", err));
+         }).catch(err => console.error("Gagal menghapus entri lama dari sheet:", err));
+
+      } else {
+         resultingEvent = await createCalendarEvent({
+            summary: values.summary,
+            description: userInput,
+            location: values.location,
+            startDateTime: values.startDateTime.toISOString(),
+            endDateTime: values.endDateTime.toISOString(),
+         });
+
+         if (resultingEvent && resultingEvent.id) {
+            writeEventToSheet({
+              summary: values.summary,
+              location: values.location,
+              startDateTime: values.startDateTime.toISOString(),
+              disposisi: userInput,
+              bagian: values.bagian,
+              eventId: resultingEvent.id,
+            }).catch(err => {
+                console.error("Gagal menulis ke Google Sheet:", err);
+                toast({
+                  variant: 'destructive',
+                  title: 'Gagal Sinkronisasi Sheet',
+                  description: `Kegiatan berhasil dibuat, tapi gagal ditulis ke Google Sheet. Error: ${err.message}`,
+                });
+            });
+         }
+      }
 
       toast({
         title: 'Berhasil!',
-        description: 'Kegiatan baru telah ditambahkan ke kalender.',
+        description: `Kegiatan telah berhasil di${isEditMode ? 'perbarui' : 'tambahkan'}.`,
       });
-
-      if (calendarEvent && calendarEvent.id) {
-        // Fire-and-forget: write to sheet in the background, now with eventId
-        writeEventToSheet({
-          summary: values.summary,
-          location: values.location,
-          startDateTime: values.startDateTime.toISOString(),
-          disposisi: userInput,
-          bagian: values.bagian,
-          eventId: calendarEvent.id, // Teruskan eventId ke flow sheet
-        }).then(res => {
-            if(res?.status === 'success') {
-              console.log(`Successfully wrote to sheet cell: ${res.cell}`);
-            }
-        }).catch(err => {
-            console.error("Gagal menulis ke Google Sheet:", err);
-            toast({
-              variant: 'destructive',
-              title: 'Gagal Sinkronisasi Sheet',
-              description: `Kegiatan berhasil dibuat di kalender, tapi gagal ditulis ke Google Sheet. Error: ${err.message}`,
-            });
-        });
-      } else {
-         console.warn("Tidak dapat menulis ke Sheet karena eventId tidak ditemukan.");
-      }
-
-
       onSuccess();
+
     } catch (error: any) {
-      console.error('Failed to create event:', error);
-      let errorMessage = 'Terjadi kesalahan saat menambahkan kegiatan.';
-       if (error?.message) {
-         errorMessage = error.message;
-       }
+      console.error(`Failed to ${toastAction} event:`, error);
       toast({
         variant: 'destructive',
-        title: 'Gagal Membuat Kegiatan',
-        description: errorMessage,
+        title: `Gagal ${isEditMode ? 'Memperbarui' : 'Membuat'} Kegiatan`,
+        description: error.message || `Terjadi kesalahan saat ${toastAction} kegiatan.`,
       });
     } finally {
         setIsSubmitting(false);
@@ -171,7 +206,7 @@ export function EventForm({ onSuccess }: EventFormProps) {
   
   const getButtonText = () => {
     if (isSubmitting) return "Menyimpan...";
-    return "Simpan Kegiatan";
+    return isEditMode ? "Simpan Perubahan" : "Simpan Kegiatan";
   }
 
   return (
@@ -202,7 +237,7 @@ export function EventForm({ onSuccess }: EventFormProps) {
                 render={({ field }) => (
                     <FormItem>
                         <FormLabel>Bagian (Wajib)</FormLabel>
-                        <Select onValueChange={field.onChange} defaultValue={field.value} disabled={!bagianData || !!bagianError}>
+                        <Select onValueChange={field.onChange} value={field.value} disabled={!bagianData || !!bagianError}>
                             <FormControl>
                                 <SelectTrigger>
                                     <SelectValue placeholder={!bagianData ? "Memuat..." : "Pilih bagian pelaksana"} />
@@ -214,6 +249,7 @@ export function EventForm({ onSuccess }: EventFormProps) {
                                 ))}
                             </SelectContent>
                         </Select>
+                        {isEditMode && !field.value && <FormDescription className="text-amber-600 text-xs">Pilih ulang bagian untuk acara ini.</FormDescription>}
                         <FormMessage />
                          {bagianError && <p className="text-red-500 text-xs mt-1">Gagal memuat daftar bagian: {bagianError.message}</p>}
                     </FormItem>

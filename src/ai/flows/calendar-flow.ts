@@ -7,6 +7,7 @@ import 'dotenv/config'
  * @fileOverview Flow for interacting with Google Calendar.
  *
  * - createCalendarEvent - Creates a new event in a specified Google Calendar.
+ * - updateCalendarEvent - Updates an existing event in a specified Google Calendar.
  */
 
 import { ai } from '@/ai/genkit';
@@ -35,7 +36,7 @@ const calendarEventSchema = z.object({
 
 export type CalendarEvent = z.infer<typeof calendarEventSchema>;
 
-const createEventInputSchema = z.object({
+const eventInputSchema = z.object({
   summary: z.string(),
   description: z.string().optional(),
   location: z.string().optional(),
@@ -43,7 +44,12 @@ const createEventInputSchema = z.object({
   endDateTime: z.string().datetime(),
 });
 
-export type CreateEventInput = z.infer<typeof createEventInputSchema>;
+export type CreateEventInput = z.infer<typeof eventInputSchema>;
+
+const updateEventInputSchema = eventInputSchema.extend({
+    eventId: z.string(),
+});
+export type UpdateEventInput = z.infer<typeof updateEventInputSchema>;
 
 
 function areCredentialsConfigured() {
@@ -72,32 +78,20 @@ export async function getGoogleAuth(scopes: string | string[]) {
   return auth;
 }
 
-export const createCalendarEventFlow = ai.defineFlow(
-  {
-    name: 'createCalendarEventFlow',
-    inputSchema: createEventInputSchema,
-    outputSchema: calendarEventSchema,
-  },
-  async (input) => {
+const createOrUpdateEvent = async (input: CreateEventInput | UpdateEventInput, isUpdate: boolean) => {
     if (!calendarId) {
         throw new Error("ID Kalender (NEXT_PUBLIC_CALENDAR_ID) belum diatur di environment variables.");
     }
-      
-    // Always format the description with the pin emoji and "Disposisi: " prefix.
-    // If input.description is empty, it will result in "📍 Disposisi: "
-    const finalDescription = `📍 Disposisi: ${input.description || ''}`;
 
-    // Set event color based on 'disposisi'
-    // Color IDs: 11 = Tomato (for 'camat'), 1 = Peacock (for others)
-    let colorId = '1'; // Default to Peacock
+    const finalDescription = `📍 Disposisi: ${input.description || ''}`;
+    let colorId = '1';
     if (input.description && /camat/i.test(input.description)) {
-      colorId = '11'; // Tomato
+      colorId = '11';
     }
 
-    // Create the calendar event
     const auth = await getGoogleAuth(['https://www.googleapis.com/auth/calendar']);
     if (!auth) {
-        throw new Error("Tidak dapat membuat kegiatan: Kredensial Google Calendar (Service Account) belum diatur.");
+        throw new Error("Tidak dapat memproses kegiatan: Kredensial Google Calendar (Service Account) belum diatur.");
     }
     const calendar = google.calendar({ version: 'v3', auth });
 
@@ -105,41 +99,73 @@ export const createCalendarEventFlow = ai.defineFlow(
       summary: input.summary,
       description: finalDescription.trim(),
       location: input.location,
-      start: {
-        dateTime: input.startDateTime,
-        timeZone: 'Asia/Jakarta',
-      },
-      end: {
-        dateTime: input.endDateTime,
-        timeZone: 'Asia/Jakarta',
-      },
+      start: { dateTime: input.startDateTime, timeZone: 'Asia/Jakarta' },
+      end: { dateTime: input.endDateTime, timeZone: 'Asia/Jakarta' },
       colorId: colorId,
       reminders: {
         useDefault: false,
         overrides: [
-          { method: 'popup', minutes: 60 }, // 1 hour before
-          { method: 'popup', minutes: 5 },   // 5 minutes before
+          { method: 'popup', minutes: 60 },
+          { method: 'popup', minutes: 5 },
         ],
       },
     };
 
     try {
-        const response = await calendar.events.insert({
-            calendarId: calendarId,
-            requestBody: event,
-            supportsAttachments: true,
-        });
-        return response.data as CalendarEvent;
+        if (isUpdate) {
+            const updateInput = input as UpdateEventInput;
+            const response = await calendar.events.patch({
+                calendarId: calendarId,
+                eventId: updateInput.eventId,
+                requestBody: event,
+                supportsAttachments: true,
+            });
+            return response.data as CalendarEvent;
+        } else {
+            const response = await calendar.events.insert({
+                calendarId: calendarId,
+                requestBody: event,
+                supportsAttachments: true,
+            });
+            return response.data as CalendarEvent;
+        }
     } catch (error: any) {
-        throw new Error(`Gagal membuat acara di Google Calendar: ${error.message}`);
+        const action = isUpdate ? "memperbarui" : "membuat";
+        throw new Error(`Gagal ${action} acara di Google Calendar: ${error.message}`);
     }
-  }
+};
+
+
+export const createCalendarEventFlow = ai.defineFlow(
+  {
+    name: 'createCalendarEventFlow',
+    inputSchema: eventInputSchema,
+    outputSchema: calendarEventSchema,
+  },
+  async (input) => createOrUpdateEvent(input, false)
 );
 
+export const updateCalendarEventFlow = ai.defineFlow(
+  {
+    name: 'updateCalendarEventFlow',
+    inputSchema: updateEventInputSchema,
+    outputSchema: calendarEventSchema,
+  },
+  async (input) => createOrUpdateEvent(input, true)
+);
+
+function checkCredentials() {
+    if (!areCredentialsConfigured()) {
+        throw new Error("Kredensial Google Service Account (GOOGLE_CLIENT_EMAIL, GOOGLE_PRIVATE_KEY) belum dikonfigurasi di file .env Anda.");
+    }
+}
 
 export async function createCalendarEvent(input: CreateEventInput): Promise<CalendarEvent> {
-    if (!areCredentialsConfigured()) {
-      throw new Error("Kredensial Google Service Account (GOOGLE_CLIENT_EMAIL, GOOGLE_PRIVATE_KEY) belum dikonfigurasi di file .env Anda.");
-    }
+    checkCredentials();
     return createCalendarEventFlow(input);
+}
+
+export async function updateCalendarEvent(input: UpdateEventInput): Promise<CalendarEvent> {
+    checkCredentials();
+    return updateCalendarEventFlow(input);
 }

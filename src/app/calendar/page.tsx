@@ -28,7 +28,7 @@ type CalendarAttachment = {
   source: 'google' | 'description';
 }
 
-type CalendarEvent = {
+export type CalendarEvent = {
     id: string | null | undefined;
     summary: string | null | undefined;
     description: string | null | undefined;
@@ -78,7 +78,7 @@ const formatEventDisplay = (startStr: string | null | undefined, endStr: string 
     }
 };
 
-const extractDisposisi = (description: string | null | undefined): string | null => {
+export const extractDisposisi = (description: string | null | undefined): string | null => {
     if (!description) return null;
 
     // Remove any known timestamp patterns first.
@@ -156,7 +156,7 @@ const CleanDescription = ({ description }: { description: string | null | undefi
 };
 
 
-const EventCard = ({ event }: { event: CalendarEvent }) => {
+const EventCard = ({ event, onEdit }: { event: CalendarEvent, onEdit: (event: CalendarEvent) => void }) => {
   const disposisi = useMemo(() => extractDisposisi(event.description), [event.description]);
   const timestamp = useMemo(() => extractTimestamp(event.description), [event.description]);
   const attachments = event.attachments || [];
@@ -219,7 +219,11 @@ const EventCard = ({ event }: { event: CalendarEvent }) => {
             )}
 
         </CardContent>
-        <CardFooter className="flex flex-wrap justify-end gap-2 pt-4 mt-auto">
+        <CardFooter className="flex flex-wrap justify-between items-center gap-2 pt-4 mt-auto">
+            <Button variant="ghost" size="icon" className="h-8 w-8" onClick={() => onEdit(event)}>
+                <PenSquare className="h-4 w-4 text-muted-foreground" />
+                <span className="sr-only">Edit Kegiatan</span>
+            </Button>
             {event.htmlLink && (
             <Button variant="ghost" size="sm" asChild>
                 <a href={event.htmlLink} target="_blank" rel="noopener noreferrer">
@@ -459,7 +463,8 @@ export default function CalendarPage() {
   const [isLoading, setIsLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
   const [filterDate, setFilterDate] = useState<Date | undefined>(undefined);
-  const [isFormOpen, setIsFormOpen] = useState(false);
+  const [formMode, setFormMode] = useState<'add' | 'edit' | null>(null);
+  const [eventToEdit, setEventToEdit] = useState<CalendarEvent | null>(null);
   const [viewMode, setViewMode] = useState<'harian' | 'mingguan' | 'bulanan'>('harian');
   const [isWhatsAppModalOpen, setIsWhatsAppModalOpen] = useState(false);
   const [whatsAppMessage, setWhatsAppMessage] = useState('');
@@ -632,8 +637,14 @@ export default function CalendarPage() {
   };
   
   const handleSuccess = () => {
-    setIsFormOpen(false);
+    setFormMode(null);
+    setEventToEdit(null);
     fetchEvents();
+  };
+
+  const handleOpenForm = (mode: 'add' | 'edit', event?: CalendarEvent) => {
+      setFormMode(mode);
+      setEventToEdit(event || null);
   };
   
   const handleDateChange = (amount: number) => {
@@ -711,20 +722,10 @@ export default function CalendarPage() {
                         </PopoverContent>
                     </Popover>
                 </div>
-                 <Dialog open={isFormOpen} onOpenChange={setIsFormOpen}>
-                    <DialogTrigger asChild>
-                        <Button>
-                            <PlusCircle className="mr-2 h-4 w-4" />
-                            Tambah
-                        </Button>
-                    </DialogTrigger>
-                     <DialogContent className="sm:max-w-2xl max-h-[90vh] overflow-y-auto no-scrollbar">
-                        <DialogHeader>
-                        <DialogTitle>Tambah Kegiatan Baru</DialogTitle>
-                        </DialogHeader>
-                        <EventForm onSuccess={handleSuccess} />
-                    </DialogContent>
-                </Dialog>
+                 <Button onClick={() => handleOpenForm('add')}>
+                    <PlusCircle className="mr-2 h-4 w-4" />
+                    Tambah
+                </Button>
                  <Dialog open={isWhatsAppModalOpen} onOpenChange={setIsWhatsAppModalOpen}>
                     <DialogTrigger asChild>
                         <Button className="bg-green-500 hover:bg-green-600 text-white" onClick={handleSendToWhatsApp}>
@@ -772,7 +773,7 @@ export default function CalendarPage() {
                  <TabsContent value="harian" className="mt-0">
                      <div className="flex flex-col gap-4">
                         <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
-                            {events.map(event => event.id && <EventCard event={event} key={event.id} />)}
+                            {events.map(event => event.id && <EventCard event={event} key={event.id} onEdit={() => handleOpenForm('edit', event)} />)}
                         </div>
                     </div>
                 </TabsContent>
@@ -792,6 +793,16 @@ export default function CalendarPage() {
             )}
         </>
       )}
+
+       {/* Add/Edit Event Modal */}
+        <Dialog open={!!formMode} onOpenChange={(isOpen) => { if (!isOpen) { setFormMode(null); setEventToEdit(null); } }}>
+             <DialogContent className="sm:max-w-2xl max-h-[90vh] overflow-y-auto no-scrollbar">
+                <DialogHeader>
+                    <DialogTitle>{formMode === 'edit' ? 'Edit Kegiatan' : 'Tambah Kegiatan Baru'}</DialogTitle>
+                </DialogHeader>
+                <EventForm onSuccess={handleSuccess} eventToEdit={eventToEdit} />
+            </DialogContent>
+        </Dialog>
 
       {/* Event Detail Modal */}
         <Dialog open={!!selectedEvent} onOpenChange={(isOpen) => !isOpen && setSelectedEvent(null)}>
@@ -828,7 +839,3 @@ export default function CalendarPage() {
     </div>
   );
 }
-
-    
-
-    
