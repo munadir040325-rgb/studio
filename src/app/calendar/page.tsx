@@ -162,25 +162,25 @@ const EventCard = ({ event, onEdit }: { event: CalendarEvent, onEdit: (event: Ca
 
   return (
     <Card key={event.id} className="flex flex-col">
-        <CardHeader className="py-3 px-4">
+        <CardHeader className="py-2 px-3">
             <CardTitle className="text-base line-clamp-2 leading-snug">{event.summary || '(Tanpa Judul)'}</CardTitle>
         </CardHeader>
-        <CardContent className="flex-grow space-y-2 text-sm text-muted-foreground px-4 pb-3">
-            <div className="space-y-1.5">
+        <CardContent className="flex-grow space-y-1.5 text-sm text-muted-foreground px-3 pb-2">
+            <div className="space-y-1">
                 <p className="flex items-start">
-                    <Clock className="h-3.5 w-3.5 mr-2 mt-0.5 flex-shrink-0 text-blue-500" />
+                    <Clock className="h-3 w-3 mr-1.5 mt-0.5 flex-shrink-0 text-blue-500" />
                     <span className='font-medium text-foreground text-xs'>{formatEventDisplay(event.start, event.end, event.isAllDay)}</span>
                 </p>
                 {event.location && (
                 <p className="flex items-start">
-                    <MapPin className="h-3.5 w-3.5 mr-2 mt-0.5 flex-shrink-0 text-red-500" />
+                    <MapPin className="h-3 w-3 mr-1.5 mt-0.5 flex-shrink-0 text-red-500" />
                     <span className="text-xs">{event.location}</span>
                 </p>
                 )}
                 {disposisi && (
                     <p className="flex items-start">
-                        <Pin className="h-3.5 w-3.5 mr-2 mt-0.5 flex-shrink-0 text-green-500" />
-                        <span className='line-clamp-1 text-xs'>Disposisi: {disposisi}</span>
+                        <Pin className="h-3 w-3 mr-1.5 mt-0.5 flex-shrink-0 text-green-500" />
+                        <span className='text-xs'>Disposisi: {disposisi}</span>
                     </p>
                 )}
             </div>
@@ -218,7 +218,7 @@ const EventCard = ({ event, onEdit }: { event: CalendarEvent, onEdit: (event: Ca
             )}
 
         </CardContent>
-        <CardFooter className="flex flex-wrap justify-between items-center gap-2 px-4 py-2 mt-auto border-t">
+        <CardFooter className="flex flex-wrap justify-between items-center gap-2 px-3 py-2 mt-auto border-t">
             <Button variant="ghost" size="icon" className="h-7 w-7" onClick={() => onEdit(event)}>
                 <PenSquare className="h-4 w-4 text-muted-foreground" />
                 <span className="sr-only">Edit Kegiatan</span>
@@ -838,5 +838,7 @@ export default function CalendarPage() {
     </div>
   );
 }
+
+    
 
     
