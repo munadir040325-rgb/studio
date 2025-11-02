@@ -357,5 +357,3 @@ export function EventForm({ onSuccess }: EventFormProps) {
     </>
   );
 }
-
-    
