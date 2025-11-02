@@ -20,7 +20,7 @@ body {
     --secondary-foreground: 224 71.4% 4.1%;
     --muted: 210 40% 90%;
     --muted-foreground: 220 8.9% 46.1%;
-    --accent: 122 39% 49%;
+    --accent: 142 76% 36%;
     --accent-foreground: 0 0% 100%;
     --destructive: 0 84.2% 60.2%;
     --destructive-foreground: 210 20% 98%;
@@ -96,5 +96,3 @@ body {
       scrollbar-width: none;
   }
 }
-
-    

@@ -170,6 +170,7 @@ export function EventForm({ onSuccess, eventToEdit }: EventFormProps) {
       toast({
         title: 'Berhasil!',
         description: `Kegiatan telah berhasil di${isEditMode ? 'perbarui' : 'tambahkan'}.`,
+        variant: 'default'
       });
       onSuccess();
 
@@ -188,20 +189,7 @@ export function EventForm({ onSuccess, eventToEdit }: EventFormProps) {
   async function handleDelete() {
     if (!isEditMode || !eventToEdit?.id) return;
 
-    const bagianToDeleteFrom = form.getValues('bagian');
-    const summaryToDelete = form.getValues('summary');
-
-    if (!bagianToDeleteFrom) {
-         toast({
-            variant: 'destructive',
-            title: "Bagian Belum Dipilih",
-            description: "Untuk menghapus, Anda harus memilih 'Bagian' tempat kegiatan ini berada agar folder di Drive bisa ditemukan.",
-        });
-        return;
-    }
-
     setIsDeleting(true);
-    let driveFolderDeleted = false;
 
     try {
         toast({ description: "Menghapus kegiatan dari Kalender dan Sheet..." });
@@ -210,28 +198,11 @@ export function EventForm({ onSuccess, eventToEdit }: EventFormProps) {
              deleteCalendarEvent({ eventId: eventToEdit.id }),
              deleteSheetEntry({ eventId: eventToEdit.id })
         ]);
-
-        toast({ description: "Mencoba menghapus folder kegiatan dari Google Drive..." });
-        
-        const trashResult = await trashKegiatanFolder({
-            namaBagian: bagianToDeleteFrom,
-            namaKegiatan: summaryToDelete,
-        });
-
-        let finalMessage = "Kegiatan telah dihapus dari Kalender dan Sheet.";
-        if (trashResult.status === 'success') {
-            finalMessage = "Kegiatan telah dihapus dari Kalender, Sheet, dan folder di Drive dipindahkan ke Sampah.";
-        } else if (trashResult.status === 'not_found') {
-             finalMessage += " Folder di Drive tidak ditemukan (mungkin belum pernah dibuat atau namanya berbeda).";
-        } else if (trashResult.status === 'skipped'){
-            finalMessage += " Proses hapus folder di Drive dilewati karena nama bagian/kegiatan kosong.";
-        } else {
-            throw new Error(trashResult.message);
-        }
         
         toast({
-            title: "Proses Hapus Selesai",
-            description: finalMessage,
+            title: "Berhasil Dihapus",
+            description: "Kegiatan telah dihapus dari Kalender dan Sheet.",
+            variant: 'default',
         });
 
         onSuccess();
@@ -240,8 +211,8 @@ export function EventForm({ onSuccess, eventToEdit }: EventFormProps) {
         console.error("Failed to delete event:", error);
         toast({
             variant: 'destructive',
-            title: "Gagal Menghapus Sebagian",
-            description: `Kegiatan berhasil dihapus dari Kalender & Sheet, tapi folder gagal dihapus dari Drive. Error: ${error.message}`,
+            title: "Gagal Menghapus",
+            description: `Terjadi kesalahan saat menghapus kegiatan. Error: ${error.message}`,
         });
     } finally {
         setIsDeleting(false);
@@ -469,8 +440,7 @@ export function EventForm({ onSuccess, eventToEdit }: EventFormProps) {
                         <AlertDialogHeader>
                             <AlertDialogTitle>Apakah Anda benar-benar yakin?</AlertDialogTitle>
                             <AlertDialogDescription>
-                                Tindakan ini akan menghapus kegiatan secara permanen dari Google Calendar dan Google Sheet.
-                                Jika folder kegiatan ada di Google Drive, folder tersebut akan dipindahkan ke Sampah. Tindakan ini tidak dapat dibatalkan.
+                                Tindakan ini akan menghapus kegiatan secara permanen dari Google Calendar dan Google Sheet. Tindakan ini tidak dapat dibatalkan.
                             </AlertDialogDescription>
                         </AlertDialogHeader>
                         <AlertDialogFooter>
