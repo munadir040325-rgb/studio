@@ -35,6 +35,7 @@ import { format, parseISO } from 'date-fns';
 import { id } from 'date-fns/locale';
 import { createCalendarEvent, updateCalendarEvent, deleteCalendarEvent, CalendarEvent } from '@/ai/flows/calendar-flow';
 import { writeEventToSheet, deleteSheetEntry } from '@/ai/flows/sheets-flow';
+import { trashKegiatanFolder } from '@/ai/flows/drive-flow';
 import { useToast } from '@/hooks/use-toast';
 import { useState, useEffect } from 'react';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
@@ -79,6 +80,7 @@ export function EventForm({ onSuccess, eventToEdit }: EventFormProps) {
   const { toast } = useToast();
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [isDeleting, setIsDeleting] = useState(false);
+  const [lastSubmittedBagian, setLastSubmittedBagian] = useState<string>('');
   const { data: bagianData, error: bagianError } = useSWR('/api/sheets', fetcher);
   
   const isEditMode = !!eventToEdit;
@@ -105,11 +107,14 @@ export function EventForm({ onSuccess, eventToEdit }: EventFormProps) {
         // The user will have to re-select it.
         bagian: '', 
       });
+      // We don't have the original 'bagian' here, so we can't set lastSubmittedBagian
+      // It must be re-selected by the user for deletion to work.
     }
   }, [isEditMode, eventToEdit, form]);
 
   async function onSubmit(values: z.infer<typeof formSchema>) {
     setIsSubmitting(true);
+    setLastSubmittedBagian(values.bagian);
     const toastAction = isEditMode ? 'memperbarui' : 'menyimpan';
     
     try {
@@ -128,18 +133,14 @@ export function EventForm({ onSuccess, eventToEdit }: EventFormProps) {
             endDateTime: values.endDateTime.toISOString(),
          });
          
-         // Fire-and-forget: update sheet
-         // Strategy: Delete old entry, then write new one. This handles date changes gracefully.
-         deleteSheetEntry({ eventId: eventToEdit.id }).then(() => {
-            writeEventToSheet({
-                summary: values.summary,
-                location: values.location,
-                startDateTime: values.startDateTime.toISOString(),
-                disposisi: userInput,
-                bagian: values.bagian,
-                eventId: eventToEdit.id!,
-            }).catch(err => console.error("Gagal menulis ulang ke sheet setelah update:", err));
-         }).catch(err => console.error("Gagal menghapus entri lama dari sheet:", err));
+        await writeEventToSheet({
+            summary: values.summary,
+            location: values.location,
+            startDateTime: values.startDateTime.toISOString(),
+            disposisi: userInput,
+            bagian: values.bagian,
+            eventId: eventToEdit.id!,
+        });
 
       } else {
          resultingEvent = await createCalendarEvent({
@@ -190,31 +191,66 @@ export function EventForm({ onSuccess, eventToEdit }: EventFormProps) {
   async function handleDelete() {
     if (!isEditMode || !eventToEdit?.id) return;
 
+    const bagianToDeleteFrom = form.getValues('bagian');
+    const summaryToDelete = form.getValues('summary');
+
+    if (!bagianToDeleteFrom) {
+         toast({
+            variant: 'destructive',
+            title: "Bagian Belum Dipilih",
+            description: "Untuk menghapus, Anda harus memilih 'Bagian' tempat kegiatan ini berada agar folder di Drive bisa ditemukan.",
+        });
+        return;
+    }
+
     setIsDeleting(true);
-    toast({ description: "Menghapus kegiatan..." });
+    let driveFolderDeleted = false;
 
     try {
-        // Step 1: Delete from Google Calendar
-        await deleteCalendarEvent({ eventId: eventToEdit.id });
+        toast({ description: "Menghapus kegiatan dari Kalender dan Sheet..." });
+        // Step 1 & 2: Delete from Google Calendar and Sheet
+        await Promise.all([
+             deleteCalendarEvent({ eventId: eventToEdit.id }),
+             deleteSheetEntry({ eventId: eventToEdit.id })
+        ]);
+
+        toast({ description: "Menghapus folder kegiatan dari Google Drive..." });
         
-        // Step 2: Delete from Google Sheet (fire-and-forget is okay here)
-        deleteSheetEntry({ eventId: eventToEdit.id }).catch(err => {
-            // Log the error, but don't block the UI since the primary deletion (Calendar) was successful.
-            console.error("Gagal menghapus entri dari sheet setelah penghapusan kalender:", err);
+        // Step 3: Delete from Google Drive using the service account flow
+        const trashResult = await trashKegiatanFolder({
+            namaBagian: bagianToDeleteFrom,
+            namaKegiatan: summaryToDelete,
         });
 
-        toast({
-            title: "Berhasil Dihapus",
-            description: "Kegiatan telah dihapus dari Kalender dan Sheet.",
-        });
-        onSuccess(); // Close the modal and refresh the list
+        if (trashResult.status === 'success' || trashResult.status === 'not_found') {
+            driveFolderDeleted = true;
+            let finalMessage = "Kegiatan telah dihapus dari Kalender dan Sheet.";
+            if (trashResult.status === 'success') {
+                finalMessage = "Kegiatan telah dihapus dari Kalender, Sheet, dan folder di Drive dipindahkan ke Sampah.";
+            } else {
+                 finalMessage += " Folder di Drive tidak ditemukan (mungkin belum pernah dibuat).";
+            }
+             toast({
+                title: "Berhasil Dihapus",
+                description: finalMessage,
+            });
+        } else {
+            // Error handled inside the flow and thrown
+            throw new Error(trashResult.message);
+        }
+
+        onSuccess();
 
     } catch (error: any) {
         console.error("Failed to delete event:", error);
+        let description = `Gagal menghapus folder di Drive: ${error.message}.`;
+        if (driveFolderDeleted) {
+            description = `Sebagian berhasil: Kegiatan dihapus dari Kalender & Sheet, tapi folder gagal dihapus dari Drive. Error: ${error.message}`;
+        }
         toast({
             variant: 'destructive',
-            title: "Gagal Menghapus Kegiatan",
-            description: error.message || "Terjadi kesalahan saat menghapus kegiatan.",
+            title: "Gagal Menghapus",
+            description: description,
         });
     } finally {
         setIsDeleting(false);
@@ -296,7 +332,7 @@ export function EventForm({ onSuccess, eventToEdit }: EventFormProps) {
                                 ))}
                             </SelectContent>
                         </Select>
-                        {isEditMode && !field.value && <FormDescription className="text-amber-600 text-xs">Pilih ulang bagian untuk acara ini.</FormDescription>}
+                        {isEditMode && <FormDescription className="text-amber-600 text-xs">Pilih ulang bagian untuk menyimpan perubahan atau menghapus.</FormDescription>}
                         <FormMessage />
                          {bagianError && <p className="text-red-500 text-xs mt-1">Gagal memuat daftar bagian: {bagianError.message}</p>}
                     </FormItem>
@@ -443,7 +479,7 @@ export function EventForm({ onSuccess, eventToEdit }: EventFormProps) {
                             <AlertDialogTitle>Apakah Anda benar-benar yakin?</AlertDialogTitle>
                             <AlertDialogDescription>
                                 Tindakan ini akan menghapus kegiatan secara permanen dari Google Calendar dan Google Sheet.
-                                Tindakan ini tidak dapat dibatalkan.
+                                Jika folder kegiatan ada di Google Drive, folder tersebut akan dipindahkan ke Sampah. Tindakan ini tidak dapat dibatalkan.
                             </AlertDialogDescription>
                         </AlertDialogHeader>
                         <AlertDialogFooter>
