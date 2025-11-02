@@ -6,7 +6,7 @@ import 'dotenv/config';
 /**
  * @fileOverview Flow for writing and deleting data in Google Sheets.
  *
- * - writeEventToSheet - Writes a new event to the appropriate cell in the Google Sheet.
+ * - writeEventToSheet - Writes a new event to the appropriate cell in the Google Sheet. It now handles "adopting" existing manual entries.
  * - deleteSheetEntry - Finds and deletes an event entry from the Google Sheet based on eventId.
  */
 
@@ -104,22 +104,19 @@ export const writeToSheetFlow = ai.defineFlow(
     ]);
     const sheets = google.sheets({ version: 'v4', auth });
     
-    // Use toZonedTime to correctly interpret the ISO string in Asia/Jakarta timezone
     const eventDate = toZonedTime(parseISO(input.startDateTime), 'Asia/Jakarta');
-
-    // 1. Determine the correct sheet name (e.g., "Giat_Oktober_25")
     const monthName = format(eventDate, 'MMMM', { locale: id });
     const yearShort = format(eventDate, 'yy');
     const sheetName = `Giat_${monthName}_${yearShort}`;
 
-    // 2. Find the correct column for the event date by comparing date objects.
-    const dateRowRange = `${sheetName}!E17:AI17`; // E17 to AI17
+    // 1. Find the correct column for the event date.
+    const dateRowRange = `${sheetName}!E17:AI17`;
     let dateRowValues;
     try {
         const dateRowResponse = await sheets.spreadsheets.values.get({
             spreadsheetId,
             range: dateRowRange,
-            valueRenderOption: 'UNFORMATTED_VALUE', // Get raw serial numbers
+            valueRenderOption: 'UNFORMATTED_VALUE',
         });
         dateRowValues = dateRowResponse.data.values ? dateRowResponse.data.values[0] : [];
     } catch(e: any) {
@@ -130,13 +127,10 @@ export const writeToSheetFlow = ai.defineFlow(
     }
     
     let targetColIndex = -1;
-
     for (let i = 0; i < dateRowValues.length; i++) {
         const cellValue = dateRowValues[i];
         if (typeof cellValue === 'number' && cellValue > 0) {
             const sheetDate = sheetSerialNumberToDate(cellValue);
-            
-            // Compare year, month, and day to avoid off-by-one errors
             if (
               sheetDate.getFullYear() === eventDate.getFullYear() &&
               sheetDate.getMonth() === eventDate.getMonth() &&
@@ -154,7 +148,7 @@ export const writeToSheetFlow = ai.defineFlow(
 
     const targetColLetter = getColumnLetter(targetColIndex);
     
-    // 3. Find the first empty row within the specified 'bagian' range
+    // 2. Look for an existing manual entry or an empty row within the 'bagian' range
     const bagianRange = BAGIAN_ROW_MAP[input.bagian];
     if (!bagianRange) {
         throw new Error(`Rentang baris untuk bagian '${input.bagian}' tidak ditemukan.`);
@@ -168,34 +162,66 @@ export const writeToSheetFlow = ai.defineFlow(
     });
 
     const colValues = colValuesResponse.data.values ? colValuesResponse.data.values.flat() : [];
-    let firstEmptyRowInBagian = -1;
+    let targetRow = -1;
+    let existingValue = '';
 
-    for(let i = 0; i <= (bagianRange.end - bagianRange.start); i++) {
-        if (!colValues[i] || colValues[i] === '') {
-            firstEmptyRowInBagian = bagianRange.start + i;
+    // Logic: First, try to find a matching manual entry to "adopt".
+    // A manual entry is one that contains the event summary but NOT an eventId.
+    for (let i = 0; i < (bagianRange.end - bagianRange.start + 1); i++) {
+        const cellContent = colValues[i] || '';
+        if (cellContent.includes(input.summary) && !cellContent.includes('eventId:')) {
+            targetRow = bagianRange.start + i;
+            existingValue = cellContent;
+            console.log(`Found matching manual entry to adopt at row ${targetRow}`);
             break;
         }
     }
+
+    // If no manual entry to adopt, find the first truly empty row.
+    if (targetRow === -1) {
+        for(let i = 0; i <= (bagianRange.end - bagianRange.start); i++) {
+            if (!colValues[i] || colValues[i] === '') {
+                targetRow = bagianRange.start + i;
+                console.log(`Found first empty row at ${targetRow}`);
+                break;
+            }
+        }
+    }
     
-    if (firstEmptyRowInBagian === -1) {
+    if (targetRow === -1) {
         throw new Error(`Slot untuk bagian '${input.bagian.toUpperCase()}' pada tanggal ${format(eventDate, 'dd/MM/yyyy')} sudah penuh.`);
     }
 
 
-    // 4. Format the data and write to the cell
+    // 3. Format the data and write to the target cell
     const timeText = `Pukul ${format(eventDate, 'HH.mm')}`;
     const disposisi = input.disposisi || ''; 
     
-    // Gabungkan semua data dengan eventId di akhir, dipisahkan oleh '|'
-    const cellValue = [
-        input.summary || 'Kegiatan',
-        input.location || '',
-        timeText,
-        disposisi,
-        `eventId:${input.eventId}` // Tambahkan eventId di sini
-    ].join('|');
+    let cellValue;
+    if (existingValue) {
+        // "Adopt" flow: Append eventId to the existing manual data.
+        // This assumes the manual entry is just the summary. A more robust solution might parse the parts.
+        // For now, we rebuild it with the new standardized format.
+        cellValue = [
+            input.summary || 'Kegiatan',
+            input.location || '',
+            timeText,
+            disposisi,
+            `eventId:${input.eventId}`
+        ].join('|');
+    } else {
+        // "New" flow: Create the cell value from scratch.
+        cellValue = [
+            input.summary || 'Kegiatan',
+            input.location || '',
+            timeText,
+            disposisi,
+            `eventId:${input.eventId}`
+        ].join('|');
+    }
 
-    const targetCell = `${sheetName}!${targetColLetter}${firstEmptyRowInBagian}`;
+
+    const targetCell = `${sheetName}!${targetColLetter}${targetRow}`;
 
     await sheets.spreadsheets.values.update({
         spreadsheetId,
