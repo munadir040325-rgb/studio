@@ -13,7 +13,7 @@ import 'dotenv/config';
 import { ai } from '@/ai/genkit';
 import { z } from 'zod';
 import { google } from 'googleapis';
-import { getGoogleAuth } from './calendar-flow';
+import { getGoogleAuth } from '../google-services';
 import { format, parseISO } from 'date-fns';
 import { id } from 'date-fns/locale';
 import { toZonedTime } from 'date-fns-tz';
@@ -102,9 +102,6 @@ export const writeToSheetFlow = ai.defineFlow(
     const auth = await getGoogleAuth([
         'https://www.googleapis.com/auth/spreadsheets',
     ]);
-    if (!auth) {
-        throw new Error("Kredensial Google Service Account tidak dikonfigurasi.");
-    }
     const sheets = google.sheets({ version: 'v4', auth });
     
     // Use toZonedTime to correctly interpret the ISO string in Asia/Jakarta timezone
@@ -232,9 +229,6 @@ export const deleteSheetEntryFlow = ai.defineFlow(
         }
 
         const auth = await getGoogleAuth(['https://www.googleapis.com/auth/spreadsheets']);
-        if (!auth) {
-            throw new Error("Kredensial Google Service Account tidak dikonfigurasi.");
-        }
         const sheets = google.sheets({ version: 'v4', auth });
         
         const spreadsheetMeta = await sheets.spreadsheets.get({ spreadsheetId });

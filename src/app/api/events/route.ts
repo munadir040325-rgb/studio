@@ -6,7 +6,7 @@ export const dynamic = "force-dynamic";
 
 import { NextRequest, NextResponse } from "next/server";
 import { google } from "googleapis";
-import { getGoogleAuth } from "@/ai/flows/calendar-flow";
+import { getGoogleAuth } from "@/ai/google-services";
 
 // Util: bangun timeMin/timeMax aman (timeMax eksklusif)
 function buildRangeISO(startDateStr: string, endDateStr?: string, tz = "Asia/Jakarta") {
@@ -76,10 +76,6 @@ export async function GET(req: NextRequest) {
 
     // Auth service account for calendar
     const auth = await getGoogleAuth("https://www.googleapis.com/auth/calendar.readonly");
-    if (!auth) {
-        return NextResponse.json({ error: "Kredensial Google Service Account tidak dikonfigurasi." }, { status: 500 });
-    }
-
     const calendar = google.calendar({ version: "v3", auth });
 
     const res = await calendar.events.list({

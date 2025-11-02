@@ -6,7 +6,7 @@ export const dynamic = "force-dynamic";
 
 import { NextRequest, NextResponse } from "next/server";
 import { google } from "googleapis";
-import { getGoogleAuth } from "@/ai/flows/calendar-flow";
+import { getGoogleAuth } from "@/ai/google-services";
 import { format } from 'date-fns';
 import { id } from 'date-fns/locale';
 
@@ -28,9 +28,6 @@ export async function GET(req: NextRequest) {
         }
         
         const auth = await getGoogleAuth("https://www.googleapis.com/auth/spreadsheets.readonly");
-        if (!auth) {
-            return NextResponse.json({ error: "Kredensial Google Service Account tidak dikonfigurasi." }, { status: 500 });
-        }
 
         const sheets = google.sheets({ version: "v4", auth });
 

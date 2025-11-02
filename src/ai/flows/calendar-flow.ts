@@ -13,6 +13,7 @@ import 'dotenv/config'
 import { ai } from '@/ai/genkit';
 import { z } from 'zod';
 import { google } from 'googleapis';
+import { getGoogleAuth } from '../google-services';
 
 const calendarId = process.env.NEXT_PUBLIC_CALENDAR_ID;
 
@@ -52,32 +53,6 @@ const updateEventInputSchema = eventInputSchema.extend({
 export type UpdateEventInput = z.infer<typeof updateEventInputSchema>;
 
 
-function areCredentialsConfigured() {
-    return process.env.GOOGLE_CLIENT_EMAIL && process.env.GOOGLE_PRIVATE_KEY;
-}
-
-function getFormattedPrivateKey(key?: string): string | undefined {
-    if (!key) return undefined;
-    // The key from environment variables often has escaped newlines (\\n).
-    // We must replace them with actual newline characters (\n).
-    return key.replace(/\\n/g, '\n');
-}
-
-
-export async function getGoogleAuth(scopes: string | string[]) {
-  if (!areCredentialsConfigured()) {
-      return null;
-  }
-  const auth = new google.auth.GoogleAuth({
-    credentials: {
-      client_email: process.env.GOOGLE_CLIENT_EMAIL,
-      private_key: getFormattedPrivateKey(process.env.GOOGLE_PRIVATE_KEY),
-    },
-    scopes: scopes,
-  });
-  return auth;
-}
-
 const createOrUpdateEvent = async (input: CreateEventInput | UpdateEventInput, isUpdate: boolean) => {
     if (!calendarId) {
         throw new Error("ID Kalender (NEXT_PUBLIC_CALENDAR_ID) belum diatur di environment variables.");
@@ -90,9 +65,6 @@ const createOrUpdateEvent = async (input: CreateEventInput | UpdateEventInput, i
     }
 
     const auth = await getGoogleAuth(['https://www.googleapis.com/auth/calendar']);
-    if (!auth) {
-        throw new Error("Tidak dapat memproses kegiatan: Kredensial Google Calendar (Service Account) belum diatur.");
-    }
     const calendar = google.calendar({ version: 'v3', auth });
 
     const event = {
@@ -154,18 +126,12 @@ export const updateCalendarEventFlow = ai.defineFlow(
   async (input) => createOrUpdateEvent(input, true)
 );
 
-function checkCredentials() {
-    if (!areCredentialsConfigured()) {
-        throw new Error("Kredensial Google Service Account (GOOGLE_CLIENT_EMAIL, GOOGLE_PRIVATE_KEY) belum dikonfigurasi di file .env Anda.");
-    }
-}
-
+// Wrapper function to call the flow
 export async function createCalendarEvent(input: CreateEventInput): Promise<CalendarEvent> {
-    checkCredentials();
     return createCalendarEventFlow(input);
 }
 
+// Wrapper function to call the flow
 export async function updateCalendarEvent(input: UpdateEventInput): Promise<CalendarEvent> {
-    checkCredentials();
     return updateCalendarEventFlow(input);
 }
