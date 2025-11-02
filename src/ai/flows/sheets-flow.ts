@@ -246,6 +246,7 @@ export const deleteSheetEntryFlow = ai.defineFlow(
                 return null;
             }
 
+            // Define the full search range for the data matrix
             const searchRange = `${sheetName}!E18:AI52`;
             try {
                 const response = await sheets.spreadsheets.values.get({
@@ -256,25 +257,30 @@ export const deleteSheetEntryFlow = ai.defineFlow(
                 const rows = response.data.values;
                 if (!rows) return null;
 
+                // Iterate through the rows and columns to find the eventId
                 for (let r = 0; r < rows.length; r++) {
                     const row = rows[r];
                     for (let c = 0; c < row.length; c++) {
                         const cellValue = row[c];
                         if (typeof cellValue === 'string' && cellValue.includes(`eventId:${input.eventId}`)) {
-                            const targetRow = 18 + r;
-                            const targetCol = 5 + c;
-                            const targetCell = `${sheetName}!${getColumnLetter(targetCol)}}${targetRow}`;
+                            // Found the cell. Construct its A1 notation.
+                            const targetRow = 18 + r; // Base row is 18
+                            const targetCol = 5 + c;  // Base column is 'E' (5)
+                            const targetCellA1 = `${sheetName}!${getColumnLetter(targetCol)}${targetRow}`;
                             
+                            // Clear the specific cell
                             await sheets.spreadsheets.values.clear({
                                 spreadsheetId,
-                                range: targetCell,
+                                range: targetCellA1,
                             });
                             
-                            return targetCell;
+                            console.log(`Successfully cleared cell: ${targetCellA1}`);
+                            return targetCellA1; // Return the A1 notation of the cleared cell
                         }
                     }
                 }
             } catch (e: any) {
+                // Ignore errors from sheets that don't exist or ranges that are invalid
                 if (!e.message.includes('Unable to parse range')) {
                     console.error(`Error searching in sheet '${sheetName}':`, e.message);
                 }
@@ -288,6 +294,7 @@ export const deleteSheetEntryFlow = ai.defineFlow(
         if (foundCell) {
             return { status: 'deleted', cell: foundCell };
         } else {
+            console.log(`Event ID ${input.eventId} not found in any sheet.`);
             return { status: 'not_found' };
         }
     }
