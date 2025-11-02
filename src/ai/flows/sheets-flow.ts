@@ -36,11 +36,11 @@ const writeToSheetInputSchema = z.object({
   summary: z.string(),
   location: z.string().optional(),
   startDateTime: z.string().datetime(),
-  // Now receiving the raw disposition content, not the full description.
   disposisi: z.string().optional(),
   bagian: z.string().refine(val => Object.keys(BAGIAN_ROW_MAP).includes(val), {
       message: "Bagian yang dipilih tidak valid."
   }),
+  eventId: z.string(), // ID dari Google Calendar Event
 });
 
 export type WriteToSheetInput = z.infer<typeof writeToSheetInputSchema>;
@@ -180,13 +180,15 @@ export const writeToSheetFlow = ai.defineFlow(
 
     // 4. Format the data and write to the cell
     const timeText = `Pukul ${format(eventDate, 'HH.mm')}`;
-    // Use the raw disposisi content directly from the input.
     const disposisi = input.disposisi || ''; 
+    
+    // Gabungkan semua data dengan eventId di akhir, dipisahkan oleh '|'
     const cellValue = [
         input.summary || 'Kegiatan',
         input.location || '',
         timeText,
-        disposisi
+        disposisi,
+        `eventId:${input.eventId}` // Tambahkan eventId di sini
     ].join('|');
 
     const targetCell = `${sheetName}!${targetColLetter}${firstEmptyRowInBagian}`;
@@ -216,3 +218,5 @@ export async function writeEventToSheet(input: WriteToSheetInput): Promise<any> 
     // We don't await this on the client, but we return the promise
     return writeToSheetFlow(input);
 }
+
+    

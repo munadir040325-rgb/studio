@@ -84,9 +84,9 @@ export function EventForm({ onSuccess }: EventFormProps) {
       
       const userInput = values.description || '';
 
-      await createCalendarEvent({
+      const calendarEvent = await createCalendarEvent({
         summary: values.summary,
-        description: userInput, // Send the raw description
+        description: userInput,
         location: values.location,
         startDateTime: values.startDateTime.toISOString(),
         endDateTime: values.endDateTime.toISOString(),
@@ -97,27 +97,31 @@ export function EventForm({ onSuccess }: EventFormProps) {
         description: 'Kegiatan baru telah ditambahkan ke kalender.',
       });
 
-      // Fire-and-forget: write to sheet in the background
-      writeEventToSheet({
-        summary: values.summary,
-        location: values.location,
-        startDateTime: values.startDateTime.toISOString(),
-        // Pass the original user input to the sheet flow.
-        disposisi: userInput,
-        bagian: values.bagian,
-      }).then(res => {
-          if(res?.status === 'success') {
-            console.log(`Successfully wrote to sheet cell: ${res.cell}`);
-          }
-      }).catch(err => {
-          console.error("Gagal menulis ke Google Sheet:", err);
-          // Optionally, show a non-blocking warning toast
-          toast({
-            variant: 'destructive',
-            title: 'Gagal Sinkronisasi Sheet',
-            description: `Kegiatan berhasil dibuat di kalender, tapi gagal ditulis ke Google Sheet. Error: ${err.message}`,
-          });
-      });
+      if (calendarEvent && calendarEvent.id) {
+        // Fire-and-forget: write to sheet in the background, now with eventId
+        writeEventToSheet({
+          summary: values.summary,
+          location: values.location,
+          startDateTime: values.startDateTime.toISOString(),
+          disposisi: userInput,
+          bagian: values.bagian,
+          eventId: calendarEvent.id, // Teruskan eventId ke flow sheet
+        }).then(res => {
+            if(res?.status === 'success') {
+              console.log(`Successfully wrote to sheet cell: ${res.cell}`);
+            }
+        }).catch(err => {
+            console.error("Gagal menulis ke Google Sheet:", err);
+            toast({
+              variant: 'destructive',
+              title: 'Gagal Sinkronisasi Sheet',
+              description: `Kegiatan berhasil dibuat di kalender, tapi gagal ditulis ke Google Sheet. Error: ${err.message}`,
+            });
+        });
+      } else {
+         console.warn("Tidak dapat menulis ke Sheet karena eventId tidak ditemukan.");
+      }
+
 
       onSuccess();
     } catch (error: any) {
@@ -353,3 +357,5 @@ export function EventForm({ onSuccess }: EventFormProps) {
     </>
   );
 }
+
+    
