@@ -1,3 +1,4 @@
+
 'use server';
 
 import 'dotenv/config';
@@ -108,7 +109,7 @@ export const trashKegiatanFolderFlow = ai.defineFlow(
         console.error("Failed to trash Google Drive folder:", error);
         let message = `Gagal memindahkan folder ke Sampah: ${error.message}`;
         if (error.code === 403) {
-            message = "Gagal memindahkan folder: Service Account tidak memiliki izin yang cukup. Pastikan Service Account memiliki peran 'Manager' (Pengelola Konten) di folder induk atau Drive Bersama.";
+            message = "Gagal memindahkan folder: Service Account tidak memiliki izin yang cukup. Pastikan Service Account memiliki peran 'Editor' di folder induk.";
         } else if (error.code === 404) {
             message = "Gagal memindahkan folder: Folder tidak ditemukan. Mungkin sudah dihapus atau dipindahkan.";
         }
