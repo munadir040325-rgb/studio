@@ -501,36 +501,49 @@ export default function CalendarPage() {
   }, []);
 
   const fetchEvents = useCallback(async () => {
-    if (!filterDate) return;
+    // No date needed if we are searching in daily view
+    if (!filterDate && !(viewMode === 'harian' && searchQuery)) return;
 
     setIsLoading(true);
     setError(null);
 
-    let startDate: Date;
-    let endDate: Date;
+    let url = '/api/events';
+    const params = new URLSearchParams();
 
-    switch (viewMode) {
-      case 'harian':
-        startDate = startOfDay(filterDate);
-        endDate = endOfDay(filterDate);
-        break;
-      case 'mingguan':
-        startDate = startOfWeek(filterDate, { weekStartsOn: 1 });
-        endDate = endOfWeek(filterDate, { weekStartsOn: 1 });
-        break;
-      case 'bulanan':
-        startDate = startOfMonth(filterDate);
-        endDate = endOfMonth(filterDate);
-        break;
-      default:
-        return;
+    // New logic: If searching in daily view, don't pass date params to fetch a wide range of events.
+    const isSearchingInDaily = viewMode === 'harian' && searchQuery;
+
+    if (!isSearchingInDaily && filterDate) {
+        let startDate: Date;
+        let endDate: Date;
+
+        switch (viewMode) {
+        case 'harian':
+            startDate = startOfDay(filterDate);
+            endDate = endOfDay(filterDate);
+            break;
+        case 'mingguan':
+            startDate = startOfWeek(filterDate, { weekStartsOn: 1 });
+            endDate = endOfWeek(filterDate, { weekStartsOn: 1 });
+            break;
+        case 'bulanan':
+            startDate = startOfMonth(filterDate);
+            endDate = endOfMonth(filterDate);
+            break;
+        }
+
+        params.append('start', format(startDate, 'yyyy-MM-dd'));
+        params.append('end', format(endDate, 'yyyy-MM-dd'));
+    }
+    
+    const queryString = params.toString();
+    if (queryString) {
+        url += `?${queryString}`;
     }
 
-    const startStr = format(startDate, 'yyyy-MM-dd');
-    const endStr = format(endDate, 'yyyy-MM-dd');
 
     try {
-      const response = await fetch(`/api/events?start=${startStr}&end=${endStr}`);
+      const response = await fetch(url);
       const data = await response.json();
 
       if (!response.ok) {
@@ -588,19 +601,38 @@ export default function CalendarPage() {
     } finally {
       setIsLoading(false);
     }
-  }, [filterDate, viewMode]);
+  }, [filterDate, viewMode, searchQuery]);
 
   useEffect(() => {
-    if (filterDate) { // Only fetch events if filterDate is set
+    // Only fetch events if filterDate is set OR if we are searching in daily view
+    if (filterDate || (viewMode === 'harian' && searchQuery)) { 
         fetchEvents();
     }
-  }, [fetchEvents, filterDate]);
+  }, [fetchEvents, filterDate, viewMode, searchQuery]); // Re-fetch when searchQuery changes
 
   const filteredEvents = useMemo(() => {
-    const query = searchQuery.toLowerCase();
-    if (!query) {
-      return events;
+    if (viewMode === 'harian' && searchQuery) {
+        // If searching in daily view, the search is already handled by the wide fetch.
+        // We just need to filter the results from that wide fetch.
+        const query = searchQuery.toLowerCase();
+        return events.filter(event => {
+            const disposisi = extractDisposisi(event.description);
+            return (
+                event.summary?.toLowerCase().includes(query) ||
+                event.location?.toLowerCase().includes(query) ||
+                disposisi?.toLowerCase().includes(query)
+            );
+        });
     }
+
+    // For other views, or daily view without search, just return the fetched events
+    // (as they are already scoped to the correct date range).
+    if (!searchQuery) {
+        return events;
+    }
+
+    // For weekly/monthly view with search, filter the already-scoped events.
+    const query = searchQuery.toLowerCase();
     return events.filter(event => {
       const disposisi = extractDisposisi(event.description);
       return (
@@ -609,7 +641,7 @@ export default function CalendarPage() {
         disposisi?.toLowerCase().includes(query)
       );
     });
-  }, [events, searchQuery]);
+  }, [events, searchQuery, viewMode]);
 
 
   const handleSendToWhatsApp = () => {
@@ -837,7 +869,7 @@ export default function CalendarPage() {
               <div className="text-center py-12 text-muted-foreground bg-muted/50 rounded-lg">
                 <p>Tidak ada kegiatan yang ditemukan untuk filter yang dipilih.</p>
                 {searchQuery && <p className="text-sm">Coba ubah kata kunci pencarian Anda.</p>}
-                {!searchQuery && <p className="text-sm">Coba pilih tanggal lain atau reset filter.</p>}
+                {!searchQuery && viewMode !== 'harian' && <p className="text-sm">Coba pilih tanggal lain atau reset filter.</p>}
               </div>
             )}
         </>
@@ -892,5 +924,6 @@ export default function CalendarPage() {
     
 
     
+
 
 
