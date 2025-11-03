@@ -205,12 +205,6 @@ export default function UploadPage() {
     }
   };
 
-  const handleDateSelect = (date: Date | undefined) => {
-    setSelectedDate(date);
-    setSelectedEvent(null); // Reset selected event when date changes
-  };
-
-
   const handleFileChange = (setter: React.Dispatch<React.SetStateAction<any>>, multiple: boolean) => (e: React.ChangeEvent<HTMLInputElement>) => {
     if (!e.target.files) return;
 
@@ -307,7 +301,10 @@ export default function UploadPage() {
                       <Calendar
                         mode="single"
                         selected={selectedDate}
-                        onSelect={handleDateSelect}
+                        onSelect={(date) => {
+                            setSelectedDate(date);
+                            setSelectedEvent(null);
+                        }}
                         initialFocus
                         locale={localeId}
                       />
