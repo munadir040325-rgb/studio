@@ -6,7 +6,7 @@ import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardFooter, CardHeader, CardTitle } from '@/components/ui/card';
 import { Popover, PopoverContent, PopoverTrigger } from '@/components/ui/popover';
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger, DialogFooter, DialogDescription } from '@/components/ui/dialog';
-import { Calendar as CalendarIcon, ExternalLink, PlusCircle, RefreshCw, MapPin, Clock, ChevronLeft, ChevronRight, Pin, Copy, Info, Link as LinkIcon, FolderOpen, Paperclip, Folder, PenSquare, Trash2 } from 'lucide-react';
+import { Calendar as CalendarIcon, ExternalLink, PlusCircle, RefreshCw, MapPin, Clock, ChevronLeft, ChevronRight, Pin, Copy, Info, Link as LinkIcon, FolderOpen, Paperclip, Folder, PenSquare, Trash2, Search } from 'lucide-react';
 import { Calendar } from '@/components/ui/calendar';
 import { format, parseISO, isSameDay, startOfDay, endOfDay, startOfWeek, endOfWeek, startOfMonth, endOfMonth, isWithinInterval, eachDayOfInterval, getDay, isSameMonth, getDate, addDays, subDays, addWeeks, subMonths, addMonths } from 'date-fns';
 import { id as localeId } from 'date-fns/locale';
@@ -16,6 +16,7 @@ import { Alert, AlertDescription, AlertTitle } from '@/components/ui/alert';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { useToast } from '@/hooks/use-toast';
 import { Textarea } from '@/components/ui/textarea';
+import { Input } from '@/components/ui/input';
 import { getFileIcon } from '@/lib/utils';
 import DOMPurify from 'isomorphic-dompurify';
 import { Accordion, AccordionContent, AccordionItem, AccordionTrigger } from '@/components/ui/accordion';
@@ -487,6 +488,7 @@ export default function CalendarPage() {
   const [formMode, setFormMode] = useState<'add' | 'edit' | null>(null);
   const [eventToEdit, setEventToEdit] = useState<CalendarEvent | null>(null);
   const [viewMode, setViewMode] = useState<'harian' | 'mingguan' | 'bulanan'>('harian');
+  const [searchQuery, setSearchQuery] = useState('');
   const [isWhatsAppModalOpen, setIsWhatsAppModalOpen] = useState(false);
   const [whatsAppMessage, setWhatsAppMessage] = useState('');
   const [selectedEvent, setSelectedEvent] = useState<CalendarEvent | null>(null);
@@ -594,9 +596,24 @@ export default function CalendarPage() {
     }
   }, [fetchEvents, filterDate]);
 
+  const filteredEvents = useMemo(() => {
+    const query = searchQuery.toLowerCase();
+    if (!query) {
+      return events;
+    }
+    return events.filter(event => {
+      const disposisi = extractDisposisi(event.description);
+      return (
+        event.summary?.toLowerCase().includes(query) ||
+        event.location?.toLowerCase().includes(query) ||
+        disposisi?.toLowerCase().includes(query)
+      );
+    });
+  }, [events, searchQuery]);
+
 
   const handleSendToWhatsApp = () => {
-      if (!filterDate || events.length === 0) {
+      if (!filterDate || filteredEvents.length === 0) {
           toast({
               variant: 'destructive',
               title: "Tidak Ada Jadwal",
@@ -617,12 +634,12 @@ export default function CalendarPage() {
       }
 
       let message = `${header}\n\n`;
-      let eventsToFormat = events;
+      let eventsToFormat = filteredEvents;
 
       if (viewMode === 'mingguan') {
         const start = startOfWeek(filterDate, { weekStartsOn: 1 });
         const end = endOfWeek(filterDate, { weekStartsOn: 1 });
-        eventsToFormat = events.filter(e => e.start && isWithinInterval(parseISO(e.start), {start, end}));
+        eventsToFormat = filteredEvents.filter(e => e.start && isWithinInterval(parseISO(e.start), {start, end}));
       }
 
 
@@ -692,7 +709,7 @@ export default function CalendarPage() {
       return '';
   }
 
-  const eventsByDay = useMemo(() => groupEventsByDay(events), [events]);
+  const eventsByDay = useMemo(() => groupEventsByDay(filteredEvents), [filteredEvents]);
   const dailyEvents = dayToShow ? eventsByDay.get(format(dayToShow, 'yyyy-MM-dd')) || [] : [];
   
   return (
@@ -714,6 +731,16 @@ export default function CalendarPage() {
             
             {/* Right Side: Actions */}
             <div className="flex flex-wrap items-center justify-center gap-2">
+                 <div className="relative w-full md:w-auto">
+                    <Search className="absolute left-2.5 top-2.5 h-4 w-4 text-muted-foreground" />
+                    <Input
+                        type="search"
+                        placeholder="Cari kegiatan..."
+                        className="pl-8 w-full md:w-[200px] lg:w-[300px]"
+                        value={searchQuery}
+                        onChange={(e) => setSearchQuery(e.target.value)}
+                    />
+                </div>
                 <Tabs value={viewMode} onValueChange={(value) => setViewMode(value as any)}>
                     <TabsList>
                         <TabsTrigger value="harian">Harian</TabsTrigger>
@@ -794,22 +821,23 @@ export default function CalendarPage() {
                  <TabsContent value="harian" className="mt-0">
                      <div className="flex flex-col gap-4">
                         <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-4">
-                            {events.map(event => event.id && <EventCard event={event} key={event.id} onEdit={() => handleOpenForm('edit', event)} />)}
+                            {filteredEvents.map(event => event.id && <EventCard event={event} key={event.id} onEdit={() => handleOpenForm('edit', event)} />)}
                         </div>
                     </div>
                 </TabsContent>
                 <TabsContent value="mingguan" className="mt-0">
-                   {filterDate && <WeeklyView events={events} baseDate={filterDate} onEventClick={setSelectedEvent} onDayClick={setDayToShow} />}
+                   {filterDate && <WeeklyView events={filteredEvents} baseDate={filterDate} onEventClick={setSelectedEvent} onDayClick={setDayToShow} />}
                 </TabsContent>
                  <TabsContent value="bulanan" className="mt-0">
-                    {filterDate && <MonthlyView events={events} baseDate={filterDate} onEventClick={setSelectedEvent} onDayClick={setDayToShow} />}
+                    {filterDate && <MonthlyView events={filteredEvents} baseDate={filterDate} onEventClick={setSelectedEvent} onDayClick={setDayToShow} />}
                 </TabsContent>
             </Tabs>
             
-          {events.length === 0 && viewMode === 'harian' && (
+          {filteredEvents.length === 0 && (
               <div className="text-center py-12 text-muted-foreground bg-muted/50 rounded-lg">
                 <p>Tidak ada kegiatan yang ditemukan untuk filter yang dipilih.</p>
-                <p className="text-sm">Coba pilih tanggal lain atau reset filter.</p>
+                {searchQuery && <p className="text-sm">Coba ubah kata kunci pencarian Anda.</p>}
+                {!searchQuery && <p className="text-sm">Coba pilih tanggal lain atau reset filter.</p>}
               </div>
             )}
         </>
@@ -864,4 +892,5 @@ export default function CalendarPage() {
     
 
     
+
 
