@@ -8,7 +8,7 @@ import 'dotenv/config';
  *
  * - writeEventToSheet - Writes a new event to the appropriate cell in the Google Sheet. It now handles "adopting" existing manual entries.
  * - deleteSheetEntry - Finds and deletes an event entry from the Google Sheet based on eventId.
- * - findBagianByEventIds - Finds the 'bagian' for a list of event IDs.
+ * - findBagianByEventIds - Finds the 'bagian' for a list of event IDs in a single batch operation.
  */
 
 import { ai } from '@/ai/genkit';
@@ -339,31 +339,21 @@ export const findBagianByEventIdFlow = ai.defineFlow({
         if (!sheetName || !sheetName.startsWith('Giat_')) continue;
 
         const searchRange = `${sheetName}!E18:AI52`; // Search data matrix
-        const bagianRange = `${sheetName}!A18:A52`;  // Bagian names
 
         try {
-            const [dataResponse, bagianResponse] = await Promise.all([
-                 sheets.spreadsheets.values.get({ spreadsheetId, range: searchRange }),
-                 sheets.spreadsheets.values.get({ spreadsheetId, range: bagianRange })
-            ]);
-
+            const dataResponse = await sheets.spreadsheets.values.get({ spreadsheetId, range: searchRange });
             const rows = dataResponse.data.values;
-            const bagianNames = bagianResponse.data.values;
-            if (!rows || !bagianNames) continue;
+            if (!rows) continue;
             
-            let currentBagian = '';
             for (let r = 0; r < rows.length; r++) {
-                 // Update current bagian if the cell is not empty
-                if (bagianNames[r] && bagianNames[r][0]) {
-                    currentBagian = bagianNames[r][0];
-                }
                 const row = rows[r];
                 for (let c = 0; c < row.length; c++) {
                     const cellValue = row[c];
                     if (typeof cellValue === 'string' && cellValue.includes(`eventId:${input.eventId}`)) {
-                        // Find which major 'bagian' this row belongs to.
+                        // Found the event. Now determine its 'bagian'.
+                        const currentRow = 18 + r;
                          for (const [key, range] of Object.entries(BAGIAN_ROW_MAP)) {
-                             if (r + 18 >= range.start && r + 18 <= range.end) {
+                             if (currentRow >= range.start && currentRow <= range.end) {
                                 return { bagian: key };
                              }
                          }
@@ -398,58 +388,62 @@ export const findBagianByEventIdsFlow = ai.defineFlow({
     const eventIdToBagianMap: Record<string, string> = {};
     const remainingEventIds = new Set(input.eventIds);
 
-    for (const sheet of allSheets) {
+    const sheetRanges = allSheets
+        .map(sheet => sheet.properties?.title)
+        .filter((sheetName): sheetName is string => !!sheetName && sheetName.startsWith('Giat_'))
+        .flatMap(sheetName => [`${sheetName}!E18:AI52`, `${sheetName}!A18:A52`]);
+
+    if (sheetRanges.length === 0) return {};
+
+    const batchGetResponse = await sheets.spreadsheets.values.batchGet({
+        spreadsheetId,
+        ranges: sheetRanges,
+    });
+    
+    const valueRanges = batchGetResponse.data.valueRanges || [];
+
+    // Process responses in pairs (data matrix, then bagian names)
+    for (let i = 0; i < valueRanges.length; i += 2) {
         if (remainingEventIds.size === 0) break;
 
-        const sheetName = sheet.properties?.title;
-        if (!sheetName || !sheetName.startsWith('Giat_')) continue;
+        const dataRange = valueRanges[i];
+        const bagianRange = valueRanges[i+1];
+        
+        const rows = dataRange.values;
+        const bagianNames = bagianRange.values;
 
-        const searchRange = `${sheetName}!E18:AI52`;
-        const bagianRange = `${sheetName}!A18:A52`;
+        if (!rows || !bagianNames) continue;
 
-        try {
-            const [dataResponse, bagianResponse] = await Promise.all([
-                 sheets.spreadsheets.values.get({ spreadsheetId, range: searchRange }),
-                 sheets.spreadsheets.values.get({ spreadsheetId, range: bagianRange })
-            ]);
+        for (let r = 0; r < rows.length; r++) {
+            if (remainingEventIds.size === 0) break;
 
-            const rows = dataResponse.data.values;
-            const bagianNames = bagianResponse.data.values;
-            if (!rows || !bagianNames) continue;
-
-            for (let r = 0; r < rows.length; r++) {
-                if (remainingEventIds.size === 0) break;
-
-                // Find the 'bagian' this row belongs to from the map
-                let rowBagianKey: string | null = null;
-                for (const [key, range] of Object.entries(BAGIAN_ROW_MAP)) {
-                    if (r + 18 >= range.start && r + 18 <= range.end) {
-                        rowBagianKey = key;
-                        break;
-                    }
+            const rowData = rows[r];
+            if (!rowData) continue;
+            
+            // Find the 'bagian' this row belongs to from the map
+            let rowBagianKey: string | null = null;
+            const currentRow = 18 + r; // Calculate the actual row number in the sheet
+            for (const [key, range] of Object.entries(BAGIAN_ROW_MAP)) {
+                if (currentRow >= range.start && currentRow <= range.end) {
+                    rowBagianKey = key;
+                    break;
                 }
-                if (!rowBagianKey) continue;
-                
-                // Get the display name of the 'bagian' from the cell
-                const bagianDisplayName = bagianNames[r] && bagianNames[r][0] ? String(bagianNames[r][0]).toUpperCase() : rowBagianKey.toUpperCase();
-
-                const rowData = rows[r];
-                for (let c = 0; c < rowData.length; c++) {
-                    const cellValue = rowData[c];
-                    if (typeof cellValue === 'string') {
-                         for (const eventId of remainingEventIds) {
-                            if (cellValue.includes(`eventId:${eventId}`)) {
-                                eventIdToBagianMap[eventId] = bagianDisplayName;
-                                remainingEventIds.delete(eventId);
-                                break; 
-                            }
+            }
+            if (!rowBagianKey) continue;
+            
+            // Get the display name of the 'bagian' from the cell
+            const bagianDisplayName = bagianNames[r] && bagianNames[r][0] ? String(bagianNames[r][0]).toUpperCase() : rowBagianKey.toUpperCase();
+            
+            for (const cellValue of rowData) {
+                if (typeof cellValue === 'string') {
+                     for (const eventId of remainingEventIds) {
+                        if (cellValue.includes(`eventId:${eventId}`)) {
+                            eventIdToBagianMap[eventId] = bagianDisplayName;
+                            remainingEventIds.delete(eventId);
+                            break; 
                         }
                     }
                 }
-            }
-        } catch (e: any) {
-            if (!e.message.includes('Unable to parse range')) {
-                console.error(`Error in findBagianByEventIds sheet '${sheetName}':`, e.message);
             }
         }
     }
