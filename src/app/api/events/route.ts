@@ -1,7 +1,7 @@
 
 import 'dotenv/config'
 export const runtime = "nodejs";          // jangan edge: googleapis butuh Node
-export const revalidate = 0;              // no cache
+export const revalidate = 60;             // Cache for 60 seconds
 export const dynamic = "force-dynamic";
 
 import { NextRequest, NextResponse } from "next/server";
