@@ -293,11 +293,22 @@ const WeeklyView = ({ events, baseDate, onEventClick, onDayClick }: { events: Ca
                                 {format(day, 'd')}
                             </span>
                             <div className="mt-1 space-y-1">
-                                {dayEvents.slice(0, maxEventsToShow).map(event => (
-                                    <button key={event.id} onClick={() => onEventClick(event)} className="w-full text-left bg-primary/80 hover:bg-primary/90 text-white p-1 rounded-md text-xs leading-tight">
-                                        {event.summary}
-                                    </button>
-                                ))}
+                                {dayEvents.slice(0, maxEventsToShow).map(event => {
+                                    const disposisi = extractDisposisi(event.description);
+                                    const isCamat = disposisi && /camat/i.test(disposisi);
+                                    return (
+                                        <button 
+                                            key={event.id} 
+                                            onClick={() => onEventClick(event)} 
+                                            className={cn(
+                                                "w-full text-left text-white p-1 rounded-md text-xs leading-tight",
+                                                isCamat ? "bg-orange-500 hover:bg-orange-600" : "bg-primary/80 hover:bg-primary/90"
+                                            )}
+                                        >
+                                            {event.summary}
+                                        </button>
+                                    );
+                                })}
                                 {dayEvents.length > maxEventsToShow && (
                                     <button onClick={() => onDayClick(day)} className="text-xs text-primary hover:underline mt-1 w-full text-left">
                                         + {dayEvents.length - maxEventsToShow} lainnya
@@ -356,11 +367,22 @@ const MonthlyView = ({ events, baseDate, onEventClick, onDayClick }: { events: C
                                 {getDate(day)}
                             </span>
                              <div className="mt-1 space-y-1">
-                                {dayEvents.slice(0, maxEventsToShow).map(event => (
-                                    <button key={event.id} onClick={() => onEventClick(event)} className="w-full text-left bg-accent hover:bg-accent/90 text-white p-1 rounded-md text-xs leading-tight">
-                                        {truncateTitle(event.summary, 3)}
-                                    </button>
-                                ))}
+                                {dayEvents.slice(0, maxEventsToShow).map(event => {
+                                    const disposisi = extractDisposisi(event.description);
+                                    const isCamat = disposisi && /camat/i.test(disposisi);
+                                    return (
+                                        <button 
+                                            key={event.id} 
+                                            onClick={() => onEventClick(event)} 
+                                            className={cn(
+                                                "w-full text-left text-white p-1 rounded-md text-xs leading-tight",
+                                                isCamat ? "bg-orange-500 hover:bg-orange-600" : "bg-accent hover:bg-accent/90"
+                                            )}
+                                        >
+                                            {truncateTitle(event.summary, 3)}
+                                        </button>
+                                    );
+                                })}
                                 {dayEvents.length > maxEventsToShow && (
                                      <button onClick={() => onDayClick(day)} className="text-xs text-primary hover:underline mt-1 w-full text-left">
                                         + {dayEvents.length - maxEventsToShow} lainnya
@@ -715,7 +737,7 @@ export default function CalendarPage() {
                             locale={localeId}
                             mode="single"
                             selected={filterDate}
-                            onSelect={(date) => setFilterDate(date)}
+                            onSelect={setFilterDate}
                             initialFocus
                             />
                         </PopoverContent>
@@ -842,3 +864,4 @@ export default function CalendarPage() {
     
 
     
+
