@@ -6,8 +6,9 @@ import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardFooter, CardHeader, CardTitle } from '@/components/ui/card';
 import { Popover, PopoverContent, PopoverTrigger } from '@/components/ui/popover';
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger, DialogFooter, DialogDescription } from '@/components/ui/dialog';
-import { Calendar as CalendarIcon, ExternalLink, PlusCircle, RefreshCw, MapPin, Clock, ChevronLeft, ChevronRight, Pin, Copy, Info, Link as LinkIcon, FolderOpen, Paperclip, Folder, PenSquare, Trash2, Search } from 'lucide-react';
+import { Calendar as CalendarIcon, ExternalLink, PlusCircle, RefreshCw, MapPin, Clock, ChevronLeft, ChevronRight, Pin, Copy, Info, Link as LinkIcon, FolderOpen, Paperclip, Folder, PenSquare, Trash2, Search, Building } from 'lucide-react';
 import { Calendar } from '@/components/ui/calendar';
+import { Badge } from '@/components/ui/badge';
 import { format, parseISO, isSameDay, startOfDay, endOfDay, startOfWeek, endOfWeek, startOfMonth, endOfMonth, isWithinInterval, eachDayOfInterval, getDay, isSameMonth, getDate, addDays, subDays, addWeeks, subMonths, addMonths } from 'date-fns';
 import { id as localeId } from 'date-fns/locale';
 import { cn } from '@/lib/utils';
@@ -20,6 +21,7 @@ import { Input } from '@/components/ui/input';
 import { getFileIcon } from '@/lib/utils';
 import DOMPurify from 'isomorphic-dompurify';
 import { Accordion, AccordionContent, AccordionItem, AccordionTrigger } from '@/components/ui/accordion';
+import { findBagianByEventIds } from '@/ai/flows/sheets-flow';
 
 
 type CalendarAttachment = {
@@ -39,6 +41,7 @@ export type CalendarEvent = {
     isAllDay: boolean;
     htmlLink: string | null | undefined;
     attachments?: CalendarAttachment[];
+    bagianName?: string;
 }
 
 const WhatsAppIcon = () => (
@@ -164,7 +167,10 @@ const EventCard = ({ event, onEdit }: { event: CalendarEvent, onEdit: (event: Ca
   return (
     <Card key={event.id} className="flex flex-col">
         <CardHeader className="py-2 px-3">
-            <CardTitle className="text-base leading-snug">{event.summary || '(Tanpa Judul)'}</CardTitle>
+            <div className="flex justify-between items-start">
+                <CardTitle className="text-base leading-snug">{event.summary || '(Tanpa Judul)'}</CardTitle>
+                {event.bagianName && <Badge variant="secondary" className="ml-2 shrink-0">{event.bagianName}</Badge>}
+            </div>
         </CardHeader>
         <CardContent className="flex-grow space-y-1 text-sm text-muted-foreground px-3 pb-2">
             <div className="space-y-0.5">
@@ -410,6 +416,12 @@ const EventDetailContent = ({ event }: { event: CalendarEvent }) => {
                 <DialogDescription>{formatEventDisplay(event.start, event.end, event.isAllDay)}</DialogDescription>
             </DialogHeader>
             <div className="space-y-4 py-4 text-sm">
+                {event.bagianName && (
+                    <div className="flex items-start">
+                        <Building className="mr-3 h-5 w-5 flex-shrink-0 text-muted-foreground" />
+                         <span className="text-foreground font-semibold">{event.bagianName}</span>
+                    </div>
+                )}
                 {event.location && (
                     <div className="flex items-start">
                         <MapPin className="mr-3 h-5 w-5 flex-shrink-0 text-muted-foreground" />
@@ -550,7 +562,7 @@ export default function CalendarPage() {
         throw new Error(data.error || 'Gagal mengambil data dari server.');
       }
       
-      const processedEvents = (data.items || []).map((event: any) => {
+      const rawEvents = (data.items || []).map((event: any) => {
         const googleAttachments: CalendarAttachment[] = (event.attachments || []).map((att: any) => ({
           fileUrl: att.fileUrl,
           title: att.title,
@@ -582,12 +594,25 @@ export default function CalendarPage() {
       });
 
 
-      const sortedEvents = processedEvents.sort((a: CalendarEvent, b: CalendarEvent) => {
+      const sortedEvents: CalendarEvent[] = rawEvents.sort((a: CalendarEvent, b: CalendarEvent) => {
         if (!a.start || !b.start) return 0;
         return parseISO(a.start).getTime() - parseISO(a.start).getTime();
       });
 
-      setEvents(sortedEvents);
+      // Enrich events with 'bagian' information
+      const eventIds = sortedEvents.map(e => e.id).filter(Boolean) as string[];
+      if (eventIds.length > 0) {
+          const bagianMap = await findBagianByEventIds({ eventIds });
+          const enrichedEvents = sortedEvents.map(event => ({
+              ...event,
+              bagianName: event.id ? bagianMap[event.id] : undefined,
+          }));
+          setEvents(enrichedEvents);
+      } else {
+          setEvents(sortedEvents);
+      }
+
+
     } catch (e: any) {
       console.error("Error fetching calendar events:", e);
       let friendlyMessage = e.message || 'Gagal memuat kegiatan dari kalender.';
@@ -620,7 +645,8 @@ export default function CalendarPage() {
             return (
                 event.summary?.toLowerCase().includes(query) ||
                 event.location?.toLowerCase().includes(query) ||
-                disposisi?.toLowerCase().includes(query)
+                disposisi?.toLowerCase().includes(query) ||
+                event.bagianName?.toLowerCase().includes(query)
             );
         });
     }
@@ -638,7 +664,8 @@ export default function CalendarPage() {
       return (
         event.summary?.toLowerCase().includes(query) ||
         event.location?.toLowerCase().includes(query) ||
-        disposisi?.toLowerCase().includes(query)
+        disposisi?.toLowerCase().includes(query) ||
+        event.bagianName?.toLowerCase().includes(query)
       );
     });
   }, [events, searchQuery, viewMode]);
@@ -680,12 +707,14 @@ export default function CalendarPage() {
           const time = formatEventDisplay(event.start, event.end, event.isAllDay);
           const location = event.location;
           const disposisi = extractDisposisi(event.description);
+          const bagian = event.bagianName || "Belum Ditentukan";
           const eventDate = event.start ? format(parseISO(event.start), 'EEEE, dd MMM', { locale: localeId }) : 'Tanggal tidak valid';
 
           message += `*${index + 1}. ${title}*\n`;
           if (viewMode !== 'harian') {
             message += `- 🗓️ *Tanggal:* ${eventDate}\n`;
           }
+          message += `- 🏢 *Bagian:* ${bagian}\n`;
           message += `- ⏰ *Waktu:* ${time}\n`;
           if (location) {
               message += `- 📍 *Lokasi:* ${location}\n`;
@@ -767,7 +796,7 @@ export default function CalendarPage() {
                     <Search className="absolute left-2.5 top-2.5 h-4 w-4 text-muted-foreground" />
                     <Input
                         type="search"
-                        placeholder="Cari kegiatan..."
+                        placeholder="Cari kegiatan, lokasi, disposisi..."
                         className="pl-8 w-full md:w-[200px] lg:w-[300px]"
                         value={searchQuery}
                         onChange={(e) => setSearchQuery(e.target.value)}
@@ -920,10 +949,3 @@ export default function CalendarPage() {
     </div>
   );
 }
-
-    
-
-    
-
-
-

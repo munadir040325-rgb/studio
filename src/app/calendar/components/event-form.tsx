@@ -34,7 +34,7 @@ import { cn } from '@/lib/utils';
 import { format, parseISO } from 'date-fns';
 import { id } from 'date-fns/locale';
 import { createCalendarEvent, updateCalendarEvent, deleteCalendarEvent, CalendarEvent } from '@/ai/flows/calendar-flow';
-import { writeEventToSheet, deleteSheetEntry } from '@/ai/flows/sheets-flow';
+import { writeEventToSheet, deleteSheetEntry, findBagianByEventId } from '@/ai/flows/sheets-flow';
 import { trashKegiatanFolder } from '@/ai/flows/drive-flow';
 import { useToast } from '@/hooks/use-toast';
 import { useState, useEffect } from 'react';
@@ -80,7 +80,9 @@ export function EventForm({ onSuccess, eventToEdit }: EventFormProps) {
   const { toast } = useToast();
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [isDeleting, setIsDeleting] = useState(false);
-  const [lastSubmittedBagian, setLastSubmittedBagian] = useState<string>('');
+  const [isFindingBagian, setIsFindingBagian] = useState(false);
+  const [originalBagian, setOriginalBagian] = useState<string | null>(null);
+
   const { data: bagianData, error: bagianError } = useSWR('/api/sheets', fetcher);
   
   const isEditMode = !!eventToEdit;
@@ -103,65 +105,81 @@ export function EventForm({ onSuccess, eventToEdit }: EventFormProps) {
         location: eventToEdit.location || '',
         startDateTime: eventToEdit.start ? parseISO(eventToEdit.start) : new Date(),
         endDateTime: eventToEdit.end ? parseISO(eventToEdit.end) : new Date(),
-        // Bagian cannot be pre-filled easily as it's not stored in the calendar event.
-        // The user will have to re-select it.
-        bagian: '', 
+        bagian: '', // Reset first
       });
-      // We don't have the original 'bagian' here, so we can't set lastSubmittedBagian
-      // It must be re-selected by the user for deletion to work.
+
+      const fetchAndSetBagian = async () => {
+        if (!eventToEdit.id) return;
+        setIsFindingBagian(true);
+        try {
+          const { bagian } = await findBagianByEventId({ eventId: eventToEdit.id });
+          if (bagian) {
+            form.setValue('bagian', bagian);
+            setOriginalBagian(bagian); // Store the original 'bagian'
+          }
+        } catch (e: any) {
+          console.error("Failed to find bagian:", e);
+          toast({ variant: 'destructive', title: "Gagal Mencari Bagian", description: e.message });
+        } finally {
+          setIsFindingBagian(false);
+        }
+      };
+
+      fetchAndSetBagian();
     }
-  }, [isEditMode, eventToEdit, form]);
+  }, [isEditMode, eventToEdit, form, toast]);
+
 
   async function onSubmit(values: z.infer<typeof formSchema>) {
     setIsSubmitting(true);
-    setLastSubmittedBagian(values.bagian);
     const toastAction = isEditMode ? 'memperbarui' : 'menyimpan';
     
+    const eventPayload = {
+      summary: values.summary,
+      description: values.description || '',
+      location: values.location,
+      startDateTime: values.startDateTime.toISOString(),
+      endDateTime: values.endDateTime.toISOString(),
+    };
+
+    const sheetPayload = {
+        summary: values.summary,
+        location: values.location,
+        startDateTime: values.startDateTime.toISOString(),
+        disposisi: values.description || '',
+        bagian: values.bagian,
+    };
+
     try {
       toast({ description: `Sedang ${toastAction} kegiatan...` });
       
-      const userInput = values.description || '';
       let resultingEvent: CalendarEvent;
 
       if (isEditMode && eventToEdit?.id) {
          resultingEvent = await updateCalendarEvent({
             eventId: eventToEdit.id,
-            summary: values.summary,
-            description: userInput,
-            location: values.location,
-            startDateTime: values.startDateTime.toISOString(),
-            endDateTime: values.endDateTime.toISOString(),
+            ...eventPayload
          });
          
-        // Explicitly delete the old sheet entry first
-        await deleteSheetEntry({ eventId: eventToEdit.id! });
+        // Explicitly delete the old sheet entry first, using the original 'bagian'
+        if (originalBagian) {
+            await deleteSheetEntry({ eventId: eventToEdit.id!, bagianLama: originalBagian });
+        } else {
+             await deleteSheetEntry({ eventId: eventToEdit.id! });
+        }
         
         // Then, write the new entry
         await writeEventToSheet({
-            summary: values.summary,
-            location: values.location,
-            startDateTime: values.startDateTime.toISOString(),
-            disposisi: userInput,
-            bagian: values.bagian,
+            ...sheetPayload,
             eventId: eventToEdit.id!,
         });
 
       } else {
-         resultingEvent = await createCalendarEvent({
-            summary: values.summary,
-            description: userInput,
-            location: values.location,
-            startDateTime: values.startDateTime.toISOString(),
-            endDateTime: values.endDateTime.toISOString(),
-         });
+         resultingEvent = await createCalendarEvent(eventPayload);
 
          if (resultingEvent && resultingEvent.id) {
             await writeEventToSheet({
-              summary: values.summary,
-              location: values.location,
-              startDateTime: values.startDateTime.toISOString(),
-              disposisi: userInput,
-              bagian: values.bagian,
+              ...sheetPayload,
               eventId: resultingEvent.id,
             });
          }
@@ -282,10 +300,13 @@ export function EventForm({ onSuccess, eventToEdit }: EventFormProps) {
                 render={({ field }) => (
                     <FormItem>
                         <FormLabel>Bagian (Wajib)</FormLabel>
-                        <Select onValueChange={field.onChange} value={field.value} disabled={!bagianData || !!bagianError}>
+                        <Select onValueChange={field.onChange} value={field.value} disabled={!bagianData || !!bagianError || isFindingBagian}>
                             <FormControl>
                                 <SelectTrigger>
-                                    <SelectValue placeholder={!bagianData ? "Memuat..." : "Pilih bagian pelaksana"} />
+                                    <SelectValue placeholder={
+                                        isFindingBagian ? "Mencari bagian..." : 
+                                        !bagianData ? "Memuat..." : "Pilih bagian pelaksana"
+                                    } />
                                 </SelectTrigger>
                             </FormControl>
                             <SelectContent>
@@ -294,7 +315,6 @@ export function EventForm({ onSuccess, eventToEdit }: EventFormProps) {
                                 ))}
                             </SelectContent>
                         </Select>
-                        {isEditMode && <FormDescription className="text-amber-600 text-xs">Pilih ulang bagian untuk menyimpan perubahan atau menghapus.</FormDescription>}
                         <FormMessage />
                          {bagianError && <p className="text-red-500 text-xs mt-1">Gagal memuat daftar bagian: {bagianError.message}</p>}
                     </FormItem>
@@ -464,3 +484,5 @@ export function EventForm({ onSuccess, eventToEdit }: EventFormProps) {
     </>
   );
 }
+
+    

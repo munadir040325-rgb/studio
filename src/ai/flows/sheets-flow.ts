@@ -8,6 +8,7 @@ import 'dotenv/config';
  *
  * - writeEventToSheet - Writes a new event to the appropriate cell in the Google Sheet. It now handles "adopting" existing manual entries.
  * - deleteSheetEntry - Finds and deletes an event entry from the Google Sheet based on eventId.
+ * - findBagianByEventIds - Finds the 'bagian' for a list of event IDs.
  */
 
 import { ai } from '@/ai/genkit';
@@ -48,8 +49,20 @@ export type WriteToSheetInput = z.infer<typeof writeToSheetInputSchema>;
 
 const deleteSheetEntryInputSchema = z.object({
     eventId: z.string(),
+    bagianLama: z.string().optional(),
 });
 export type DeleteSheetEntryInput = z.infer<typeof deleteSheetEntryInputSchema>;
+
+const findBagianInputSchema = z.object({
+    eventId: z.string(),
+});
+
+export type FindBagianInput = z.infer<typeof findBagianInputSchema>;
+
+const findBagianBatchInputSchema = z.object({
+    eventIds: z.array(z.string()),
+});
+export type FindBagianBatchInput = z.infer<typeof findBagianBatchInputSchema>;
 
 
 // Constants from your Apps Script
@@ -197,28 +210,13 @@ export const writeToSheetFlow = ai.defineFlow(
     const timeText = `Pukul ${format(eventDate, 'HH.mm')}`;
     const disposisi = input.disposisi || ''; 
     
-    let cellValue;
-    if (existingValue) {
-        // "Adopt" flow: Append eventId to the existing manual data.
-        // This assumes the manual entry is just the summary. A more robust solution might parse the parts.
-        // For now, we rebuild it with the new standardized format.
-        cellValue = [
-            input.summary || 'Kegiatan',
-            input.location || '',
-            timeText,
-            disposisi,
-            `eventId:${input.eventId}`
-        ].join('|');
-    } else {
-        // "New" flow: Create the cell value from scratch.
-        cellValue = [
-            input.summary || 'Kegiatan',
-            input.location || '',
-            timeText,
-            disposisi,
-            `eventId:${input.eventId}`
-        ].join('|');
-    }
+    const cellValue = [
+        input.summary || 'Kegiatan',
+        input.location || '',
+        timeText,
+        disposisi,
+        `eventId:${input.eventId}`
+    ].join('|');
 
 
     const targetCell = `${sheetName}!${targetColLetter}${targetRow}`;
@@ -320,6 +318,145 @@ export const deleteSheetEntryFlow = ai.defineFlow(
     }
 );
 
+export const findBagianByEventIdFlow = ai.defineFlow({
+    name: 'findBagianByEventIdFlow',
+    inputSchema: findBagianInputSchema,
+    outputSchema: z.object({
+        bagian: z.string().nullable(),
+    }),
+}, async (input) => {
+    if (!spreadsheetId) throw new Error("ID Google Sheet (NEXT_PUBLIC_SHEET_ID) belum diatur.");
+    if (!input.eventId) return { bagian: null };
+    
+    const auth = await getGoogleAuth(['https://www.googleapis.com/auth/spreadsheets.readonly']);
+    const sheets = google.sheets({ version: 'v4', auth });
+
+    const spreadsheetMeta = await sheets.spreadsheets.get({ spreadsheetId });
+    const allSheets = spreadsheetMeta.data.sheets || [];
+
+    for (const sheet of allSheets) {
+        const sheetName = sheet.properties?.title;
+        if (!sheetName || !sheetName.startsWith('Giat_')) continue;
+
+        const searchRange = `${sheetName}!E18:AI52`; // Search data matrix
+        const bagianRange = `${sheetName}!A18:A52`;  // Bagian names
+
+        try {
+            const [dataResponse, bagianResponse] = await Promise.all([
+                 sheets.spreadsheets.values.get({ spreadsheetId, range: searchRange }),
+                 sheets.spreadsheets.values.get({ spreadsheetId, range: bagianRange })
+            ]);
+
+            const rows = dataResponse.data.values;
+            const bagianNames = bagianResponse.data.values;
+            if (!rows || !bagianNames) continue;
+            
+            let currentBagian = '';
+            for (let r = 0; r < rows.length; r++) {
+                 // Update current bagian if the cell is not empty
+                if (bagianNames[r] && bagianNames[r][0]) {
+                    currentBagian = bagianNames[r][0];
+                }
+                const row = rows[r];
+                for (let c = 0; c < row.length; c++) {
+                    const cellValue = row[c];
+                    if (typeof cellValue === 'string' && cellValue.includes(`eventId:${input.eventId}`)) {
+                        // Find which major 'bagian' this row belongs to.
+                         for (const [key, range] of Object.entries(BAGIAN_ROW_MAP)) {
+                             if (r + 18 >= range.start && r + 18 <= range.end) {
+                                return { bagian: key };
+                             }
+                         }
+                        return { bagian: null }; // Found but couldn't map to a bagian
+                    }
+                }
+            }
+        } catch (e: any) {
+            if (!e.message.includes('Unable to parse range')) {
+                console.error(`Error in findBagian sheet '${sheetName}':`, e.message);
+            }
+        }
+    }
+    return { bagian: null };
+});
+
+
+export const findBagianByEventIdsFlow = ai.defineFlow({
+    name: 'findBagianByEventIdsFlow',
+    inputSchema: findBagianBatchInputSchema,
+    outputSchema: z.record(z.string(), z.string()), // { eventId: bagianName }
+}, async (input) => {
+    if (!spreadsheetId) throw new Error("ID Google Sheet (NEXT_PUBLIC_SHEET_ID) belum diatur.");
+    if (!input.eventIds || input.eventIds.length === 0) return {};
+
+    const auth = await getGoogleAuth(['https://www.googleapis.com/auth/spreadsheets.readonly']);
+    const sheets = google.sheets({ version: 'v4', auth });
+
+    const spreadsheetMeta = await sheets.spreadsheets.get({ spreadsheetId });
+    const allSheets = spreadsheetMeta.data.sheets || [];
+    
+    const eventIdToBagianMap: Record<string, string> = {};
+    const remainingEventIds = new Set(input.eventIds);
+
+    for (const sheet of allSheets) {
+        if (remainingEventIds.size === 0) break;
+
+        const sheetName = sheet.properties?.title;
+        if (!sheetName || !sheetName.startsWith('Giat_')) continue;
+
+        const searchRange = `${sheetName}!E18:AI52`;
+        const bagianRange = `${sheetName}!A18:A52`;
+
+        try {
+            const [dataResponse, bagianResponse] = await Promise.all([
+                 sheets.spreadsheets.values.get({ spreadsheetId, range: searchRange }),
+                 sheets.spreadsheets.values.get({ spreadsheetId, range: bagianRange })
+            ]);
+
+            const rows = dataResponse.data.values;
+            const bagianNames = bagianResponse.data.values;
+            if (!rows || !bagianNames) continue;
+
+            for (let r = 0; r < rows.length; r++) {
+                if (remainingEventIds.size === 0) break;
+
+                // Find the 'bagian' this row belongs to from the map
+                let rowBagianKey: string | null = null;
+                for (const [key, range] of Object.entries(BAGIAN_ROW_MAP)) {
+                    if (r + 18 >= range.start && r + 18 <= range.end) {
+                        rowBagianKey = key;
+                        break;
+                    }
+                }
+                if (!rowBagianKey) continue;
+                
+                // Get the display name of the 'bagian' from the cell
+                const bagianDisplayName = bagianNames[r] && bagianNames[r][0] ? String(bagianNames[r][0]).toUpperCase() : rowBagianKey.toUpperCase();
+
+                const rowData = rows[r];
+                for (let c = 0; c < rowData.length; c++) {
+                    const cellValue = rowData[c];
+                    if (typeof cellValue === 'string') {
+                         for (const eventId of remainingEventIds) {
+                            if (cellValue.includes(`eventId:${eventId}`)) {
+                                eventIdToBagianMap[eventId] = bagianDisplayName;
+                                remainingEventIds.delete(eventId);
+                                break; 
+                            }
+                        }
+                    }
+                }
+            }
+        } catch (e: any) {
+            if (!e.message.includes('Unable to parse range')) {
+                console.error(`Error in findBagianByEventIds sheet '${sheetName}':`, e.message);
+            }
+        }
+    }
+
+    return eventIdToBagianMap;
+});
+
 
 // Wrapper functions
 const checkSheetId = () => {
@@ -344,3 +481,19 @@ export async function deleteSheetEntry(input: DeleteSheetEntryInput): Promise<an
     }
     return deleteSheetEntryFlow(input);
 }
+
+
+export async function findBagianByEventId(input: FindBagianInput): Promise<{ bagian: string | null }> {
+    if (!checkSheetId()) {
+        return { bagian: null };
+    }
+    return findBagianByEventIdFlow(input);
+}
+
+export async function findBagianByEventIds(input: FindBagianBatchInput): Promise<Record<string, string>> {
+    if (!checkSheetId()) {
+        return {};
+    }
+    return findBagianByEventIdsFlow(input);
+}
+    
