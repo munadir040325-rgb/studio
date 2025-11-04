@@ -721,14 +721,12 @@ export default function CalendarPage() {
           const time = formatEventDisplay(event.start, event.end, event.isAllDay);
           const location = event.location;
           const disposisi = extractDisposisi(event.description);
-          const bagian = event.bagianName || "Belum Ditentukan";
           const eventDate = event.start ? format(parseISO(event.start), 'EEEE, dd MMM yyyy', { locale: localeId }) : 'Tanggal tidak valid';
 
           message += `*${index + 1}. ${title}*\n`;
           if (viewMode !== 'harian' || (viewMode === 'harian' && searchQuery)) {
             message += `- 🗓️ *Tanggal:* ${eventDate}\n`;
           }
-          message += `- 🏢 *Bagian:* ${bagian}\n`;
           message += `- ⏰ *Waktu:* ${time}\n`;
           if (location) {
               message += `- 📍 *Lokasi:* ${location}\n`;
