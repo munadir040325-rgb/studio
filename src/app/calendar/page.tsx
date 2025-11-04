@@ -506,6 +506,9 @@ export default function CalendarPage() {
   const [selectedEvent, setSelectedEvent] = useState<CalendarEvent | null>(null);
   const [dayToShow, setDayToShow] = useState<Date | null>(null);
   const { toast } = useToast();
+  const [currentPage, setCurrentPage] = useState(1);
+  const ITEMS_PER_PAGE = 8;
+
 
   useEffect(() => {
     // Initialize filterDate on the client side to avoid hydration errors
@@ -626,12 +629,18 @@ export default function CalendarPage() {
     fetchEvents();
   }, [fetchEvents]);
 
+  // Reset page to 1 when search query or view mode changes
+  useEffect(() => {
+    setCurrentPage(1);
+  }, [searchQuery, viewMode]);
+
+
   const filteredEvents = useMemo(() => {
     // When searching in daily view, the full list is already fetched.
     // We just need to filter it on the client side.
     if (viewMode === 'harian' && searchQuery) {
         const query = searchQuery.toLowerCase();
-        return events.filter(event => {
+        const results = events.filter(event => {
             const disposisi = extractDisposisi(event.description);
             return (
                 event.summary?.toLowerCase().includes(query) ||
@@ -640,13 +649,18 @@ export default function CalendarPage() {
                 event.bagianName?.toLowerCase().includes(query)
             );
         });
+        // Sort search results by date
+        return results.sort((a,b) => {
+            if (!a.start || !b.start) return 0;
+            return parseISO(a.start).getTime() - parseISO(b.start).getTime();
+        });
     }
     
     // For other views, or when not searching, the backend already pre-filtered by date.
-    // We only need to apply the search query if it exists.
     if (!searchQuery) {
         return events;
     }
+
     const query = searchQuery.toLowerCase();
     return events.filter(event => {
       const disposisi = extractDisposisi(event.description);
@@ -658,6 +672,14 @@ export default function CalendarPage() {
       );
     });
   }, [events, searchQuery, viewMode]);
+
+  const paginatedEvents = useMemo(() => {
+    const startIndex = (currentPage - 1) * ITEMS_PER_PAGE;
+    const endIndex = startIndex + ITEMS_PER_PAGE;
+    return filteredEvents.slice(startIndex, endIndex);
+  }, [filteredEvents, currentPage, ITEMS_PER_PAGE]);
+  
+  const totalPages = Math.ceil(filteredEvents.length / ITEMS_PER_PAGE);
 
 
   const handleSendToWhatsApp = () => {
@@ -671,15 +693,18 @@ export default function CalendarPage() {
       }
 
       let header;
-      if (viewMode === 'harian') {
+      if (viewMode === 'harian' && !searchQuery) {
         header = `*RENGIAT*\n*${format(filterDate, 'EEEE, dd MMMM yyyy', { locale: localeId }).toUpperCase()}*`;
-      } else {
+      } else if (viewMode === 'mingguan') {
         const start = startOfWeek(filterDate, { weekStartsOn: 1 });
         const end = endOfWeek(filterDate, { weekStartsOn: 1 });
         const startFormat = format(start, 'dd MMM', { locale: localeId });
         const endFormat = format(end, 'dd MMM yyyy', { locale: localeId });
         header = `*RENGIAT MINGGU INI*\n*${startFormat.toUpperCase()} - ${endFormat.toUpperCase()}*`;
+      } else {
+        header = `*HASIL PENCARIAN KEGIATAN*`
       }
+
 
       let message = `${header}\n\n`;
       let eventsToFormat = filteredEvents;
@@ -697,10 +722,10 @@ export default function CalendarPage() {
           const location = event.location;
           const disposisi = extractDisposisi(event.description);
           const bagian = event.bagianName || "Belum Ditentukan";
-          const eventDate = event.start ? format(parseISO(event.start), 'EEEE, dd MMM', { locale: localeId }) : 'Tanggal tidak valid';
+          const eventDate = event.start ? format(parseISO(event.start), 'EEEE, dd MMM yyyy', { locale: localeId }) : 'Tanggal tidak valid';
 
           message += `*${index + 1}. ${title}*\n`;
-          if (viewMode !== 'harian') {
+          if (viewMode !== 'harian' || (viewMode === 'harian' && searchQuery)) {
             message += `- 🗓️ *Tanggal:* ${eventDate}\n`;
           }
           message += `- 🏢 *Bagian:* ${bagian}\n`;
@@ -762,6 +787,10 @@ export default function CalendarPage() {
   const eventsByDay = useMemo(() => groupEventsByDay(filteredEvents), [filteredEvents]);
   const dailyEvents = dayToShow ? eventsByDay.get(format(dayToShow, 'yyyy-MM-dd')) || [] : [];
   
+  // Decide which list to render
+  const eventsToRender = (viewMode === 'harian' && searchQuery) ? paginatedEvents : filteredEvents;
+
+
   return (
     <div className="flex flex-col gap-6 w-full">
         {/* Top Navigation & Controls */}
@@ -814,7 +843,10 @@ export default function CalendarPage() {
                             locale={localeId}
                             mode="single"
                             selected={filterDate}
-                            onSelect={setFilterDate}
+                            onSelect={(date) => {
+                                setFilterDate(date);
+                                setCurrentPage(1);
+                            }}
                             initialFocus
                             />
                         </PopoverContent>
@@ -871,8 +903,31 @@ export default function CalendarPage() {
                  <TabsContent value="harian" className="mt-0">
                      <div className="flex flex-col gap-4">
                         <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-4">
-                            {filteredEvents.map(event => event.id && <EventCard event={event} key={event.id} onEdit={() => handleOpenForm('edit', event)} />)}
+                            {eventsToRender.map(event => event.id && <EventCard event={event} key={event.id} onEdit={() => handleOpenForm('edit', event)} />)}
                         </div>
+                        {viewMode === 'harian' && searchQuery && totalPages > 1 && (
+                            <div className="flex items-center justify-center gap-4 pt-4">
+                                <Button
+                                    onClick={() => setCurrentPage(p => p - 1)}
+                                    disabled={currentPage === 1}
+                                    variant="outline"
+                                >
+                                    <ChevronLeft className="h-4 w-4 mr-2" />
+                                    Sebelumnya
+                                </Button>
+                                <span className="text-sm font-medium">
+                                    Halaman {currentPage} dari {totalPages}
+                                </span>
+                                <Button
+                                    onClick={() => setCurrentPage(p => p + 1)}
+                                    disabled={currentPage === totalPages}
+                                    variant="outline"
+                                >
+                                    Berikutnya
+                                    <ChevronRight className="h-4 w-4 ml-2" />
+                                </Button>
+                            </div>
+                        )}
                     </div>
                 </TabsContent>
                 <TabsContent value="mingguan" className="mt-0">
@@ -937,5 +992,3 @@ export default function CalendarPage() {
     </div>
   );
 }
-
-    
