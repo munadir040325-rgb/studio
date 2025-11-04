@@ -513,37 +513,40 @@ export default function CalendarPage() {
   }, []);
 
   const fetchEvents = useCallback(async () => {
+    // Don't fetch if filterDate is not set yet (on initial server render)
     if (!filterDate) return;
 
     setIsLoading(true);
     setError(null);
 
-    let url = '/api/events';
     const params = new URLSearchParams();
+    const isSearchingInDaily = viewMode === 'harian' && searchQuery;
 
-    let startDate: Date;
-    let endDate: Date;
+    // Only add date parameters if NOT searching in daily view.
+    if (!isSearchingInDaily) {
+        let startDate: Date;
+        let endDate: Date;
 
-    switch (viewMode) {
-      case 'harian':
-        startDate = startOfDay(filterDate);
-        endDate = endOfDay(filterDate);
-        break;
-      case 'mingguan':
-        startDate = startOfWeek(filterDate, { weekStartsOn: 1 });
-        endDate = endOfWeek(filterDate, { weekStartsOn: 1 });
-        break;
-      case 'bulanan':
-        startDate = startOfMonth(filterDate);
-        endDate = endOfMonth(filterDate);
-        break;
+        switch (viewMode) {
+            case 'harian':
+                startDate = startOfDay(filterDate);
+                endDate = endOfDay(filterDate);
+                break;
+            case 'mingguan':
+                startDate = startOfWeek(filterDate, { weekStartsOn: 1 });
+                endDate = endOfWeek(filterDate, { weekStartsOn: 1 });
+                break;
+            case 'bulanan':
+                startDate = startOfMonth(filterDate);
+                endDate = endOfMonth(filterDate);
+                break;
+        }
+        params.append('start', format(startDate, 'yyyy-MM-dd'));
+        params.append('end', format(endDate, 'yyyy-MM-dd'));
     }
+    // If searching in daily view, params remains empty, so the backend fetches the default wide range.
 
-    params.append('start', format(startDate, 'yyyy-MM-dd'));
-    params.append('end', format(endDate, 'yyyy-MM-dd'));
-    
-    url += `?${params.toString()}`;
-
+    const url = `/api/events?${params.toString()}`;
 
     try {
       const response = await fetch(url);
@@ -617,21 +620,30 @@ export default function CalendarPage() {
     } finally {
       setIsLoading(false);
     }
-  }, [filterDate, viewMode]);
+  }, [filterDate, viewMode, searchQuery]);
 
   useEffect(() => {
-    if (filterDate) {
-      fetchEvents();
-    }
-  }, [fetchEvents, filterDate]); // removed `viewMode` to prevent double fetch
-
-  useEffect(() => {
-    if (filterDate) {
-      fetchEvents();
-    }
-  }, [viewMode]); // Separate useEffect for viewMode change
+    fetchEvents();
+  }, [fetchEvents]);
 
   const filteredEvents = useMemo(() => {
+    // When searching in daily view, the full list is already fetched.
+    // We just need to filter it on the client side.
+    if (viewMode === 'harian' && searchQuery) {
+        const query = searchQuery.toLowerCase();
+        return events.filter(event => {
+            const disposisi = extractDisposisi(event.description);
+            return (
+                event.summary?.toLowerCase().includes(query) ||
+                event.location?.toLowerCase().includes(query) ||
+                disposisi?.toLowerCase().includes(query) ||
+                event.bagianName?.toLowerCase().includes(query)
+            );
+        });
+    }
+    
+    // For other views, or when not searching, the backend already pre-filtered by date.
+    // We only need to apply the search query if it exists.
     if (!searchQuery) {
         return events;
     }
@@ -645,7 +657,7 @@ export default function CalendarPage() {
         event.bagianName?.toLowerCase().includes(query)
       );
     });
-  }, [events, searchQuery]);
+  }, [events, searchQuery, viewMode]);
 
 
   const handleSendToWhatsApp = () => {
@@ -925,3 +937,5 @@ export default function CalendarPage() {
     </div>
   );
 }
+
+    
