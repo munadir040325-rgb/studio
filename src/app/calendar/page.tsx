@@ -717,13 +717,14 @@ export default function CalendarPage() {
 
 
       eventsToFormat.forEach((event, index) => {
-          const title = event.summary || '(Tanpa Judul)';
+          // Sanitize title: remove any asterisks to prevent formatting conflicts
+          const cleanTitle = (event.summary || '(Tanpa Judul)').replace(/\*/g, '');
           const time = formatEventDisplay(event.start, event.end, event.isAllDay);
           const location = event.location;
           const disposisi = extractDisposisi(event.description);
           const eventDate = event.start ? format(parseISO(event.start), 'EEEE, dd MMM yyyy', { locale: localeId }) : 'Tanggal tidak valid';
 
-          message += `*${index + 1}. ${title}*\n`;
+          message += `*${index + 1}. ${cleanTitle}*\n`;
           if (viewMode !== 'harian' || (viewMode === 'harian' && searchQuery)) {
             message += `- 🗓️ *Tanggal:* ${eventDate}\n`;
           }
