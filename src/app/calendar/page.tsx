@@ -725,14 +725,14 @@ export default function CalendarPage() {
 
           message += `${index + 1}. ${cleanTitle}\n`;
           if (viewMode !== 'harian' || (viewMode === 'harian' && searchQuery)) {
-            message += `    - 🗓️ Tanggal: ${eventDate}\n`;
+            message += `    - Tanggal: ${eventDate}\n`;
           }
-          message += `    • ⏰ Waktu: ${time}\n`;
+          message += `    • Waktu: ${time}\n`;
           if (location) {
-              message += `    • 📍 Lokasi: ${location}\n`;
+              message += `    • Lokasi: ${location}\n`;
           }
           if (disposisi) {
-              message += `    • ✍️ Disposisi: ${disposisi}\n`;
+              message += `    • Disposisi: ${disposisi}\n`;
           }
           message += '\n';
       });
