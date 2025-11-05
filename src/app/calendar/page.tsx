@@ -1,4 +1,5 @@
 
+
 'use client';
 
 import { useState, useEffect, useCallback, useMemo, Fragment } from 'react';
@@ -716,7 +717,7 @@ export default function CalendarPage() {
 
 
       eventsToFormat.forEach((event, index) => {
-          const cleanTitle = event.summary || '(Tanpa Judul)';
+          const cleanTitle = (event.summary || '(Tanpa Judul)').replace(/\s+/g, ' ').trim();
           const time = formatEventDisplay(event.start, event.end, event.isAllDay);
           const location = event.location;
           const disposisi = extractDisposisi(event.description);
