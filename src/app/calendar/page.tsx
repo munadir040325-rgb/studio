@@ -681,13 +681,6 @@ export default function CalendarPage() {
   
   const totalPages = Math.ceil(filteredEvents.length / ITEMS_PER_PAGE);
 
-  // Helper function to remove WhatsApp formatting characters
-  const sanitizeForWhatsApp = (text: string | null | undefined): string => {
-    if (!text) return '';
-    // Replaces *, _, ~, ``` with a non-breaking space or similar to prevent formatting issues
-    return text.replace(/[*_~`]/g, '');
-  };
-
   const handleSendToWhatsApp = () => {
       if (!filterDate || filteredEvents.length === 0) {
           toast({
@@ -700,15 +693,15 @@ export default function CalendarPage() {
 
       let header;
       if (viewMode === 'harian' && !searchQuery) {
-        header = `*RENGIAT*\n*${format(filterDate, 'EEEE, dd MMMM yyyy', { locale: localeId }).toUpperCase()}*`;
+        header = `RENGIAT\n${format(filterDate, 'EEEE, dd MMMM yyyy', { locale: localeId }).toUpperCase()}`;
       } else if (viewMode === 'mingguan') {
         const start = startOfWeek(filterDate, { weekStartsOn: 1 });
         const end = endOfWeek(filterDate, { weekStartsOn: 1 });
         const startFormat = format(start, 'dd MMM', { locale: localeId });
         const endFormat = format(end, 'dd MMM yyyy', { locale: localeId });
-        header = `*RENGIAT MINGGU INI*\n*${startFormat.toUpperCase()} - ${endFormat.toUpperCase()}*`;
+        header = `RENGIAT MINGGU INI\n${startFormat.toUpperCase()} - ${endFormat.toUpperCase()}`;
       } else {
-        header = `*HASIL PENCARIAN KEGIATAN*`
+        header = `HASIL PENCARIAN KEGIATAN`
       }
 
 
@@ -723,22 +716,22 @@ export default function CalendarPage() {
 
 
       eventsToFormat.forEach((event, index) => {
-          const cleanTitle = sanitizeForWhatsApp(event.summary || '(Tanpa Judul)');
-          const time = sanitizeForWhatsApp(formatEventDisplay(event.start, event.end, event.isAllDay));
-          const location = sanitizeForWhatsApp(event.location);
-          const disposisi = sanitizeForWhatsApp(extractDisposisi(event.description));
+          const cleanTitle = event.summary || '(Tanpa Judul)';
+          const time = formatEventDisplay(event.start, event.end, event.isAllDay);
+          const location = event.location;
+          const disposisi = extractDisposisi(event.description);
           const eventDate = event.start ? format(parseISO(event.start), 'EEEE, dd MMM yyyy', { locale: localeId }) : 'Tanggal tidak valid';
 
-          message += `*${index + 1}. ${cleanTitle}*\n`;
+          message += `${index + 1}. ${cleanTitle}\n`;
           if (viewMode !== 'harian' || (viewMode === 'harian' && searchQuery)) {
-            message += `- 🗓️ *Tanggal:* ${eventDate}\n`;
+            message += `- 🗓️ Tanggal: ${eventDate}\n`;
           }
-          message += `- ⏰ *Waktu:* ${time}\n`;
+          message += `- ⏰ Waktu: ${time}\n`;
           if (location) {
-              message += `- 📍 *Lokasi:* ${location}\n`;
+              message += `- 📍 Lokasi: ${location}\n`;
           }
           if (disposisi) {
-              message += `- ✍️ *Disposisi:* ${disposisi}\n`;
+              message += `- ✍️ Disposisi: ${disposisi}\n`;
           }
           message += '\n';
       });
@@ -996,5 +989,3 @@ export default function CalendarPage() {
     </div>
   );
 }
-
-    
