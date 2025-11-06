@@ -125,11 +125,11 @@ const ReportEditorTemplate = ({ event, reportContent, onContentChange }: { event
             
             <table className="w-full mt-4 border-separate" style={{borderSpacing: '0 8px'}}>
                 <tbody>
-                    <tr>
+                    <tr id="row-dasar-kegiatan">
                         <td className="w-[1.8rem] align-top font-semibold">I.</td>
                         <td colSpan={3} className='font-semibold'>Dasar Kegiatan</td>
                     </tr>
-                    <tr>
+                    <tr id="row-dasar-kegiatan-content">
                         <td></td>
                         <td colSpan={3} className='pb-2'>
                            <EditableField id="report-dasar" placeholder="Isi dasar kegiatan (contoh: Perintah Lisan Camat)" className="w-full" />
@@ -165,18 +165,18 @@ const ReportEditorTemplate = ({ event, reportContent, onContentChange }: { event
                                         <td className='w-4 align-top'>:</td>
                                         <td>{event.location || <EditableField id="report-tempat" placeholder="Tempat Kegiatan" />}</td>
                                     </tr>
-                                    <tr>
-                                        <td className='w-32 align-top'>Pimpinan Rapat</td>
+                                    <tr id="row-pimpinan">
+                                        <td className='w-32 align-top'><EditableField id="label-pimpinan" placeholder="Label" defaultValue="Pimpinan Rapat"/></td>
                                         <td className='w-4 align-top'>:</td>
                                         <td><EditableField id="report-pimpinan" placeholder="Isi Pimpinan Rapat" /></td>
                                     </tr>
-                                    <tr>
+                                    <tr id="row-narasumber">
                                         <td className="w-32 align-top"><EditableField id="label-narasumber" placeholder="Label" defaultValue="Narasumber"/></td>
                                         <td className='w-4 align-top'>:</td>
                                         <td><EditableField id="report-narasumber" placeholder="Isi Narasumber" /></td>
                                     </tr>
-                                    <tr>
-                                        <td className='w-32 align-top'>Peserta</td>
+                                    <tr id="row-peserta">
+                                        <td className='w-32 align-top'><EditableField id="label-peserta" placeholder="Label" defaultValue="Peserta"/></td>
                                         <td className='w-4 align-top'>:</td>
                                         <td><EditableField id="report-peserta" placeholder="Sebutkan peserta/perwakilan yang hadir" /></td>
                                     </tr>
@@ -478,13 +478,18 @@ Hormat kami,
                     color: black !important;
                     display: block !important;
                 }
-                 tr:has(span[contenteditable]:empty) {
+                
+                #row-dasar-kegiatan:has(+ #row-dasar-kegiatan-content #report-dasar:empty),
+                #row-dasar-kegiatan-content:has(#report-dasar:empty) {
                     display: none;
                 }
-                /* These selectors need to be more specific to only hide rows for specific empty fields */
-                tr:has(#report-tembusan:empty),
-                tr:has(#report-pimpinan:empty),
-                tr:has(#report-narasumber:empty) {
+                #row-pimpinan:has(#report-pimpinan:empty) {
+                    display: none;
+                }
+                #row-narasumber:has(#report-narasumber:empty) {
+                    display: none;
+                }
+                #row-peserta:has(#report-peserta:empty) {
                     display: none;
                 }
             }
