@@ -9,7 +9,7 @@ import { Label } from '@/components/ui/label';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { Calendar } from '@/components/ui/calendar';
 import { Popover, PopoverContent, PopoverTrigger } from '@/components/ui/popover';
-import { Calendar as CalendarIcon, Loader2, Printer, Trash, Bold, Italic, List, ListOrdered } from 'lucide-react';
+import { Calendar as CalendarIcon, Loader2, Printer, Trash, Bold, Italic, List, ListOrdered, Indent, Outdent } from 'lucide-react';
 import { useToast } from '@/hooks/use-toast';
 import { cn } from '@/lib/utils';
 import { parseISO, format, isSameDay } from 'date-fns';
@@ -17,7 +17,6 @@ import { id as localeId } from 'date-fns/locale';
 import useSWR from 'swr';
 import { extractDisposisi } from '../calendar/page';
 import { Alert, AlertDescription, AlertTitle } from '@/components/ui/alert';
-import { Textarea } from '@/components/ui/textarea';
 import DOMPurify from 'isomorphic-dompurify';
 
 
@@ -50,60 +49,40 @@ const EditableField = ({ placeholder, className }: { placeholder: string, classN
 );
 
 const RichTextEditor = ({ value, onChange }: { value: string, onChange: (value: string) => void }) => {
-    const textareaRef = useRef<HTMLTextAreaElement>(null);
+    const editorRef = useRef<HTMLDivElement>(null);
 
-    const applyTag = (tag: 'b' | 'i') => {
-        const textarea = textareaRef.current;
-        if (!textarea) return;
-
-        const start = textarea.selectionStart;
-        const end = textarea.selectionEnd;
-        const selectedText = textarea.value.substring(start, end);
-        const newText = `${textarea.value.substring(0, start)}<${tag}>${selectedText}</${tag}>${textarea.value.substring(end)}`;
-        
-        onChange(newText);
+    const executeCommand = (command: string) => {
+        document.execCommand(command, false);
+        if(editorRef.current) {
+            onChange(editorRef.current.innerHTML);
+        }
     };
-
-    const applyList = (type: 'ul' | 'ol') => {
-         const textarea = textareaRef.current;
-        if (!textarea) return;
-
-        const start = textarea.selectionStart;
-        const end = textarea.selectionEnd;
-        const selectedText = textarea.value.substring(start, end);
-
-        const lines = selectedText.split('\n').filter(line => line.trim() !== '');
-        if (lines.length === 0) return;
-        
-        const listItems = lines.map(line => `  <li>${line}</li>`).join('\n');
-        const list = `<${type}>\n${listItems}\n</${type}>\n`;
-
-        const newText = textarea.value.substring(0, start) + list + textarea.value.substring(end);
-        onChange(newText);
-    };
+    
+    // Set initial content when the component mounts or the value prop changes
+    useEffect(() => {
+        if (editorRef.current && value !== editorRef.current.innerHTML) {
+            editorRef.current.innerHTML = value;
+        }
+    }, [value]);
 
     return (
-        <div className="w-full relative">
-            <div className="sticky top-0 z-10 bg-gray-100 p-1 rounded-md flex gap-1 print:hidden mb-2">
-                <Button type="button" size="icon" variant="outline" className="h-7 w-7" onClick={() => applyTag('b')}><Bold className="h-4 w-4" /></Button>
-                <Button type="button" size="icon" variant="outline" className="h-7 w-7" onClick={() => applyTag('i')}><Italic className="h-4 w-4" /></Button>
-                <Button type="button" size="icon" variant="outline" className="h-7 w-7" onClick={() => applyList('ul')}><List className="h-4 w-4" /></Button>
-                <Button type="button" size="icon" variant="outline" className="h-7 w-7" onClick={() => applyList('ol')}><ListOrdered className="h-4 w-4" /></Button>
+        <div className="w-full relative border rounded-md">
+            <div className="sticky top-0 z-10 bg-gray-100 p-1 rounded-t-md flex gap-1 print:hidden border-b">
+                <Button type="button" size="icon" variant="outline" className="h-7 w-7" onClick={() => executeCommand('bold')}><Bold className="h-4 w-4" /></Button>
+                <Button type="button" size="icon" variant="outline" className="h-7 w-7" onClick={() => executeCommand('italic')}><Italic className="h-4 w-4" /></Button>
+                <Button type="button" size="icon" variant="outline" className="h-7 w-7" onClick={() => executeCommand('insertUnorderedList')}><List className="h-4 w-4" /></Button>
+                <Button type="button" size="icon" variant="outline" className="h-7 w-7" onClick={() => executeCommand('insertOrderedList')}><ListOrdered className="h-4 w-4" /></Button>
+                <Button type="button" size="icon" variant="outline" className="h-7 w-7" onClick={() => executeCommand('indent')}><Indent className="h-4 w-4" /></Button>
+                <Button type="button" size="icon" variant="outline" className="h-7 w-7" onClick={() => executeCommand('outdent')}><Outdent className="h-4 w-4" /></Button>
             </div>
-            <Textarea
-                ref={textareaRef}
-                value={value}
-                onChange={(e) => onChange(e.target.value)}
-                className="min-h-[8rem] w-full"
-                placeholder="Isi hasil kegiatan dan tindak lanjut... Gunakan tombol di atas untuk format teks."
+            <div
+                ref={editorRef}
+                contentEditable
+                suppressContentEditableWarning
+                className="min-h-[10rem] w-full p-2 focus:outline-none"
+                onInput={(e) => onChange(e.currentTarget.innerHTML)}
+                placeholder="Isi hasil kegiatan dan tindak lanjut..."
             />
-            <div className="mt-4 print:hidden">
-                <Label className="font-semibold">Pratinjau Format</Label>
-                <div 
-                  className="mt-1 p-2 border rounded-md min-h-[4rem] bg-muted/50"
-                  dangerouslySetInnerHTML={{ __html: DOMPurify.sanitize(value) }}
-                />
-            </div>
         </div>
     );
 };
@@ -241,17 +220,10 @@ export default function ReportPage() {
   
   const [selectedDate, setSelectedDate] = useState<Date | undefined>();
   const [selectedEvent, setSelectedEvent] = useState<CalendarEvent | null>(null);
+  const [reportContent, setReportContent] = useState('');
 
   const { data: eventsData, error: eventsError, isLoading: isLoadingEvents } = useSWR('/api/events', fetcher);
-  
-  const { control, watch, setValue } = useForm({
-      defaultValues: {
-          reportContent: ''
-      }
-  });
-
-  const reportContent = watch('reportContent');
-  
+    
   const events: CalendarEvent[] = eventsData?.items.sort((a: CalendarEvent, b: CalendarEvent) => parseISO(b.start).getTime() - parseISO(a.start).getTime()) || [];
   
   const filteredEvents = useMemo(() => {
@@ -311,7 +283,7 @@ export default function ReportPage() {
   const handleReset = () => {
     setSelectedDate(undefined);
     setSelectedEvent(null);
-    setValue('reportContent', '');
+    setReportContent('');
     toast({ description: 'Pilihan telah dikosongkan.' });
   }
 
@@ -392,11 +364,7 @@ export default function ReportPage() {
            {selectedEvent && (
                 <CardContent>
                     <Label className="font-semibold">Hasil Kegiatan & Tindak Lanjut</Label>
-                    <Controller
-                        name="reportContent"
-                        control={control}
-                        render={({ field }) => <RichTextEditor value={field.value} onChange={field.onChange} />}
-                    />
+                     <RichTextEditor value={reportContent} onChange={setReportContent} />
                 </CardContent>
             )}
             <CardFooter className="flex justify-end gap-2 mt-4 border-t pt-6">
@@ -461,7 +429,8 @@ export default function ReportPage() {
                     font-size: 12px !important;
                     line-height: 1.2 !important;
                 }
-                #print-area .report-content-preview ul, #print-area .report-content-preview ol {
+                #print-area .report-content-preview ul, 
+                #print-area .report-content-preview ol {
                   list-style-position: inside;
                   padding-left: 0;
                 }
@@ -474,6 +443,12 @@ export default function ReportPage() {
              span[contentEditable="true"]:empty::before {
                 content: attr(data-placeholder);
                 color: #666;
+                font-style: italic;
+                display: block;
+            }
+            div[contentEditable="true"]:empty::before {
+                content: attr(placeholder);
+                color: #9a9a9a;
                 font-style: italic;
                 display: block;
             }
