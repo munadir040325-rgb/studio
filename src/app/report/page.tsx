@@ -59,6 +59,12 @@ const ReportPreview = ({ event }: { event: CalendarEvent | null }) => {
     };
     
     const handleInput = (e: React.FormEvent<HTMLDivElement>) => {
+        const editor = e.currentTarget;
+        // Ensure the editor is not empty; if it is, add a paragraph tag.
+        if (editor.innerHTML.trim() === "" || editor.innerHTML === "<br>") {
+            editor.innerHTML = "<p><br></p>";
+        }
+
         const selection = window.getSelection();
         if (!selection || selection.rangeCount === 0) return;
         
@@ -80,12 +86,28 @@ const ReportPreview = ({ event }: { event: CalendarEvent | null }) => {
     };
 
     const applyFormat = (command: 'bold' | 'italic' | 'insertOrderedList' | 'insertUnorderedList') => {
-        editorRef.current?.focus();
+        const editor = editorRef.current;
+        if (!editor) return;
+
+        editor.focus();
+
+        // For lists, ensure there's content to format
+        if ((command === 'insertOrderedList' || command === 'insertUnorderedList') && editor.innerHTML.trim() === '') {
+            editor.innerHTML = '<p><br></p>';
+            const range = document.createRange();
+            const sel = window.getSelection();
+            range.setStart(editor.getElementsByTagName('p')[0], 0);
+            range.collapse(true);
+            sel?.removeAllRanges();
+            sel?.addRange(range);
+        }
+        
         document.execCommand(command, false);
+        editor.focus();
     };
 
     const handleToolbarButtonClick = (e: React.MouseEvent<HTMLButtonElement>, command: 'bold' | 'italic' | 'insertOrderedList' | 'insertUnorderedList') => {
-        e.preventDefault(); // This is crucial to prevent the editor from losing focus
+        e.preventDefault(); // Crucial to prevent the editor from losing focus
         applyFormat(command);
     };
 
