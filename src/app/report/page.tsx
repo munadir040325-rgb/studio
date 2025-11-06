@@ -38,13 +38,15 @@ const fetcher = (url: string) => fetch(url).then(res => {
     return res.json();
 });
 
-const EditableField = ({ placeholder, className }: { placeholder: string, className?: string }) => (
+const EditableField = ({ placeholder, className, defaultValue }: { placeholder: string, className?: string, defaultValue?: string }) => (
     <span
         contentEditable
         suppressContentEditableWarning
         className={cn("p-1 -m-1 rounded-md min-w-[10rem] inline-block bg-muted/50 hover:bg-muted focus:bg-background focus:outline-none focus:ring-2 focus:ring-ring print:bg-transparent", className)}
         data-placeholder={placeholder}
-    />
+    >
+      {defaultValue}
+    </span>
 );
 
 
@@ -76,7 +78,17 @@ const ReportEditorTemplate = ({ event, reportContent, onContentChange }: { event
                         <td className="w-8 align-top font-semibold">I.</td>
                         <td className="w-28 align-top font-semibold">Dasar</td>
                         <td className="w-2 align-top">:</td>
-                        <td><EditableField placeholder="Isi dasar pelaksanaan kegiatan (contoh: Surat Undangan dari..., atau Perintah Lisan dari Camat, dll.)" className="w-full"/>, dengan ini kami laporkan hasil pelaksanaan kegiatan sebagai berikut:</td>
+                        <td><EditableField placeholder="Isi dasar pelaksanaan kegiatan (contoh: Surat Undangan dari..., atau Perintah Lisan dari Camat, dll.)" className="w-full"/></td>
+                    </tr>
+                     <tr>
+                        <td></td>
+                        <td colSpan={3} className="text-justify">
+                            <EditableField 
+                                placeholder="Kalimat pengantar laporan..." 
+                                className="w-full"
+                                defaultValue="dengan ini kami laporkan hasil pelaksanaan kegiatan sebagai berikut:"
+                            />
+                        </td>
                     </tr>
                     <tr><td colSpan={4} className="h-2"></td></tr>
 
@@ -354,16 +366,12 @@ export default function ReportPage() {
                 .report-content-preview li {
                     text-align: justify;
                 }
-                .report-content-preview .list-ol,
                 #print-area .list-ol {
                     padding-left: 20px;
                     list-style-position: inside;
                 }
-                .report-content-preview .list-ol-1,
                 #print-area .list-ol-1 { list-style-type: decimal; }
-                .report-content-preview .list-ol-2,
                 #print-area .list-ol-2 { list-style-type: lower-alpha; }
-                .report-content-preview .list-ol-3,
                 #print-area .list-ol-3 { list-style-type: lower-roman; }
             }
              span[contentEditable="true"]:empty::before {
@@ -372,6 +380,11 @@ export default function ReportPage() {
                 font-style: italic;
                 display: block;
             }
+             span[contentEditable="true"][data-placeholder]:not(:focus):empty {
+                content: attr(data-placeholder);
+                color: #666;
+                font-style: italic;
+             }
         `}</style>
     </div>
   );
