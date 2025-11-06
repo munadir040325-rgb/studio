@@ -1,5 +1,3 @@
-
-
 'use client';
 
 import { useState, useMemo } from 'react';
@@ -56,6 +54,33 @@ const ReportEditorTemplate = ({ event, reportContent, onContentChange }: { event
         <Card id="print-area" className="bg-white text-black p-8 md:p-12 shadow-lg rounded-sm print:shadow-none print:p-4 print:border-none">
             <h3 className="text-center font-bold text-lg">NOTA DINAS</h3>
 
+             <hr className="border-black my-4" />
+
+            <table className="w-full">
+                <tbody>
+                    <tr>
+                        <td className="w-28">Yth.</td>
+                        <td className="w-2">:</td>
+                        <td><EditableField placeholder="Isi tujuan surat" /></td>
+                    </tr>
+                    <tr>
+                        <td>Dari</td>
+                        <td>:</td>
+                        <td><EditableField placeholder="Isi pengirim" /></td>
+                    </tr>
+                    <tr>
+                        <td>Tembusan</td>
+                        <td>:</td>
+                        <td><EditableField placeholder="Isi tembusan" /></td>
+                    </tr>
+                     <tr>
+                        <td className='align-top'>Hal</td>
+                        <td className='align-top'>:</td>
+                        <td><EditableField placeholder="Isi perihal" /></td>
+                    </tr>
+                </tbody>
+            </table>
+
             <hr className="border-black my-4" />
             
             <table className="w-full mt-4 border-separate" style={{borderSpacing: '0 8px'}}>
@@ -68,7 +93,7 @@ const ReportEditorTemplate = ({ event, reportContent, onContentChange }: { event
                     <tr>
                         <td></td>
                         <td colSpan={3} className='pb-2'>
-                           <EditableField placeholder="Isi dasar kegiatan..." className="w-full" />
+                           <EditableField placeholder="Isi dasar kegiatan (contoh: Perintah Lisan Camat)" className="w-full" />
                         </td>
                     </tr>
 
