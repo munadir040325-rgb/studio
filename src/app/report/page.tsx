@@ -203,7 +203,7 @@ const ReportPreview = ({ event }: { event: CalendarEvent | null }) => {
             
             <p className="mt-4">Demikian untuk menjadikan periksa dan terima kasih.</p>
 
-            <div className="flex justify-end mt-4">
+            <div className="flex justify-end mt-8">
                 <div className="text-center w-64">
                     <p>Yang melaksanakan kegiatan,</p>
                     <br /><br /><br />
@@ -440,14 +440,8 @@ export default function ReportPage() {
             #print-area div[contenteditable] ul,
             #print-area div[contenteditable] ol {
                 list-style-position: inside;
-                padding-left: 1.5em; 
+                padding-left: 0; 
             }
-             #print-area div[contenteditable] ul {
-                list-style-type: disc;
-             }
-              #print-area div[contenteditable] ol {
-                list-style-type: decimal;
-             }
 
             #print-area div[contentEditable] p {
                 text-align: justify;
