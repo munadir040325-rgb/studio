@@ -145,7 +145,8 @@ export function Toolbar() {
     if (blockType !== 'ul') {
       editor.dispatchCommand(INSERT_UNORDERED_LIST_COMMAND, undefined);
     } else {
-      editor.dispatchCommand(INSERT_ORDERED_LIST_COMMAND, undefined);
+      // In a future version, this could cycle through bullet types
+      // For now, it does nothing if already a bullet list.
     }
   };
 
@@ -153,7 +154,8 @@ export function Toolbar() {
     if (blockType !== 'ol') {
       editor.dispatchCommand(INSERT_ORDERED_LIST_COMMAND, undefined);
     } else {
-        editor.dispatchCommand(INSERT_UNORDERED_LIST_COMMAND, undefined);
+      // In a future version, this could cycle through number types
+      // For now, it does nothing if already a numbered list.
     }
   };
 
