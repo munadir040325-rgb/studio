@@ -56,8 +56,8 @@ const ReportEditorTemplate = ({ event, reportContent, onContentChange }: { event
     return (
         <Card id="print-area" className="bg-white text-black p-8 md:p-12 shadow-lg rounded-sm print:shadow-none print:p-4 print:border-none">
             <h3 className="text-center font-bold text-lg">NOTA DINAS</h3>
-            <br />
-            <table className="w-full border-separate" style={{borderSpacing: '0 4px'}}>
+            
+            <table className="w-full mt-4 border-separate" style={{borderSpacing: '0 4px'}}>
                 <tbody>
                     <tr>
                         <td className="w-28 align-top">YTH.</td>
@@ -103,7 +103,7 @@ const ReportEditorTemplate = ({ event, reportContent, onContentChange }: { event
                     </tr>
                     <tr><td colSpan={4} className="h-2"></td></tr>
                     <tr>
-                        <td className="w-[1.8rem] align-top font-semibold" rowSpan={5}>II.</td>
+                        <td className="w-[1.8rem] align-top font-semibold" rowSpan={7}>II.</td>
                         <td className='w-28 align-top'>Acara</td>
                         <td className='w-2 align-top'>:</td>
                         <td>{event.summary}</td>
@@ -124,6 +124,16 @@ const ReportEditorTemplate = ({ event, reportContent, onContentChange }: { event
                         <td>{event.location || <EditableField placeholder="Tempat Kegiatan" />}</td>
                     </tr>
                      <tr>
+                        <td className='align-top'>Pimpinan Rapat</td>
+                        <td className='align-top'>:</td>
+                        <td><EditableField placeholder="Isi Pimpinan Rapat" /></td>
+                    </tr>
+                     <tr>
+                        <td className='align-top'>Narasumber</td>
+                        <td className='align-top'>:</td>
+                        <td><EditableField placeholder="Isi Narasumber" /></td>
+                    </tr>
+                     <tr>
                         <td className='align-top'>Peserta</td>
                         <td className='align-top'>:</td>
                         <td><EditableField placeholder="Sebutkan peserta/perwakilan yang hadir" /></td>
@@ -132,24 +142,7 @@ const ReportEditorTemplate = ({ event, reportContent, onContentChange }: { event
                     <tr><td colSpan={4} className="h-2"></td></tr>
 
                     <tr>
-                        <td className="w-[1.8rem] align-top font-semibold">III.</td>
-                        <td className='w-28 align-top font-semibold'>Pimpinan Rapat</td>
-                        <td className='w-2 align-top'>:</td>
-                        <td><EditableField placeholder="Isi Pimpinan Rapat" /></td>
-                    </tr>
-
-                    <tr><td colSpan={4} className="h-2"></td></tr>
-
-                     <tr>
-                        <td className="w-[1.8rem] align-top font-semibold">IV.</td>
-                        <td className='w-28 align-top font-semibold'>Narasumber</td>
-                        <td className='w-2 align-top'>:</td>
-                        <td><EditableField placeholder="Isi Narasumber" /></td>
-                    </tr>
-                    <tr><td colSpan={4} className="h-2"></td></tr>
-
-                    <tr>
-                        <td className="w-[1.8rem] align-top font-semibold" rowSpan={2}>V.</td>
+                        <td className="w-[1.8rem] align-top font-semibold" rowSpan={2}>III.</td>
                         <td colSpan={3} className='font-semibold'>HASIL KEGIATAN & TINDAK LANJUT</td>
                     </tr>
                      <tr>
