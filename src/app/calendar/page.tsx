@@ -809,32 +809,34 @@ export default function CalendarPage() {
             </div>
             
             {/* Right Side: Actions */}
-            <div className="flex flex-wrap items-center justify-center gap-2">
-                 <div className="relative w-full md:w-auto">
-                    <Search className="absolute left-2.5 top-2.5 h-4 w-4 text-muted-foreground" />
-                    <Input
-                        type="search"
-                        placeholder="Cari kegiatan, lokasi, disposisi..."
-                        className="pl-8 w-full md:w-[200px] lg:w-[300px]"
-                        value={searchQuery}
-                        onChange={(e) => setSearchQuery(e.target.value)}
-                    />
+            <div className="flex flex-col md:flex-row items-center justify-center gap-2 w-full md:w-auto">
+                <div className="flex items-center gap-2 w-full md:w-auto">
+                    <div className="relative flex-grow">
+                        <Search className="absolute left-2.5 top-2.5 h-4 w-4 text-muted-foreground" />
+                        <Input
+                            type="search"
+                            placeholder="Cari kegiatan, lokasi..."
+                            className="pl-8 w-full"
+                            value={searchQuery}
+                            onChange={(e) => setSearchQuery(e.target.value)}
+                        />
+                    </div>
+                    <Tabs value={viewMode} onValueChange={(value) => setViewMode(value as any)}>
+                        <TabsList>
+                            <TabsTrigger value="harian">Harian</TabsTrigger>
+                            <TabsTrigger value="mingguan">Mingguan</TabsTrigger>
+                            <TabsTrigger value="bulanan">Bulanan</TabsTrigger>
+                        </TabsList>
+                    </Tabs>
                 </div>
-                <Tabs value={viewMode} onValueChange={(value) => setViewMode(value as any)}>
-                    <TabsList>
-                        <TabsTrigger value="harian">Harian</TabsTrigger>
-                        <TabsTrigger value="mingguan">Mingguan</TabsTrigger>
-                        <TabsTrigger value="bulanan">Bulanan</TabsTrigger>
-                    </TabsList>
-                </Tabs>
-                <div className='flex items-center gap-2'>
-                    <Button variant="outline" onClick={handleRefresh} disabled={isLoading} size="icon">
+                <div className='flex items-center gap-2 w-full md:w-auto'>
+                    <Button variant="outline" onClick={handleRefresh} disabled={isLoading} size="icon" className="w-10">
                         <RefreshCw className={cn("h-4 w-4", isLoading && "animate-spin")} />
                         <span className="sr-only">Muat Ulang</span>
                     </Button>
                     <Popover>
                         <PopoverTrigger asChild>
-                            <Button variant="outline" size='icon'>
+                            <Button variant="outline" size='icon' className="w-10">
                             <CalendarIcon className="h-4 w-4" />
                             </Button>
                         </PopoverTrigger>
@@ -851,38 +853,38 @@ export default function CalendarPage() {
                             />
                         </PopoverContent>
                     </Popover>
-                </div>
-                 <Button onClick={() => handleOpenForm('add')}>
-                    <PlusCircle className="mr-2 h-4 w-4" />
-                    Tambah
-                </Button>
-                 <Dialog open={isWhatsAppModalOpen} onOpenChange={setIsWhatsAppModalOpen}>
-                    <DialogTrigger asChild>
-                        <Button className="bg-green-500 hover:bg-green-600 text-white" onClick={handleSendToWhatsApp}>
-                            <WhatsAppIcon />
-                            Kirim Jadwal
-                        </Button>
-                    </DialogTrigger>
-                    <DialogContent>
-                        <DialogHeader>
-                            <DialogTitle>Format Pesan WhatsApp</DialogTitle>
-                        </DialogHeader>
-                        <Textarea
-                            readOnly
-                            value={whatsAppMessage}
-                            className="h-64 text-sm bg-muted/50"
-                        />
-                        <DialogFooter>
-                            <Button onClick={() => {
-                                navigator.clipboard.writeText(whatsAppMessage);
-                                toast({ title: "Teks disalin!", description: "Anda sekarang dapat menempelkannya di WhatsApp." });
-                            }}>
-                                <Copy className="mr-2 h-4 w-4" />
-                                Salin Teks
+                    <Button onClick={() => handleOpenForm('add')} className="flex-grow">
+                        <PlusCircle className="mr-2 h-4 w-4" />
+                        Tambah
+                    </Button>
+                    <Dialog open={isWhatsAppModalOpen} onOpenChange={setIsWhatsAppModalOpen}>
+                        <DialogTrigger asChild>
+                            <Button className="bg-green-500 hover:bg-green-600 text-white flex-grow" onClick={handleSendToWhatsApp}>
+                                <WhatsAppIcon />
+                                Kirim Jadwal
                             </Button>
-                        </DialogFooter>
-                    </DialogContent>
-                </Dialog>
+                        </DialogTrigger>
+                        <DialogContent>
+                            <DialogHeader>
+                                <DialogTitle>Format Pesan WhatsApp</DialogTitle>
+                            </DialogHeader>
+                            <Textarea
+                                readOnly
+                                value={whatsAppMessage}
+                                className="h-64 text-sm bg-muted/50"
+                            />
+                            <DialogFooter>
+                                <Button onClick={() => {
+                                    navigator.clipboard.writeText(whatsAppMessage);
+                                    toast({ title: "Teks disalin!", description: "Anda sekarang dapat menempelkannya di WhatsApp." });
+                                }}>
+                                    <Copy className="mr-2 h-4 w-4" />
+                                    Salin Teks
+                                </Button>
+                            </DialogFooter>
+                        </DialogContent>
+                    </Dialog>
+                </div>
             </div>
         </div>
       
