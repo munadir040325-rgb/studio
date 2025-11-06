@@ -3,6 +3,7 @@ import {
   INSERT_ORDERED_LIST_COMMAND,
   INSERT_UNORDERED_LIST_COMMAND,
   ListNode,
+  $setListType,
 } from "@lexical/list";
 import { useLexicalComposerContext } from "@lexical/react/LexicalComposerContext";
 import {
@@ -22,6 +23,7 @@ import {
   $getNodeByKey,
   $getSelection,
   $isRangeSelection,
+  $isElementNode,
   CAN_REDO_COMMAND,
   CAN_UNDO_COMMAND,
   FORMAT_ELEMENT_COMMAND,
@@ -59,6 +61,7 @@ export function Toolbar() {
   const [isUnderline, setIsUnderline] = useState(false);
   const [isStrikethrough, setIsStrikethrough] = useState(false);
   const [blockType, setBlockType] = useState("paragraph");
+  const [listType, setListType] = useState<string | null>(null);
 
 
   const updateToolbar = useCallback(() => {
@@ -82,6 +85,7 @@ export function Toolbar() {
             });
 
       if (element === null) {
+        setListType(null);
         return;
       }
       const elementKey = element.getKey();
@@ -97,11 +101,20 @@ export function Toolbar() {
             ? parentList.getListType()
             : element.getListType();
           setBlockType(type);
+          
+          // Get the specific list style type from the DOM element
+          const listNode = parentList || element;
+          const domNode = editor.getElementByKey(listNode.getKey());
+          if (domNode) {
+              setListType(domNode.getAttribute('type') || (type === 'ul' ? 'disc' : 'decimal'));
+          }
+
         } else {
           const type = $isHeadingNode(element)
             ? element.getTag()
             : element.getType();
           setBlockType(type);
+          setListType(null);
         }
       }
     }
@@ -141,23 +154,67 @@ export function Toolbar() {
     );
   }, [editor, updateToolbar]);
 
-  const formatBulletList = () => {
-    if (blockType !== 'ul') {
-      editor.dispatchCommand(INSERT_UNORDERED_LIST_COMMAND, undefined);
-    } else {
-      // In a future version, this could cycle through bullet types
-      // For now, it does nothing if already a bullet list.
-    }
-  };
+ const formatBulletList = () => {
+    editor.update(() => {
+        const selection = $getSelection();
+        if (!$isRangeSelection(selection)) return;
 
-  const formatNumberedList = () => {
-    if (blockType !== 'ol') {
-      editor.dispatchCommand(INSERT_ORDERED_LIST_COMMAND, undefined);
-    } else {
-      // In a future version, this could cycle through number types
-      // For now, it does nothing if already a numbered list.
-    }
-  };
+        const listNode = $getNearestNodeOfType(selection.anchor.getNode(), ListNode);
+        
+        if (listNode && listNode.getListType() === 'ul') {
+            const domElement = editor.getElementByKey(listNode.getKey());
+            const currentType = domElement?.getAttribute('type');
+            
+            // Cycle through styles: disc -> circle -> square -> remove list
+            if (currentType === 'disc' || !currentType) {
+                domElement?.setAttribute('type', 'circle');
+                setListType('circle');
+            } else if (currentType === 'circle') {
+                domElement?.setAttribute('type', 'square');
+                setListType('square');
+            } else if (currentType === 'square') {
+                // To remove the list, we convert it back to paragraphs
+                editor.dispatchCommand(INSERT_UNORDERED_LIST_COMMAND, undefined);
+                setListType(null);
+            }
+        } else {
+            // Not a UL or not a list at all, create a new one with default style
+            editor.dispatchCommand(INSERT_UNORDERED_LIST_COMMAND, undefined);
+            setListType('disc');
+        }
+    });
+};
+
+const formatNumberedList = () => {
+    editor.update(() => {
+        const selection = $getSelection();
+        if (!$isRangeSelection(selection)) return;
+
+        const listNode = $getNearestNodeOfType(selection.anchor.getNode(), ListNode);
+
+        if (listNode && listNode.getListType() === 'ol') {
+            const domElement = editor.getElementByKey(listNode.getKey());
+            const currentType = domElement?.getAttribute('type');
+
+            // Cycle through styles: decimal -> lower-alpha -> lower-roman -> remove list
+            if (currentType === '1' || !currentType) {
+                domElement?.setAttribute('type', 'a'); // lower-alpha
+                setListType('a');
+            } else if (currentType === 'a') {
+                domElement?.setAttribute('type', 'i'); // lower-roman
+                setListType('i');
+            } else if (currentType === 'i') {
+                 // To remove the list, we convert it back to paragraphs
+                editor.dispatchCommand(INSERT_ORDERED_LIST_COMMAND, undefined);
+                setListType(null);
+            }
+        } else {
+             // Not an OL or not a list at all, create a new one
+            editor.dispatchCommand(INSERT_ORDERED_LIST_COMMAND, undefined);
+            setListType('1');
+        }
+    });
+};
 
 
   return (
@@ -184,14 +241,14 @@ export function Toolbar() {
         <Underline className="h-4 w-4" />
       </ToolbarItem>
        <ToolbarItem
-        onClick={() => formatBulletList()}
+        onClick={formatBulletList}
         active={blockType === 'ul'}
         label="Bulleted List"
       >
         <List className="h-4 w-4" />
       </ToolbarItem>
       <ToolbarItem
-        onClick={() => formatNumberedList()}
+        onClick={formatNumberedList}
         active={blockType === 'ol'}
         label="Numbered List"
       >
