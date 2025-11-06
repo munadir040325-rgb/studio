@@ -16,8 +16,6 @@ import { id as localeId } from 'date-fns/locale';
 import useSWR from 'swr';
 import { Alert, AlertDescription, AlertTitle } from '@/components/ui/alert';
 import DOMPurify from 'isomorphic-dompurify';
-import { Editor } from './editor';
-import { type BlockNoteEditor } from '@blocknote/core';
 
 type CalendarEvent = {
   id: string;
@@ -334,12 +332,9 @@ export default function ReportPage() {
            {selectedEvent && (
                 <CardContent>
                     <Label className="font-semibold">Hasil Kegiatan & Tindak Lanjut</Label>
-                    <div className="mt-1">
-                        <Editor
-                            onContentChange={(html) => {
-                                setReportContent(html);
-                            }}
-                        />
+                    <div className="mt-1 p-2 border rounded-md min-h-[10rem]">
+                      {/* Editor will go here */}
+                      <p className='text-muted-foreground'>Editor sedang dalam pengembangan.</p>
                     </div>
                 </CardContent>
             )}
