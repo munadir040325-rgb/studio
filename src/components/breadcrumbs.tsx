@@ -13,6 +13,7 @@ const formatSegment = (segment: string) => {
   const customFormats: { [key: string]: string } = {
     'calendar': 'Kalender',
     'report': 'Buat Laporan',
+    'panduan': 'Panduan',
   };
 
   if (customFormats[segment]) {

@@ -7,7 +7,7 @@ import {
   SidebarMenuButton,
   useSidebar,
 } from '@/components/ui/sidebar';
-import { CalendarDays, FilePenLine } from 'lucide-react';
+import { CalendarDays, FilePenLine, BookText } from 'lucide-react';
 
 export function MobileAwareSidebarMenu() {
   const { setOpenMobile } = useSidebar();
@@ -31,6 +31,14 @@ export function MobileAwareSidebarMenu() {
           <Link href="/report">
             <FilePenLine />
             Buat Laporan
+          </Link>
+        </SidebarMenuButton>
+      </SidebarMenuItem>
+      <SidebarMenuItem onClick={handleMenuClick}>
+        <SidebarMenuButton asChild size="lg">
+          <Link href="/panduan">
+            <BookText />
+            Panduan
           </Link>
         </SidebarMenuButton>
       </SidebarMenuItem>
