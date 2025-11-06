@@ -60,22 +60,22 @@ const ReportEditorTemplate = ({ event, reportContent, onContentChange }: { event
                 <table>
                     <tbody>
                         <tr>
-                            <td className="w-28">Yth.</td>
+                            <td className="w-28">YTH.</td>
                             <td className="w-2">:</td>
                             <td><EditableField placeholder="Isi tujuan surat" /></td>
                         </tr>
                         <tr>
-                            <td>Dari</td>
+                            <td>DARI</td>
                             <td>:</td>
                             <td><EditableField placeholder="Isi pengirim" /></td>
                         </tr>
                         <tr>
-                            <td>Tembusan</td>
+                            <td>TEMBUSAN</td>
                             <td>:</td>
                             <td><EditableField placeholder="Isi tembusan" /></td>
                         </tr>
                         <tr>
-                            <td className='align-top'>Hal</td>
+                            <td className='align-top'>HAL</td>
                             <td className='align-top'>:</td>
                             <td><EditableField placeholder="Isi perihal" /></td>
                         </tr>
