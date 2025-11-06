@@ -120,23 +120,13 @@ const ReportPreview = ({ event }: { event: CalendarEvent | null }) => {
                             contentEditable
                             suppressContentEditableWarning
                             className="mt-2 p-1 -m-1 rounded-md min-h-[8rem] bg-muted/50 hover:bg-muted focus:bg-background focus:outline-none focus:ring-2 focus:ring-ring print:bg-transparent"
-                            dangerouslySetInnerHTML={{ __html: `
-                                <ol class="list-decimal list-outside ml-4">
-                                    <li>Materi Utama
-                                        <ul class="list-[lower-alpha] list-outside ml-5">
-                                            <li>Sub-materi pertama</li>
-                                            <li>Sub-materi kedua</li>
-                                        </ul>
-                                    </li>
-                                    <li>Materi Berikutnya</li>
-                                    ${disposisi ? `<li>Tindak Lanjut: ${disposisi}</li>` : ''}
-                                </ol>
-                            `}}
+                            data-placeholder="Isi ringkasan materi di sini. Anda bisa membuat daftar bernomor (1., 2., ...) atau paragraf biasa."
                         />
-                        <p className="mt-4">Demikian untuk menjadikan periksa dan terima kasih.</p>
                     </div>
                 </div>
             </div>
+            
+            <p className="text-sm mt-4">Demikian untuk menjadikan periksa dan terima kasih.</p>
 
             <div className="flex justify-end mt-16">
                 <div className="text-center text-sm w-64">
@@ -309,19 +299,22 @@ export default function ReportPage() {
                    background-color: transparent !important;
                    border: none !important;
                    box-shadow: none !important;
-                   -webkit-print-color-adjust: exact !important; /* Force background graphics */
+                   -webkit-print-color-adjust: exact !important;
                 }
                  span[contentEditable="true"]:empty::before,
                  div[contentEditable="true"]:empty::before {
                     content: attr(data-placeholder);
                     color: #999;
                     font-style: italic;
+                    visibility: visible;
                 }
             }
-             span[contentEditable="true"]:empty::before {
+             span[contentEditable="true"]:empty::before,
+             div[contentEditable="true"]:empty::before {
                 content: attr(data-placeholder);
                 color: #666;
                 font-style: italic;
+                display: block; /* Ensures placeholder is visible */
             }
         `}</style>
     </div>
