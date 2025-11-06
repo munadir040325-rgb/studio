@@ -63,9 +63,6 @@ const ReportEditorTemplate = ({ event, reportContent, onContentChange }: { event
                     <tr><td></td><td className="align-top">DARI</td><td className="w-2 align-top">:</td><td><EditableField placeholder="Nama Pelapor, Jabatan" /></td></tr>
                     <tr><td></td><td className="align-top">TEMBUSAN</td><td className="w-2 align-top">:</td><td><EditableField placeholder="Isi tembusan" /></td></tr>
                     <tr><td></td><td className="align-top">TANGGAL</td><td className="w-2 align-top">:</td><td>{reportDate}</td></tr>
-                    <tr><td></td><td className="align-top">NOMOR</td><td className="w-2 align-top">:</td><td><EditableField placeholder="Nomor Surat" /></td></tr>
-                    <tr><td></td><td className="align-top">SIFAT</td><td className="w-2 align-top">:</td><td>BIASA</td></tr>
-                    <tr><td></td><td className="align-top">LAMPIRAN</td><td className="w-2 align-top">:</td><td>-</td></tr>
                     <tr><td></td><td className="align-top">HAL</td><td className="w-2 align-top">:</td><td className="font-semibold">LAPORAN HASIL PELAKSANAAN KEGIATAN</td></tr>
                 </tbody>
             </table>
@@ -366,10 +363,7 @@ export default function ReportPage() {
                 .report-content-preview li {
                     text-align: justify;
                 }
-                #print-area .list-ol {
-                    padding-left: 20px;
-                    list-style-position: inside;
-                }
+                #print-area .list-ol { padding-left: 20px; list-style-position: inside; }
                 #print-area .list-ol-1 { list-style-type: decimal; }
                 #print-area .list-ol-2 { list-style-type: lower-alpha; }
                 #print-area .list-ol-3 { list-style-type: lower-roman; }
