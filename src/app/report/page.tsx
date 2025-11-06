@@ -166,7 +166,7 @@ const ReportEditorTemplate = ({ event, reportContent, onContentChange }: { event
                     </tr>
                     <tr>
                        <td></td>
-                       <td colSpan={3} className="pt-8">Demikian untuk menjadikan periksa dan terima kasih.</td>
+                       <td colSpan={3} className="pt-4">Demikian untuk menjadikan periksa dan terima kasih.</td>
                     </tr>
                 </tbody>
             </table>
