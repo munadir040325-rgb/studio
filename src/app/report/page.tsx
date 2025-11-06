@@ -54,24 +54,23 @@ const ReportEditorTemplate = ({ event, reportContent, onContentChange }: { event
         <Card id="print-area" className="bg-white text-black p-8 md:p-12 shadow-lg rounded-sm print:shadow-none print:p-4 print:border-none">
             <h3 className="text-center font-bold text-lg">NOTA DINAS</h3>
             <br />
-            <hr className="border-black my-4" />
-             <div className="flex justify-center">
+            <div className="flex justify-center">
                 <table>
                     <tbody>
                         <tr>
-                            <td className="w-28">YTH.</td>
+                            <td className="w-28">KEPADA YTH.</td>
                             <td className="w-2">:</td>
                             <td><EditableField placeholder="Isi tujuan surat" /></td>
-                        </tr>
-                        <tr>
-                            <td>DARI</td>
-                            <td>:</td>
-                            <td><EditableField placeholder="Isi pengirim" /></td>
                         </tr>
                         <tr>
                             <td>TEMBUSAN</td>
                             <td>:</td>
                             <td><EditableField placeholder="Isi tembusan" /></td>
+                        </tr>
+                        <tr>
+                            <td>DARI</td>
+                            <td>:</td>
+                            <td><EditableField placeholder="Isi pengirim" /></td>
                         </tr>
                         <tr>
                             <td className='align-top'>HAL</td>
@@ -86,7 +85,6 @@ const ReportEditorTemplate = ({ event, reportContent, onContentChange }: { event
             
             <table className="w-full mt-4 border-separate" style={{borderSpacing: '0 8px'}}>
                 <tbody>
-                    {/* I. Dasar Kegiatan */}
                     <tr>
                         <td className="w-[1.8rem] align-top font-semibold">I.</td>
                         <td colSpan={3} className='font-semibold'>Dasar Kegiatan</td>
@@ -98,7 +96,6 @@ const ReportEditorTemplate = ({ event, reportContent, onContentChange }: { event
                         </td>
                     </tr>
 
-                    {/* II. Kegiatan */}
                     <tr>
                         <td className="w-[1.8rem] align-top font-semibold">II.</td>
                         <td colSpan={3} className='font-semibold'>Kegiatan</td>
@@ -148,7 +145,6 @@ const ReportEditorTemplate = ({ event, reportContent, onContentChange }: { event
                         </td>
                     </tr>
                     
-                    {/* III. Hasil dan Tindak Lanjut */}
                      <tr>
                         <td className="w-[1.8rem] align-top font-semibold pt-2">III.</td>
                         <td colSpan={3} className='font-semibold pt-2'>Hasil dan Tindak Lanjut</td>
@@ -168,11 +164,13 @@ const ReportEditorTemplate = ({ event, reportContent, onContentChange }: { event
                             />
                         </td>
                     </tr>
+                     <tr>
+                        <td></td>
+                        <td colSpan={3} className="pt-8">Demikian untuk menjadikan periksa dan terima kasih.</td>
+                    </tr>
                 </tbody>
             </table>
             
-            <p className="mt-8">Demikian untuk menjadikan periksa dan terima kasih.</p>
-
             <div className="flex justify-end mt-8">
                 <div className="text-center w-64">
                     <EditableField placeholder="Tempat, Tanggal Melaporkan" />
@@ -377,7 +375,7 @@ export default function ReportPage() {
               }
               #print-area, #print-area * {
                   font-family: Arial, sans-serif !important;
-                  font-size: 12px !important;
+                  font-size: 12pt !important;
                   line-height: 1.5 !important;
                   visibility: visible;
               }
