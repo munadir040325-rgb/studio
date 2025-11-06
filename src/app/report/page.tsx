@@ -47,19 +47,11 @@ const EditableField = ({ placeholder, className }: { placeholder: string, classN
 );
 
 
-const ReportPreview = ({ event, reportContent }: { event: CalendarEvent | null, reportContent: string }) => {
+const ReportEditorTemplate = ({ event, reportContent, onContentChange }: { event: CalendarEvent, reportContent: string, onContentChange: (content: string) => void }) => {
     const reportDate = format(new Date(), 'dd MMMM yyyy', { locale: localeId });
 
-    if (!event) {
-        return (
-            <div className="text-center text-muted-foreground py-16">
-                <p>Pilih tanggal dan kegiatan di atas untuk melihat pratinjau laporan.</p>
-            </div>
-        )
-    }
-
     return (
-        <div id="print-area" className="bg-white text-black p-12 shadow-lg rounded-sm print:shadow-none print:p-4">
+        <Card id="print-area" className="bg-white text-black p-8 md:p-12 shadow-lg rounded-sm print:shadow-none print:p-4 print:border-none">
             <h3 className="text-center font-bold text-lg">NOTA DINAS</h3>
             <br />
             <table className="w-full border-separate" style={{borderSpacing: '0 4px'}}>
@@ -147,9 +139,15 @@ const ReportPreview = ({ event, reportContent }: { event: CalendarEvent | null, 
                     </tr>
                      <tr>
                         <td></td>
-                        <td colSpan={3} className="w-full">
-                            <div 
-                                className="report-content-preview"
+                        <td colSpan={3} className="w-full pt-2">
+                             <div className='print:hidden'>
+                                <RichTextEditor
+                                    onChange={onContentChange}
+                                    placeholder="Ketik hasil laporan di sini..."
+                                />
+                             </div>
+                             <div 
+                                className="report-content-preview hidden print:block"
                                 dangerouslySetInnerHTML={{ __html: DOMPurify.sanitize(reportContent) }}
                             />
                         </td>
@@ -168,7 +166,7 @@ const ReportPreview = ({ event, reportContent }: { event: CalendarEvent | null, 
                     </p>
                 </div>
             </div>
-        </div>
+        </Card>
     );
 };
 
@@ -194,59 +192,7 @@ export default function ReportPage() {
         toast({ variant: 'destructive', title: 'Gagal Mencetak', description: 'Pilih kegiatan terlebih dahulu.'});
         return;
     }
-
-    const printArea = document.getElementById('print-area');
-    if (!printArea) {
-        toast({ variant: 'destructive', title: 'Gagal Mencetak', description: 'Area laporan tidak ditemukan.'});
-        return;
-    }
-
-    const iframe = document.createElement('iframe');
-    iframe.style.position = 'absolute';
-    iframe.style.width = '0';
-    iframe.style.height = '0';
-    iframe.style.border = '0';
-    iframe.style.top = '-9999px';
-    iframe.style.left = '-9999px';
-    
-    document.body.appendChild(iframe);
-
-    const doc = iframe.contentWindow?.document;
-    if (!doc) {
-        toast({ variant: 'destructive', title: 'Gagal Mencetak', description: 'Tidak dapat membuat dokumen cetak.'});
-        document.body.removeChild(iframe);
-        return;
-    }
-    
-    doc.open();
-    doc.write('<html><head>' + document.head.innerHTML + '</head><body>' + printArea.outerHTML + '</body></html>');
-    doc.close();
-    
-    const tryPrint = () => {
-      try {
-          iframe.contentWindow?.focus();
-          iframe.contentWindow?.print();
-      } catch (e: any) {
-          toast({ variant: 'destructive', title: 'Gagal Mencetak', description: `Terjadi kesalahan: ${e.message}`});
-      } finally {
-            setTimeout(() => {
-                if (document.body.contains(iframe)) {
-                  document.body.removeChild(iframe);
-                }
-            }, 1000);
-      }
-    };
-    
-    // Wait for resources to load
-    let loaded = false;
-    const loadHandler = () => {
-        if (!loaded) {
-            loaded = true;
-            tryPrint();
-        }
-    };
-    iframe.onload = loadHandler;
-    setTimeout(loadHandler, 500); // Fallback
+    window.print();
   };
   
   const handleReset = () => {
@@ -262,7 +208,18 @@ export default function ReportPage() {
         title="Buat Laporan/Notulen"
         description="Pilih kegiatan untuk membuat draf laporan yang siap cetak."
         className="print:hidden"
-      />
+      >
+        <div className='flex items-center gap-2'>
+            <Button variant="outline" onClick={handleReset}>
+                <Trash className="mr-2 h-4 w-4"/>
+                Reset
+            </Button>
+            <Button onClick={handlePrint} disabled={!selectedEvent}>
+                <Printer className="mr-2 h-4 w-4" />
+                Cetak Laporan
+            </Button>
+        </div>
+      </PageHeader>
         <Card className="print:hidden">
           <CardHeader>
             <CardTitle>Pilih Kegiatan</CardTitle>
@@ -330,29 +287,16 @@ export default function ReportPage() {
                 </div>
             </div>
           </CardContent>
-           {selectedEvent && (
-                <CardContent>
-                    <Label className="font-semibold">Hasil Kegiatan & Tindak Lanjut</Label>
-                    <RichTextEditor
-                        onChange={setReportContent}
-                        placeholder="Ketik hasil laporan di sini..."
-                    />
-                </CardContent>
-            )}
-            <CardFooter className="flex justify-end gap-2 mt-4 border-t pt-6">
-                <Button variant="outline" onClick={handleReset}>
-                    <Trash className="mr-2 h-4 w-4"/>
-                    Reset
-                </Button>
-                <Button onClick={handlePrint} disabled={!selectedEvent}>
-                    <Printer className="mr-2 h-4 w-4" />
-                    Cetak Laporan
-                </Button>
-            </CardFooter>
         </Card>
 
         <div className="mt-4" id="report-preview-container">
-            <ReportPreview event={selectedEvent} reportContent={reportContent} />
+            {selectedEvent ? (
+                <ReportEditorTemplate event={selectedEvent} reportContent={reportContent} onContentChange={setReportContent} />
+            ) : (
+                <Card className="text-center text-muted-foreground py-16">
+                    <p>Pilih tanggal dan kegiatan di atas untuk memulai membuat laporan.</p>
+                </Card>
+            )}
         </div>
 
         <style jsx global>{`
@@ -366,6 +310,7 @@ export default function ReportPage() {
                     visibility: hidden;
                     margin: 0 !important;
                     padding: 0 !important;
+                    background: white;
                 }
                 #print-area, #print-area * {
                     visibility: visible;
@@ -378,8 +323,6 @@ export default function ReportPage() {
                     height: auto;
                     margin: 0;
                     padding: 0;
-                    box-shadow: none;
-                    border: none;
                 }
                 main.p-4, main.p-6 {
                     padding: 0 !important;
@@ -402,53 +345,27 @@ export default function ReportPage() {
                     font-size: 12px !important;
                     line-height: 1.2 !important;
                 }
-                #print-area .report-content-preview p,
-                #print-area .report-content-preview div,
-                #print-area .report-content-preview li {
+                .report-content-preview {
+                    color: black !important;
+                }
+                .report-content-preview p,
+                .report-content-preview div,
+                .report-content-preview li {
                     text-align: justify;
                 }
-                #print-area .report-content-preview ul, 
-                #print-area .report-content-preview ol {
-                  display: block;
-                  list-style-position: inside;
-                  padding-left: 20px;
-                }
-                #print-area .report-content-preview li {
-                  display: list-item;
-                }
-                #print-area .report-content-preview .list-ol {
+                .report-content-preview .list-ol {
                     padding-left: 20px;
                     list-style-position: inside;
                 }
-                #print-area .report-content-preview .list-ol-1 {
-                    list-style-type: decimal;
-                }
-                #print-area .report-content-preview .list-ol-2 {
-                    list-style-type: lower-alpha;
-                }
-                #print-area .report-content-preview .list-ol-3 {
-                    list-style-type: lower-roman;
-                }
+                .report-content-preview .list-ol-1 { list-style-type: decimal; }
+                .report-content-preview .list-ol-2 { list-style-type: lower-alpha; }
+                .report-content-preview .list-ol-3 { list-style-type: lower-roman; }
             }
              span[contentEditable="true"]:empty::before {
                 content: attr(data-placeholder);
                 color: #666;
                 font-style: italic;
                 display: block;
-            }
-            .report-content-preview ol {
-                list-style-type: none;
-                counter-reset: item;
-                padding-left: 1.5rem;
-            }
-            .report-content-preview ol > li {
-                display: block;
-                counter-increment: item;
-                
-            }
-            .report-content-preview ol > li::before {
-                content: counters(item, ".") ". ";
-                margin-right: 0.5rem;
             }
         `}</style>
     </div>
