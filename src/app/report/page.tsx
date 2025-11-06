@@ -152,7 +152,7 @@ const ReportPreview = ({ event }: { event: CalendarEvent | null }) => {
 
             <hr className="border-black my-4" />
             
-             <p className="text-justify">
+            <p className="text-justify">
                 Dasar Surat <EditableField placeholder="Asal Surat (e.g., Undangan dari...)" /> Nomor : <EditableField placeholder="Nomor Surat Undangan" /> tanggal <EditableField placeholder="Tanggal Surat Undangan" /> perihal Undangan, dengan ini kami laporkan hasil pelaksanaan kegiatan sebagai berikut:
             </p>
 
@@ -484,11 +484,6 @@ export default function ReportPage() {
             #print-area div[contentEditable] ul,
             #print-area div[contentEditable] ol {
                 list-style-position: inside;
-            }
-            #print-area div[contentEditable] li {
-                padding-left: 1.5em;
-                text-indent: -1.5em;
-                margin-bottom: 0.5em;
             }
             #print-area div[contentEditable] p {
                 text-align: justify;
