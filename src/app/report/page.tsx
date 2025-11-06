@@ -1,6 +1,6 @@
 'use client';
 
-import { useState, useMemo, useRef, useEffect } from 'react';
+import { useState, useMemo, useEffect } from 'react';
 import { PageHeader } from '@/components/page-header';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardDescription, CardFooter, CardHeader, CardTitle } from '@/components/ui/card';
@@ -8,16 +8,16 @@ import { Label } from '@/components/ui/label';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { Calendar } from '@/components/ui/calendar';
 import { Popover, PopoverContent, PopoverTrigger } from '@/components/ui/popover';
-import { Calendar as CalendarIcon, Loader2, Printer, Trash, Bold, Italic, List, ListOrdered, Indent, Outdent } from 'lucide-react';
+import { Calendar as CalendarIcon, Loader2, Printer, Trash } from 'lucide-react';
 import { useToast } from '@/hooks/use-toast';
 import { cn } from '@/lib/utils';
 import { parseISO, format, isSameDay } from 'date-fns';
 import { id as localeId } from 'date-fns/locale';
 import useSWR from 'swr';
-import { extractDisposisi } from '../calendar/page';
 import { Alert, AlertDescription, AlertTitle } from '@/components/ui/alert';
 import DOMPurify from 'isomorphic-dompurify';
-
+import { Editor } from './editor';
+import { BlockNoteEditor } from '@blocknote/core';
 
 type CalendarEvent = {
   id: string;
@@ -46,51 +46,6 @@ const EditableField = ({ placeholder, className }: { placeholder: string, classN
         data-placeholder={placeholder}
     />
 );
-
-const RichTextEditor = ({ value, onChange }: { value: string, onChange: (value: string) => void }) => {
-    const editorRef = useRef<HTMLDivElement>(null);
-
-    // Set initial content if it's different from the editor's current HTML
-    useEffect(() => {
-        if (editorRef.current && value !== editorRef.current.innerHTML) {
-            editorRef.current.innerHTML = value;
-        }
-    }, [value]);
-
-    const executeCommand = (command: string) => {
-        document.execCommand(command, false);
-        if (editorRef.current) {
-            onChange(editorRef.current.innerHTML); // Sync state after command
-        }
-    };
-    
-    // Use onMouseDown and preventDefault to stop the editor from losing focus
-    const handleToolbarMouseDown = (e: React.MouseEvent<HTMLButtonElement>, command: string) => {
-        e.preventDefault(); 
-        executeCommand(command);
-    };
-
-    return (
-        <div className="w-full relative border rounded-md">
-            <div className="sticky top-0 z-10 bg-gray-100 p-1 rounded-t-md flex gap-1 print:hidden border-b">
-                <Button type="button" size="icon" variant="outline" className="h-7 w-7" onMouseDown={(e) => handleToolbarMouseDown(e, 'bold')}><Bold className="h-4 w-4" /></Button>
-                <Button type="button" size="icon" variant="outline" className="h-7 w-7" onMouseDown={(e) => handleToolbarMouseDown(e, 'italic')}><Italic className="h-4 w-4" /></Button>
-                <Button type="button" size="icon" variant="outline" className="h-7 w-7" onMouseDown={(e) => handleToolbarMouseDown(e, 'insertUnorderedList')}><List className="h-4 w-4" /></Button>
-                <Button type="button" size="icon" variant="outline" className="h-7 w-7" onMouseDown={(e) => handleToolbarMouseDown(e, 'insertOrderedList')}><ListOrdered className="h-4 w-4" /></Button>
-                <Button type="button" size="icon" variant="outline" className="h-7 w-7" onMouseDown={(e) => handleToolbarMouseDown(e, 'indent')}><Indent className="h-4 w-4" /></Button>
-                <Button type="button" size="icon" variant="outline" className="h-7 w-7" onMouseDown={(e) => handleToolbarMouseDown(e, 'outdent')}><Outdent className="h-4 w-4" /></Button>
-            </div>
-            <div
-                ref={editorRef}
-                contentEditable
-                suppressContentEditableWarning
-                className="min-h-[10rem] w-full p-2 focus:outline-none"
-                onInput={(e) => onChange(e.currentTarget.innerHTML)}
-                placeholder="Isi hasil kegiatan dan tindak lanjut..."
-            />
-        </div>
-    );
-};
 
 
 const ReportPreview = ({ event, reportContent }: { event: CalendarEvent | null, reportContent: string }) => {
@@ -203,7 +158,7 @@ const ReportPreview = ({ event, reportContent }: { event: CalendarEvent | null, 
                 </tbody>
             </table>
             
-            <p className="mt-4">Demikian untuk menjadikan periksa dan terima kasih.</p>
+            <p className="mt-8">Demikian untuk menjadikan periksa dan terima kasih.</p>
 
             <div className="flex justify-end mt-8">
                 <div className="text-center w-64">
@@ -225,6 +180,7 @@ export default function ReportPage() {
   const [selectedDate, setSelectedDate] = useState<Date | undefined>();
   const [selectedEvent, setSelectedEvent] = useState<CalendarEvent | null>(null);
   const [reportContent, setReportContent] = useState('');
+  const [editor, setEditor] = useState<BlockNoteEditor | null>(null);
 
   const { data: eventsData, error: eventsError, isLoading: isLoadingEvents } = useSWR('/api/events', fetcher);
     
@@ -283,27 +239,25 @@ export default function ReportPage() {
       }
     };
     
-    // Wait for images and other resources to load before printing
+    // Wait for resources to load
     let loaded = false;
-    iframe.onload = () => {
+    const loadHandler = () => {
         if (!loaded) {
             loaded = true;
             tryPrint();
         }
     };
-    // Fallback if onload doesn't fire
-    setTimeout(() => {
-        if (!loaded) {
-            loaded = true;
-            tryPrint();
-        }
-    }, 500);
+    iframe.onload = loadHandler;
+    setTimeout(loadHandler, 500); // Fallback
   };
   
   const handleReset = () => {
     setSelectedDate(undefined);
     setSelectedEvent(null);
     setReportContent('');
+    if (editor) {
+        editor.removeBlocks(editor.topLevelBlocks);
+    }
     toast({ description: 'Pilihan telah dikosongkan.' });
   }
 
@@ -384,7 +338,14 @@ export default function ReportPage() {
            {selectedEvent && (
                 <CardContent>
                     <Label className="font-semibold">Hasil Kegiatan & Tindak Lanjut</Label>
-                     <RichTextEditor value={reportContent} onChange={setReportContent} />
+                    <div className="mt-1">
+                        <Editor
+                            onContentChange={(html) => {
+                                setReportContent(html);
+                            }}
+                            onEditorMount={(editor) => setEditor(editor)}
+                        />
+                    </div>
                 </CardContent>
             )}
             <CardFooter className="flex justify-end gap-2 mt-4 border-t pt-6">
@@ -404,6 +365,7 @@ export default function ReportPage() {
         </div>
 
         <style jsx global>{`
+            @import "@blocknote/core/style.css";
             @page {
                 size: A4;
                 margin: 2.1cm;
@@ -450,29 +412,22 @@ export default function ReportPage() {
                     line-height: 1.2 !important;
                 }
                 #print-area .report-content-preview p,
-                #print-area .report-content-preview div {
+                #print-area .report-content-preview div,
+                #print-area .report-content-preview li {
                     text-align: justify;
                 }
-                /* Revised List Styling for Print */
-                #print-area .report-content-preview ul, 
+                 #print-area .report-content-preview ul, 
                 #print-area .report-content-preview ol {
+                  padding-left: 20px;
                   list-style-position: inside;
-                  padding-left: 20px; /* Give space for the marker */
                 }
                 #print-area .report-content-preview li {
-                  display: list-item; /* Force the marker to be shown */
-                  text-align: justify;
+                  display: list-item;
                 }
             }
              span[contentEditable="true"]:empty::before {
                 content: attr(data-placeholder);
                 color: #666;
-                font-style: italic;
-                display: block;
-            }
-            div[contentEditable="true"]:empty::before {
-                content: attr(placeholder);
-                color: #9a9a9a;
                 font-style: italic;
                 display: block;
             }
