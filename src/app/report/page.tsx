@@ -1,6 +1,7 @@
 'use client';
 
-import { useState, useMemo, useRef } from 'react';
+import { useState, useMemo, useRef, useEffect } from 'react';
+import { useForm, Controller } from 'react-hook-form';
 import { PageHeader } from '@/components/page-header';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardDescription, CardFooter, CardHeader, CardTitle } from '@/components/ui/card';
@@ -8,7 +9,7 @@ import { Label } from '@/components/ui/label';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { Calendar } from '@/components/ui/calendar';
 import { Popover, PopoverContent, PopoverTrigger } from '@/components/ui/popover';
-import { Calendar as CalendarIcon, Loader2, Printer, Trash, Bold, Italic, List, ListOrdered, Indent, Outdent } from 'lucide-react';
+import { Calendar as CalendarIcon, Loader2, Printer, Trash, Bold, Italic, List, ListOrdered } from 'lucide-react';
 import { useToast } from '@/hooks/use-toast';
 import { cn } from '@/lib/utils';
 import { parseISO, format, isSameDay } from 'date-fns';
@@ -16,6 +17,9 @@ import { id as localeId } from 'date-fns/locale';
 import useSWR from 'swr';
 import { extractDisposisi } from '../calendar/page';
 import { Alert, AlertDescription, AlertTitle } from '@/components/ui/alert';
+import { Textarea } from '@/components/ui/textarea';
+import DOMPurify from 'isomorphic-dompurify';
+
 
 type CalendarEvent = {
   id: string;
@@ -45,40 +49,69 @@ const EditableField = ({ placeholder, className }: { placeholder: string, classN
     />
 );
 
-// A more robust rich text editor component
-const RichTextEditor = ({ forwardedRef }: { forwardedRef: React.Ref<HTMLDivElement> }) => {
+const RichTextEditor = ({ value, onChange }: { value: string, onChange: (value: string) => void }) => {
+    const textareaRef = useRef<HTMLTextAreaElement>(null);
 
-    const handleCommand = (command: string) => {
-        document.execCommand(command, false);
+    const applyTag = (tag: 'b' | 'i') => {
+        const textarea = textareaRef.current;
+        if (!textarea) return;
+
+        const start = textarea.selectionStart;
+        const end = textarea.selectionEnd;
+        const selectedText = textarea.value.substring(start, end);
+        const newText = `${textarea.value.substring(0, start)}<${tag}>${selectedText}</${tag}>${textarea.value.substring(end)}`;
+        
+        onChange(newText);
+    };
+
+    const applyList = (type: 'ul' | 'ol') => {
+         const textarea = textareaRef.current;
+        if (!textarea) return;
+
+        const start = textarea.selectionStart;
+        const end = textarea.selectionEnd;
+        const selectedText = textarea.value.substring(start, end);
+
+        const lines = selectedText.split('\n').filter(line => line.trim() !== '');
+        if (lines.length === 0) return;
+        
+        const listItems = lines.map(line => `  <li>${line}</li>`).join('\n');
+        const list = `<${type}>\n${listItems}\n</${type}>\n`;
+
+        const newText = textarea.value.substring(0, start) + list + textarea.value.substring(end);
+        onChange(newText);
     };
 
     return (
         <div className="w-full relative">
             <div className="sticky top-0 z-10 bg-gray-100 p-1 rounded-md flex gap-1 print:hidden mb-2">
-                <Button type="button" size="icon" variant="outline" className="h-7 w-7" onClick={() => handleCommand('bold')}><Bold className="h-4 w-4" /></Button>
-                <Button type="button" size="icon" variant="outline" className="h-7 w-7" onClick={() => handleCommand('italic')}><Italic className="h-4 w-4" /></Button>
-                <Button type="button" size="icon" variant="outline" className="h-7 w-7" onClick={() => handleCommand('insertUnorderedList')}><List className="h-4 w-4" /></Button>
-                <Button type="button" size="icon" variant="outline" className="h-7 w-7" onClick={() => handleCommand('insertOrderedList')}><ListOrdered className="h-4 w-4" /></Button>
-                <Button type="button" size="icon" variant="outline" className="h-7 w-7" onClick={() => handleCommand('indent')}><Indent className="h-4 w-4" /></Button>
-                <Button type="button" size="icon" variant="outline" className="h-7 w-7" onClick={() => handleCommand('outdent')}><Outdent className="h-4 w-4" /></Button>
+                <Button type="button" size="icon" variant="outline" className="h-7 w-7" onClick={() => applyTag('b')}><Bold className="h-4 w-4" /></Button>
+                <Button type="button" size="icon" variant="outline" className="h-7 w-7" onClick={() => applyTag('i')}><Italic className="h-4 w-4" /></Button>
+                <Button type="button" size="icon" variant="outline" className="h-7 w-7" onClick={() => applyList('ul')}><List className="h-4 w-4" /></Button>
+                <Button type="button" size="icon" variant="outline" className="h-7 w-7" onClick={() => applyList('ol')}><ListOrdered className="h-4 w-4" /></Button>
             </div>
-            <div
-                ref={forwardedRef}
-                contentEditable
-                suppressContentEditableWarning
-                className="mt-2 p-1 -m-1 rounded-md min-h-[8rem] bg-muted/50 hover:bg-muted focus:bg-background focus:outline-none focus:ring-2 focus:ring-ring print:bg-transparent w-full"
-                data-placeholder="Isi hasil kegiatan dan tindak lanjut..."
-            >
+            <Textarea
+                ref={textareaRef}
+                value={value}
+                onChange={(e) => onChange(e.target.value)}
+                className="min-h-[8rem] w-full"
+                placeholder="Isi hasil kegiatan dan tindak lanjut... Gunakan tombol di atas untuk format teks."
+            />
+            <div className="mt-4 print:hidden">
+                <Label className="font-semibold">Pratinjau Format</Label>
+                <div 
+                  className="mt-1 p-2 border rounded-md min-h-[4rem] bg-muted/50"
+                  dangerouslySetInnerHTML={{ __html: DOMPurify.sanitize(value) }}
+                />
             </div>
         </div>
     );
 };
 
 
-const ReportPreview = ({ event }: { event: CalendarEvent | null }) => {
+const ReportPreview = ({ event, reportContent }: { event: CalendarEvent | null, reportContent: string }) => {
     const disposisi = event ? extractDisposisi(event.description) : null;
     const reportDate = format(new Date(), 'dd MMMM yyyy', { locale: localeId });
-    const editorRef = useRef<HTMLDivElement>(null);
 
     if (!event) {
         return (
@@ -178,7 +211,10 @@ const ReportPreview = ({ event }: { event: CalendarEvent | null }) => {
                      <tr>
                         <td></td>
                         <td colSpan={3} className="w-full">
-                           <RichTextEditor forwardedRef={editorRef} />
+                            <div 
+                                className="report-content-preview"
+                                dangerouslySetInnerHTML={{ __html: DOMPurify.sanitize(reportContent) }}
+                            />
                         </td>
                     </tr>
                 </tbody>
@@ -207,6 +243,14 @@ export default function ReportPage() {
   const [selectedEvent, setSelectedEvent] = useState<CalendarEvent | null>(null);
 
   const { data: eventsData, error: eventsError, isLoading: isLoadingEvents } = useSWR('/api/events', fetcher);
+  
+  const { control, watch, setValue } = useForm({
+      defaultValues: {
+          reportContent: ''
+      }
+  });
+
+  const reportContent = watch('reportContent');
   
   const events: CalendarEvent[] = eventsData?.items.sort((a: CalendarEvent, b: CalendarEvent) => parseISO(b.start).getTime() - parseISO(a.start).getTime()) || [];
   
@@ -248,7 +292,6 @@ export default function ReportPage() {
     doc.write('<html><head>' + document.head.innerHTML + '</head><body>' + printArea.outerHTML + '</body></html>');
     doc.close();
     
-    // Using setTimeout to ensure content is loaded before printing
     setTimeout(() => {
         try {
             iframe.contentWindow?.focus();
@@ -256,7 +299,6 @@ export default function ReportPage() {
         } catch (e: any) {
             toast({ variant: 'destructive', title: 'Gagal Mencetak', description: `Terjadi kesalahan: ${e.message}`});
         } finally {
-             // Use another timeout to ensure the print dialog is closed before removing the iframe
              setTimeout(() => {
                  if (document.body.contains(iframe)) {
                     document.body.removeChild(iframe);
@@ -269,6 +311,7 @@ export default function ReportPage() {
   const handleReset = () => {
     setSelectedDate(undefined);
     setSelectedEvent(null);
+    setValue('reportContent', '');
     toast({ description: 'Pilihan telah dikosongkan.' });
   }
 
@@ -346,6 +389,16 @@ export default function ReportPage() {
                 </div>
             </div>
           </CardContent>
+           {selectedEvent && (
+                <CardContent>
+                    <Label className="font-semibold">Hasil Kegiatan & Tindak Lanjut</Label>
+                    <Controller
+                        name="reportContent"
+                        control={control}
+                        render={({ field }) => <RichTextEditor value={field.value} onChange={field.onChange} />}
+                    />
+                </CardContent>
+            )}
             <CardFooter className="flex justify-end gap-2 mt-4 border-t pt-6">
                 <Button variant="outline" onClick={handleReset}>
                     <Trash className="mr-2 h-4 w-4"/>
@@ -359,7 +412,7 @@ export default function ReportPage() {
         </Card>
 
         <div className="mt-4" id="report-preview-container">
-            <ReportPreview event={selectedEvent} />
+            <ReportPreview event={selectedEvent} reportContent={reportContent} />
         </div>
 
         <style jsx global>{`
@@ -391,14 +444,13 @@ export default function ReportPage() {
                     padding: 0 !important;
                     margin: 0 !important;
                 }
-                span[contentEditable="true"], div[contentEditable="true"] {
+                span[contentEditable="true"] {
                    background-color: transparent !important;
                    border: none !important;
                    box-shadow: none !important;
                    -webkit-print-color-adjust: exact !important;
                 }
-                 span[contentEditable="true"]:empty::before,
-                 div[contentEditable="true"][data-placeholder]:empty::before {
+                 span[contentEditable="true"]:empty::before {
                     content: attr(data-placeholder);
                     color: #999;
                     font-style: italic;
@@ -409,28 +461,21 @@ export default function ReportPage() {
                     font-size: 12px !important;
                     line-height: 1.2 !important;
                 }
-                #print-area div[contentEditable] p,
-                #print-area div[contentEditable] li,
-                #print-area div[contentEditable] div {
+                #print-area .report-content-preview ul, #print-area .report-content-preview ol {
+                  list-style-position: inside;
+                  padding-left: 0;
+                }
+                #print-area .report-content-preview p,
+                #print-area .report-content-preview li,
+                #print-area .report-content-preview div {
                     text-align: justify;
                 }
             }
-             span[contentEditable="true"]:empty::before,
-             div[contentEditable="true"][data-placeholder]:empty::before {
+             span[contentEditable="true"]:empty::before {
                 content: attr(data-placeholder);
                 color: #666;
                 font-style: italic;
                 display: block;
-            }
-            
-            #print-area div[contenteditable] ul,
-            #print-area div[contenteditable] ol {
-                list-style-position: inside;
-                padding-left: 0;
-            }
-
-            #print-area div[contentEditable] p {
-                text-align: justify;
             }
         `}</style>
     </div>
