@@ -82,7 +82,7 @@ const ReportPreview = ({ event }: { event: CalendarEvent | null }) => {
 
             <div className="mt-4 text-sm space-y-4">
                 <div className="flex">
-                    <span className="w-8">I.</span>
+                    <span className="w-8 font-semibold">I.</span>
                     <div className="w-full">
                         <p className="font-semibold">Pelaksanaan</p>
                         <table className="w-full">
@@ -97,7 +97,7 @@ const ReportPreview = ({ event }: { event: CalendarEvent | null }) => {
                     </div>
                 </div>
                 <div className="flex">
-                    <span className="w-8">II.</span>
+                    <span className="w-8 font-semibold">II.</span>
                     <div className="flex items-start gap-1 w-full">
                         <p className="font-semibold w-36">Pimpinan Rapat</p>
                         <span>:</span>
@@ -105,7 +105,7 @@ const ReportPreview = ({ event }: { event: CalendarEvent | null }) => {
                     </div>
                 </div>
                 <div className="flex">
-                    <span className="w-8">III.</span>
+                    <span className="w-8 font-semibold">III.</span>
                      <div className="flex items-start gap-1 w-full">
                         <p className="font-semibold w-36">Narasumber</p>
                         <span>:</span>
@@ -113,7 +113,7 @@ const ReportPreview = ({ event }: { event: CalendarEvent | null }) => {
                     </div>
                 </div>
                 <div className="flex">
-                    <span className="w-8">IV.</span>
+                    <span className="w-8 font-semibold">IV.</span>
                      <div className="w-full">
                         <p className="font-semibold">Ringkasan Materi</p>
                          <div
@@ -131,9 +131,9 @@ const ReportPreview = ({ event }: { event: CalendarEvent | null }) => {
                                     <li>Materi Berikutnya</li>
                                     ${disposisi ? `<li>Tindak Lanjut: ${disposisi}</li>` : ''}
                                 </ol>
-                                <br><p>Demikian untuk menjadikan periksa dan terima kasih.</p>
                             `}}
                         />
+                        <p className="mt-4">Demikian untuk menjadikan periksa dan terima kasih.</p>
                     </div>
                 </div>
             </div>
@@ -275,8 +275,10 @@ export default function ReportPage() {
         {/* CSS Khusus untuk Mencetak */}
         <style jsx global>{`
             @media print {
-                body * {
+                body, html {
                     visibility: hidden;
+                    margin: 0;
+                    padding: 0;
                 }
                 #report-preview-container, #report-preview-container * {
                     visibility: visible;
@@ -286,15 +288,16 @@ export default function ReportPage() {
                     left: 0;
                     top: 0;
                     width: 100%;
+                    height: auto;
                     margin: 0;
                     padding: 0;
                 }
-                 main.p-4, main.p-6 {
+                main.p-4, main.p-6 {
                     padding: 0 !important;
                     margin: 0 !important;
                 }
                 .print\\:hidden {
-                    display: none;
+                    display: none !important;
                 }
                 #print-area {
                     box-shadow: none;
@@ -305,10 +308,8 @@ export default function ReportPage() {
                 span[contentEditable="true"], div[contentEditable="true"] {
                    background-color: transparent !important;
                    border: none !important;
-                   padding: 1px !important;
-                   margin: -1px !important;
                    box-shadow: none !important;
-                   -webkit-print-color-adjust: exact;
+                   -webkit-print-color-adjust: exact !important; /* Force background graphics */
                 }
                  span[contentEditable="true"]:empty::before,
                  div[contentEditable="true"]:empty::before {
