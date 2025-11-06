@@ -7,7 +7,7 @@ import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardFooter, CardHeader, CardTitle } from '@/components/ui/card';
 import { Popover, PopoverContent, PopoverTrigger } from '@/components/ui/popover';
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger, DialogFooter, DialogDescription } from '@/components/ui/dialog';
-import { Calendar as CalendarIcon, ExternalLink, PlusCircle, RefreshCw, MapPin, Clock, ChevronLeft, ChevronRight, Pin, Copy, Info, Link as LinkIcon, FolderOpen, Paperclip, Folder, PenSquare, Trash2, Search, Building } from 'lucide-react';
+import { Calendar as CalendarIcon, ExternalLink, PlusCircle, RefreshCw, MapPin, Clock, ChevronLeft, ChevronRight, Pin, Copy, Info, Link as LinkIcon, FolderOpen, Paperclip, Folder, PenSquare, Trash2, Search, Building, FileUp } from 'lucide-react';
 import { Calendar } from '@/components/ui/calendar';
 import { Badge } from '@/components/ui/badge';
 import { format, parseISO, isSameDay, startOfDay, endOfDay, startOfWeek, endOfWeek, startOfMonth, endOfMonth, isWithinInterval, eachDayOfInterval, getDay, isSameMonth, getDate, addDays, subDays, addWeeks, subMonths, addMonths } from 'date-fns';
@@ -23,6 +23,7 @@ import { getFileIcon } from '@/lib/utils';
 import DOMPurify from 'isomorphic-dompurify';
 import { Accordion, AccordionContent, AccordionItem, AccordionTrigger } from '@/components/ui/accordion';
 import { findBagianByEventIds } from '@/ai/flows/sheets-flow';
+import { UploadAttachmentForm } from './components/upload-attachment-form';
 
 
 type CalendarAttachment = {
@@ -161,86 +162,112 @@ const CleanDescription = ({ description }: { description: string | null | undefi
 };
 
 
-const EventCard = ({ event, onEdit }: { event: CalendarEvent, onEdit: (event: CalendarEvent) => void }) => {
+const EventCard = ({ event, onEdit, onUploadSuccess }: { event: CalendarEvent, onEdit: (event: CalendarEvent) => void, onUploadSuccess: () => void }) => {
   const disposisi = useMemo(() => extractDisposisi(event.description), [event.description]);
   const attachments = event.attachments || [];
+  const [isUploadModalOpen, setIsUploadModalOpen] = useState(false);
 
   return (
-    <Card key={event.id} className="flex flex-col">
-        <CardHeader className="py-2 px-3">
-            <div className="flex justify-between items-start">
-                <CardTitle className="text-base leading-snug">{event.summary || '(Tanpa Judul)'}</CardTitle>
-                {event.bagianName && <Badge variant="secondary" className="ml-2 shrink-0">{event.bagianName}</Badge>}
-            </div>
-        </CardHeader>
-        <CardContent className="flex-grow space-y-1 text-sm text-muted-foreground px-3 pb-2">
-            <div className="space-y-0.5">
-                <p className="flex items-start">
-                    <Clock className="h-3 w-3 mr-1.5 mt-0.5 flex-shrink-0 text-blue-500" />
-                    <span className='font-medium text-foreground text-xs'>{formatEventDisplay(event.start, event.end, event.isAllDay)}</span>
-                </p>
-                {event.location && (
-                <p className="flex items-start">
-                    <MapPin className="h-3 w-3 mr-1.5 mt-0.5 flex-shrink-0 text-red-500" />
-                    <span className="text-xs">{event.location}</span>
-                </p>
-                )}
-                {disposisi && (
+    <Dialog open={isUploadModalOpen} onOpenChange={setIsUploadModalOpen}>
+        <Card key={event.id} className="flex flex-col">
+            <CardHeader className="py-2 px-3">
+                <div className="flex justify-between items-start">
+                    <CardTitle className="text-base leading-snug">{event.summary || '(Tanpa Judul)'}</CardTitle>
+                    {event.bagianName && <Badge variant="secondary" className="ml-2 shrink-0">{event.bagianName}</Badge>}
+                </div>
+            </CardHeader>
+            <CardContent className="flex-grow space-y-1 text-sm text-muted-foreground px-3 pb-2">
+                <div className="space-y-0.5">
                     <p className="flex items-start">
-                        <Pin className="h-3 w-3 mr-1.5 mt-0.5 flex-shrink-0 text-green-500" />
-                        <span className='text-xs'>Disposisi: {disposisi}</span>
+                        <Clock className="h-3 w-3 mr-1.5 mt-0.5 flex-shrink-0 text-blue-500" />
+                        <span className='font-medium text-foreground text-xs'>{formatEventDisplay(event.start, event.end, event.isAllDay)}</span>
                     </p>
+                    {event.location && (
+                    <p className="flex items-start">
+                        <MapPin className="h-3 w-3 mr-1.5 mt-0.5 flex-shrink-0 text-red-500" />
+                        <span className="text-xs">{event.location}</span>
+                    </p>
+                    )}
+                    {disposisi && (
+                        <p className="flex items-start">
+                            <Pin className="h-3 w-3 mr-1.5 mt-0.5 flex-shrink-0 text-green-500" />
+                            <span className='text-xs'>Disposisi: {disposisi}</span>
+                        </p>
+                    )}
+                </div>
+                
+                {attachments.length > 0 && (
+                <Accordion type="single" collapsible className="w-full">
+                    <AccordionItem value="item-1" className="border-none">
+                    <AccordionTrigger className='text-xs font-bold text-muted-foreground hover:no-underline py-1'>
+                        <div className='flex items-center'>
+                        <Paperclip className='mr-2 h-3.5 w-3.5'/> Lampiran ({attachments.length})
+                        </div>
+                    </AccordionTrigger>
+                    <AccordionContent className='pt-1 pl-1'>
+                        <div className="max-h-24 overflow-y-auto">
+                        {attachments.map((att, index) => (
+                            att.fileUrl && att.title && (
+                            <a 
+                                key={att.fileId || index}
+                                href={att.fileUrl} 
+                                target="_blank" 
+                                rel="noopener noreferrer" 
+                                className="flex items-center gap-2 p-1 rounded-md hover:bg-muted transition-colors group"
+                            >
+                                {getFileIcon(att.title, 'h-4 w-4')}
+                                <span className="text-blue-600 group-hover:underline truncate text-xs" title={att.title}>
+                                    {att.title}
+                                </span>
+                            </a>
+                            )
+                        ))}
+                        </div>
+                    </AccordionContent>
+                    </AccordionItem>
+                </Accordion>
                 )}
-            </div>
-            
-            {attachments.length > 0 && (
-              <Accordion type="single" collapsible className="w-full">
-                <AccordionItem value="item-1" className="border-none">
-                  <AccordionTrigger className='text-xs font-bold text-muted-foreground hover:no-underline py-1'>
-                    <div className='flex items-center'>
-                      <Paperclip className='mr-2 h-3.5 w-3.5'/> Lampiran ({attachments.length})
-                    </div>
-                  </AccordionTrigger>
-                  <AccordionContent className='pt-1 pl-1'>
-                    <div className="max-h-24 overflow-y-auto">
-                      {attachments.map((att, index) => (
-                        att.fileUrl && att.title && (
-                          <a 
-                            key={att.fileId || index}
-                            href={att.fileUrl} 
-                            target="_blank" 
-                            rel="noopener noreferrer" 
-                            className="flex items-center gap-2 p-1 rounded-md hover:bg-muted transition-colors group"
-                          >
-                              {getFileIcon(att.title, 'h-4 w-4')}
-                              <span className="text-blue-600 group-hover:underline truncate text-xs" title={att.title}>
-                                  {att.title}
-                              </span>
-                          </a>
-                        )
-                      ))}
-                    </div>
-                  </AccordionContent>
-                </AccordionItem>
-              </Accordion>
-            )}
 
-        </CardContent>
-        <CardFooter className="flex flex-wrap justify-between items-center gap-2 px-3 py-1.5 mt-auto border-t">
-            <Button variant="ghost" size="icon" className="h-7 w-7" onClick={() => onEdit(event)}>
-                <PenSquare className="h-4 w-4 text-muted-foreground" />
-                <span className="sr-only">Edit Kegiatan</span>
-            </Button>
-            {event.htmlLink && (
-            <Button variant="ghost" size="sm" className="h-7 text-xs" asChild>
-                <a href={event.htmlLink} target="_blank" rel="noopener noreferrer">
-                    <ExternalLink className='mr-1.5 h-3.5 w-3.5' />
-                    Detail
-                </a>
-            </Button>
-            )}
-        </CardFooter>
-    </Card>
+            </CardContent>
+            <CardFooter className="flex flex-wrap justify-between items-center gap-2 px-3 py-1.5 mt-auto border-t">
+                <div className='flex'>
+                    <Button variant="ghost" size="icon" className="h-7 w-7" onClick={() => onEdit(event)}>
+                        <PenSquare className="h-4 w-4 text-muted-foreground" />
+                        <span className="sr-only">Edit Kegiatan</span>
+                    </Button>
+                     <DialogTrigger asChild>
+                         <Button variant="ghost" size="icon" className="h-7 w-7">
+                            <FileUp className="h-4 w-4 text-muted-foreground" />
+                            <span className="sr-only">Upload Lampiran</span>
+                        </Button>
+                    </DialogTrigger>
+                </div>
+                {event.htmlLink && (
+                <Button variant="ghost" size="sm" className="h-7 text-xs" asChild>
+                    <a href={event.htmlLink} target="_blank" rel="noopener noreferrer">
+                        <ExternalLink className='mr-1.5 h-3.5 w-3.5' />
+                        Detail
+                    </a>
+                </Button>
+                )}
+            </CardFooter>
+        </Card>
+        <DialogContent className="sm:max-w-3xl max-h-[90vh] overflow-y-auto no-scrollbar">
+            <DialogHeader>
+                <DialogTitle>Upload Lampiran</DialogTitle>
+                <DialogDescription>
+                    Unggah dokumen untuk kegiatan: <span className="font-semibold">{event.summary}</span>
+                </DialogDescription>
+            </DialogHeader>
+            <UploadAttachmentForm
+                event={event}
+                onSuccess={() => {
+                    setIsUploadModalOpen(false);
+                    onUploadSuccess();
+                }}
+            />
+        </DialogContent>
+    </Dialog>
   );
 };
 
@@ -907,7 +934,7 @@ export default function CalendarPage() {
                  <TabsContent value="harian" className="mt-0">
                      <div className="flex flex-col gap-4">
                         <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-4">
-                            {eventsToRender.map(event => event.id && <EventCard event={event} key={event.id} onEdit={() => handleOpenForm('edit', event)} />)}
+                            {eventsToRender.map(event => event.id && <EventCard event={event} key={event.id} onEdit={() => handleOpenForm('edit', event)} onUploadSuccess={handleRefresh} />)}
                         </div>
                         {viewMode === 'harian' && searchQuery && totalPages > 1 && (
                             <div className="flex items-center justify-center gap-4 pt-4">

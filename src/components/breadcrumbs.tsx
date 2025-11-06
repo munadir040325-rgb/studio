@@ -12,7 +12,6 @@ const formatSegment = (segment: string) => {
   // Custom formatting
   const customFormats: { [key: string]: string } = {
     'calendar': 'Kalender',
-    'upload': 'Upload Lampiran',
     'report': 'Buat Laporan',
   };
 

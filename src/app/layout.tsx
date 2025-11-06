@@ -62,11 +62,6 @@ export default function RootLayout({
                       <Link href="/report"><FilePenLine />Buat Laporan</Link>
                     </SidebarMenuButton>
                   </SidebarMenuItem>
-                  <SidebarMenuItem>
-                    <SidebarMenuButton asChild size="lg">
-                      <Link href="/upload"><FileUp />Upload Lampiran</Link>
-                    </SidebarMenuButton>
-                  </SidebarMenuItem>
                 </SidebarMenu>
               </SidebarContent>
             </Sidebar>
