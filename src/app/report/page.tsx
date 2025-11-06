@@ -206,10 +206,85 @@ export default function ReportPage() {
   
   const handlePrint = () => {
     if (!selectedEvent) {
-        toast({ variant: 'destructive', title: 'Gagal Mencetak', description: 'Pilih kegiatan terlebih dahulu.'});
+        toast({ variant: 'destructive', title: 'Gagal Mencetak', description: 'Pilih kegiatan terlebih dahulu.' });
         return;
     }
-    window.print();
+
+    const printArea = document.getElementById('print-area');
+    if (!printArea) {
+        toast({ variant: 'destructive', title: 'Gagal Mencetak', description: 'Area laporan tidak ditemukan.' });
+        return;
+    }
+
+    const printContent = printArea.innerHTML;
+    
+    // Create a hidden iframe
+    const iframe = document.createElement('iframe');
+    iframe.style.position = 'absolute';
+    iframe.style.width = '0';
+    iframe.style.height = '0';
+    iframe.style.border = '0';
+    document.body.appendChild(iframe);
+
+    const doc = iframe.contentWindow?.document;
+    if (!doc) {
+        toast({ variant: 'destructive', title: 'Gagal Mencetak', description: 'Tidak dapat membuat dokumen cetak.' });
+        document.body.removeChild(iframe);
+        return;
+    }
+
+    // Write the content and styles to the iframe
+    doc.open();
+    doc.write('<html><head><title>Cetak Laporan</title>');
+    
+    // Copy all style sheets from the main window to the iframe
+    Array.from(document.styleSheets).forEach(styleSheet => {
+        try {
+            if (styleSheet.cssRules) {
+                const style = doc.createElement('style');
+                style.textContent = Array.from(styleSheet.cssRules)
+                    .map(rule => rule.cssText)
+                    .join('\n');
+                doc.head.appendChild(style);
+            }
+        } catch (e) {
+            console.warn('Could not copy stylesheet:', e);
+        }
+    });
+
+    // Write the inline print styles
+    const inlineStyles = `
+        @page {
+            size: A4;
+            margin: 2.1cm;
+        }
+        body {
+            margin: 0;
+            padding: 0;
+            font-family: Arial, sans-serif !important;
+            font-size: 12px !important;
+            line-height: 1.2 !important;
+        }
+        .report-content-preview {
+            display: block !important; /* Ensure preview is visible for printing */
+        }
+        .list-ol-1 { list-style-type: decimal; }
+        .list-ol-2 { list-style-type: lower-alpha; }
+        .list-ol-3 { list-style-type: lower-roman; }
+    `;
+    doc.write(`<style>${inlineStyles}</style>`);
+    
+    doc.write('</head><body>');
+    doc.write(printContent);
+    doc.write('</body></html>');
+    doc.close();
+
+    // Trigger print and clean up
+    setTimeout(() => {
+        iframe.contentWindow?.focus();
+        iframe.contentWindow?.print();
+        document.body.removeChild(iframe);
+    }, 250); // Small delay to ensure content is fully rendered
   };
   
   const handleReset = () => {
@@ -364,6 +439,7 @@ export default function ReportPage() {
                 }
                 .report-content-preview {
                     color: black !important;
+                    display: block !important;
                 }
                 .report-content-preview p,
                 .report-content-preview div,
