@@ -61,7 +61,7 @@ const ReportPreview = ({ event }: { event: CalendarEvent | null }) => {
     const handleInput = (e: React.FormEvent<HTMLDivElement>) => {
         const editor = e.currentTarget;
         if (editor.innerHTML.trim() === "" || editor.innerHTML === "<br>") {
-            editor.innerHTML = "<p><br></p>";
+             editor.innerHTML = "<p><br></p>";
         }
 
         const selection = window.getSelection();
@@ -72,11 +72,11 @@ const ReportPreview = ({ event }: { event: CalendarEvent | null }) => {
         
         if (node.textContent) {
             const text = node.textContent;
-            if (range.startOffset > 1 && (text.substring(range.startOffset - 2) === '1.' || text.substring(range.startOffset - 3) === '1. ')) {
+            if ((range.startOffset > 1 && text.substring(range.startOffset - 2) === '1.') || (range.startOffset > 2 && text.substring(range.startOffset - 3) === '1. ')) {
                 e.preventDefault();
                 node.textContent = text.replace(/1\.\s?$/, '');
                 document.execCommand('insertOrderedList', false);
-            } else if (range.startOffset > 0 && (text.substring(range.startOffset - 1) === '*' || text.substring(range.startOffset - 2) === '* ' || text.substring(range.startOffset - 1) === '-' || text.substring(range.startOffset - 2) === '- ')) {
+            } else if ((range.startOffset > 0 && text.substring(range.startOffset - 1) === '*') || (range.startOffset > 1 && text.substring(range.startOffset - 2) === '* ') || (range.startOffset > 0 && text.substring(range.startOffset - 1) === '-') || (range.startOffset > 1 && text.substring(range.startOffset - 2) === '- ')) {
                 e.preventDefault();
                 node.textContent = text.replace(/[\*\-]\s?$/, '');
                 document.execCommand('insertUnorderedList', false);
@@ -90,13 +90,15 @@ const ReportPreview = ({ event }: { event: CalendarEvent | null }) => {
 
         editor.focus();
 
-        if ((command === 'insertOrderedList' || command === 'insertUnorderedList') && editor.textContent?.trim() === '') {
-            editor.innerHTML = '<p><br></p>';
+        if ((command === 'insertOrderedList' || command === 'insertUnorderedList') && (editor.textContent?.trim() === '' || editor.innerHTML === '<p><br></p>' || editor.innerHTML === '')) {
+             if (editor.innerHTML === '' || editor.innerHTML === '<p><br></p>') {
+                editor.innerHTML = '<p><br></p>'; 
+             }
             const range = document.createRange();
             const sel = window.getSelection();
-            const p = editor.getElementsByTagName('p')[0];
+            const p = editor.getElementsByTagName('p')[0] || editor;
             if (p && sel) {
-              range.setStart(p, 0);
+              range.setStart(p.firstChild || p, 0);
               range.collapse(true);
               sel.removeAllRanges();
               sel.addRange(range);
@@ -121,14 +123,14 @@ const ReportPreview = ({ event }: { event: CalendarEvent | null }) => {
     }
 
     return (
-        <div id="print-area" className="bg-white text-black p-12 shadow-lg rounded-sm print:shadow-none print:p-4 font-serif">
+        <div id="print-area" className="bg-white text-black p-12 shadow-lg rounded-sm print:shadow-none print:p-4 font-serif text-[12px]">
             <h3 className="text-center font-bold text-lg">NOTA DINAS</h3>
             <br />
-            <table className="w-full text-sm">
+            <table className="w-full">
                 <tbody>
                     <tr><td className="w-28 align-top">YTH.</td><td className="w-2 align-top">:</td><td className="font-semibold">CAMAT GANDRUNGMANGU</td></tr>
                     <tr><td className="align-top">DARI</td><td className="align-top">:</td><td><EditableField placeholder="Nama Pelapor, Jabatan" /></td></tr>
-                    <tr><td className="align-top">TEMBUSAN</td><td className="align-top">:</td><td>SEKRETARIS KECAMATAN GANDRUNGMANGU</td></tr>
+                    <tr><td className="align-top">TEMBUSAN</td><td className="align-top">:</td><td><EditableField placeholder="Tembusan" /></td></tr>
                     <tr><td className="align-top">TANGGAL</td><td className="align-top">:</td><td>{reportDate}</td></tr>
                     <tr><td className="align-top">NOMOR</td><td className="align-top">:</td><td><EditableField placeholder="Nomor Surat" /></td></tr>
                     <tr><td className="align-top">SIFAT</td><td className="align-top">:</td><td>BIASA</td></tr>
@@ -139,11 +141,11 @@ const ReportPreview = ({ event }: { event: CalendarEvent | null }) => {
 
             <hr className="border-black my-4" />
 
-            <p className="text-sm text-justify">
+            <p className="text-justify">
                 Dasar Surat <EditableField placeholder="Asal Surat (e.g., Undangan dari...)" /> Nomor : <EditableField placeholder="Nomor Surat Undangan" /> tanggal <EditableField placeholder="Tanggal Surat Undangan" /> perihal Undangan, dengan ini kami laporkan hasil pelaksanaan kegiatan sebagai berikut:
             </p>
 
-            <div className="mt-4 text-sm space-y-4">
+            <div className="mt-4 space-y-4">
                 <div className="flex">
                     <span className="w-8 font-semibold">I.</span>
                     <div className="w-full">
@@ -178,7 +180,7 @@ const ReportPreview = ({ event }: { event: CalendarEvent | null }) => {
                 <div className="flex">
                     <span className="w-8 font-semibold">IV.</span>
                      <div className="w-full relative">
-                        <p className="font-semibold">Ringkasan Materi</p>
+                        <p className="font-semibold">HASIL KEGIATAN & TINDAK LANJUT</p>
                          {showToolbar && (
                             <div className="sticky top-0 z-10 bg-gray-100 p-1 rounded-md flex gap-1 print:hidden mb-2">
                                 <Button type="button" size="icon" variant="outline" className="h-7 w-7" onMouseDown={(e) => handleToolbarButtonClick(e, 'bold')}><Bold className="h-4 w-4" /></Button>
@@ -196,8 +198,10 @@ const ReportPreview = ({ event }: { event: CalendarEvent | null }) => {
                             onKeyDown={handleKeyDown}
                             onInput={handleInput}
                             className="mt-2 p-1 -m-1 rounded-md min-h-[8rem] bg-muted/50 hover:bg-muted focus:bg-background focus:outline-none focus:ring-2 focus:ring-ring print:bg-transparent w-full"
-                            data-placeholder="Isi ringkasan materi di sini..."
-                        />
+                            data-placeholder="Isi hasil kegiatan dan tindak lanjut di sini..."
+                         >
+                            <p><br /></p>
+                         </div>
                     </div>
                 </div>
             </div>
@@ -340,6 +344,10 @@ export default function ReportPage() {
 
         {/* CSS Khusus untuk Mencetak */}
         <style jsx global>{`
+            @page {
+                size: A4;
+                margin: 2.54cm;
+            }
             @media print {
                 body, html {
                     visibility: hidden;
@@ -370,6 +378,7 @@ export default function ReportPage() {
                     margin: 0;
                     padding: 0;
                     border: none;
+                    font-size: 12px;
                 }
                 span[contentEditable="true"], div[contentEditable="true"] {
                    background-color: transparent !important;
