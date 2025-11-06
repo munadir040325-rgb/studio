@@ -47,35 +47,23 @@ const EditableField = ({ placeholder, className }: { placeholder: string, classN
 
 // A more robust rich text editor component
 const RichTextEditor = ({ forwardedRef }: { forwardedRef: React.Ref<HTMLDivElement> }) => {
-    const editorRef = useRef<HTMLDivElement>(null);
 
-    // Use forwardedRef if provided, otherwise use internal ref
-    const effectiveRef = forwardedRef || editorRef;
-
-    const applyFormat = (command: string) => {
+    const handleCommand = (command: string) => {
         document.execCommand(command, false);
-        if (effectiveRef && 'current' in effectiveRef && effectiveRef.current) {
-             effectiveRef.current.focus();
-        }
-    };
-    
-    const handleToolbarMouseDown = (e: React.MouseEvent<HTMLButtonElement>, command: string) => {
-        e.preventDefault(); // Prevent editor from losing focus
-        applyFormat(command);
     };
 
     return (
         <div className="w-full relative">
             <div className="sticky top-0 z-10 bg-gray-100 p-1 rounded-md flex gap-1 print:hidden mb-2">
-                <Button type="button" size="icon" variant="outline" className="h-7 w-7" onMouseDown={(e) => handleToolbarMouseDown(e, 'bold')}><Bold className="h-4 w-4" /></Button>
-                <Button type="button" size="icon" variant="outline" className="h-7 w-7" onMouseDown={(e) => handleToolbarMouseDown(e, 'italic')}><Italic className="h-4 w-4" /></Button>
-                <Button type="button" size="icon" variant="outline" className="h-7 w-7" onMouseDown={(e) => handleToolbarMouseDown(e, 'insertUnorderedList')}><List className="h-4 w-4" /></Button>
-                <Button type="button" size="icon" variant="outline" className="h-7 w-7" onMouseDown={(e) => handleToolbarMouseDown(e, 'insertOrderedList')}><ListOrdered className="h-4 w-4" /></Button>
-                <Button type="button" size="icon" variant="outline" className="h-7 w-7" onMouseDown={(e) => handleToolbarMouseDown(e, 'indent')}><Indent className="h-4 w-4" /></Button>
-                <Button type="button" size="icon" variant="outline" className="h-7 w-7" onMouseDown={(e) => handleToolbarMouseDown(e, 'outdent')}><Outdent className="h-4 w-4" /></Button>
+                <Button type="button" size="icon" variant="outline" className="h-7 w-7" onClick={() => handleCommand('bold')}><Bold className="h-4 w-4" /></Button>
+                <Button type="button" size="icon" variant="outline" className="h-7 w-7" onClick={() => handleCommand('italic')}><Italic className="h-4 w-4" /></Button>
+                <Button type="button" size="icon" variant="outline" className="h-7 w-7" onClick={() => handleCommand('insertUnorderedList')}><List className="h-4 w-4" /></Button>
+                <Button type="button" size="icon" variant="outline" className="h-7 w-7" onClick={() => handleCommand('insertOrderedList')}><ListOrdered className="h-4 w-4" /></Button>
+                <Button type="button" size="icon" variant="outline" className="h-7 w-7" onClick={() => handleCommand('indent')}><Indent className="h-4 w-4" /></Button>
+                <Button type="button" size="icon" variant="outline" className="h-7 w-7" onClick={() => handleCommand('outdent')}><Outdent className="h-4 w-4" /></Button>
             </div>
             <div
-                ref={effectiveRef}
+                ref={forwardedRef}
                 contentEditable
                 suppressContentEditableWarning
                 className="mt-2 p-1 -m-1 rounded-md min-h-[8rem] bg-muted/50 hover:bg-muted focus:bg-background focus:outline-none focus:ring-2 focus:ring-ring print:bg-transparent w-full"
@@ -101,7 +89,7 @@ const ReportPreview = ({ event }: { event: CalendarEvent | null }) => {
     }
 
     return (
-        <div id="print-area" className="bg-white text-black p-12 shadow-lg rounded-sm print:shadow-none print:p-4 font-sans">
+        <div id="print-area" className="bg-white text-black p-12 shadow-lg rounded-sm print:shadow-none print:p-4">
             <h3 className="text-center font-bold text-lg">NOTA DINAS</h3>
             <br />
             <table className="w-full border-separate" style={{borderSpacing: '0 4px'}}>
@@ -198,7 +186,7 @@ const ReportPreview = ({ event }: { event: CalendarEvent | null }) => {
             
             <p className="mt-4">Demikian untuk menjadikan periksa dan terima kasih.</p>
 
-            <div className="flex justify-end mt-4">
+            <div className="flex justify-end mt-8">
                 <div className="text-center w-64">
                     <p>Yang melaksanakan kegiatan,</p>
                     <br /><br /><br />
@@ -240,12 +228,13 @@ export default function ReportPage() {
     }
 
     const iframe = document.createElement('iframe');
-    iframe.style.position = 'fixed';
+    iframe.style.position = 'absolute';
     iframe.style.width = '0';
     iframe.style.height = '0';
     iframe.style.border = '0';
     iframe.style.top = '-9999px';
     iframe.style.left = '-9999px';
+    
     document.body.appendChild(iframe);
 
     const doc = iframe.contentWindow?.document;
@@ -259,6 +248,7 @@ export default function ReportPage() {
     doc.write('<html><head>' + document.head.innerHTML + '</head><body>' + printArea.outerHTML + '</body></html>');
     doc.close();
     
+    // Using setTimeout to ensure content is loaded before printing
     setTimeout(() => {
         try {
             iframe.contentWindow?.focus();
@@ -266,6 +256,7 @@ export default function ReportPage() {
         } catch (e: any) {
             toast({ variant: 'destructive', title: 'Gagal Mencetak', description: `Terjadi kesalahan: ${e.message}`});
         } finally {
+             // Use another timeout to ensure the print dialog is closed before removing the iframe
              setTimeout(() => {
                  if (document.body.contains(iframe)) {
                     document.body.removeChild(iframe);
