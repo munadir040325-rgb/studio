@@ -1,6 +1,5 @@
 "use client";
 
-import { useMemo } from "react";
 import {
   BlockNoteView,
   useBlockNote,
@@ -8,6 +7,7 @@ import {
   Theme,
 } from "@blocknote/react";
 import { BlockNoteEditor } from "@blocknote/core";
+import "@blocknote/react/style.css";
 
 // Custom theme to match app's aesthetic
 const reportTheme = {
