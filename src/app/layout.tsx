@@ -6,19 +6,14 @@ import {
   Sidebar,
   SidebarHeader,
   SidebarContent,
-  SidebarMenu,
-  SidebarMenuItem,
-  SidebarMenuButton,
   SidebarInset,
 } from '@/components/ui/sidebar';
 import {
   CalendarDays,
-  FileUp,
-  FilePenLine,
 } from 'lucide-react';
-import Link from 'next/link';
 import { AppHeader } from '@/components/app-header';
 import { MobileSidebarHeader } from '@/components/mobile-sidebar-header';
+import { MobileAwareSidebarMenu } from '@/components/mobile-aware-sidebar-menu';
 
 export const metadata: Metadata = {
   title: 'Calendar Manager',
@@ -51,18 +46,7 @@ export default function RootLayout({
                  <MobileSidebarHeader />
               </SidebarHeader>
               <SidebarContent>
-                <SidebarMenu>
-                  <SidebarMenuItem>
-                    <SidebarMenuButton asChild size="lg">
-                      <Link href="/calendar"><CalendarDays />Kalender</Link>
-                    </SidebarMenuButton>
-                  </SidebarMenuItem>
-                   <SidebarMenuItem>
-                    <SidebarMenuButton asChild size="lg">
-                      <Link href="/report"><FilePenLine />Buat Laporan</Link>
-                    </SidebarMenuButton>
-                  </SidebarMenuItem>
-                </SidebarMenu>
+                <MobileAwareSidebarMenu />
               </SidebarContent>
             </Sidebar>
 
