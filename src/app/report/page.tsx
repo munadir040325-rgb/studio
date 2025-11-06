@@ -1,6 +1,6 @@
 'use client';
 
-import { useState, useMemo, useRef } from 'react';
+import { useState, useMemo, useRef, useEffect } from 'react';
 import { PageHeader } from '@/components/page-header';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardDescription, CardFooter, CardHeader, CardTitle } from '@/components/ui/card';
@@ -8,7 +8,7 @@ import { Label } from '@/components/ui/label';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { Calendar } from '@/components/ui/calendar';
 import { Popover, PopoverContent, PopoverTrigger } from '@/components/ui/popover';
-import { Calendar as CalendarIcon, Loader2, Printer, Trash } from 'lucide-react';
+import { Calendar as CalendarIcon, Loader2, Printer, Trash, Bold, Italic, List, ListOrdered } from 'lucide-react';
 import { useToast } from '@/hooks/use-toast';
 import { cn } from '@/lib/utils';
 import { parseISO, format, isSameDay } from 'date-fns';
@@ -48,6 +48,45 @@ const EditableField = ({ placeholder, className }: { placeholder: string, classN
 const ReportPreview = ({ event }: { event: CalendarEvent | null }) => {
     const disposisi = event ? extractDisposisi(event.description) : null;
     const reportDate = format(new Date(), 'dd MMMM yyyy', { locale: localeId });
+    const editorRef = useRef<HTMLDivElement>(null);
+    const [showToolbar, setShowToolbar] = useState(false);
+
+    const handleKeyDown = (e: React.KeyboardEvent<HTMLDivElement>) => {
+        if (e.key === 'Tab') {
+            e.preventDefault();
+            if (e.shiftKey) {
+                document.execCommand('outdent', false);
+            } else {
+                document.execCommand('indent', false);
+            }
+        }
+    };
+    
+    const handleInput = (e: React.FormEvent<HTMLDivElement>) => {
+        const selection = window.getSelection();
+        if (!selection || selection.rangeCount === 0) return;
+        
+        const range = selection.getRangeAt(0);
+        const node = range.startContainer;
+        
+        // Handle list creation
+        if (node.textContent) {
+            if (node.textContent.endsWith('1. ')) {
+                e.preventDefault();
+                node.textContent = node.textContent.replace(/1\.\s$/, '');
+                document.execCommand('insertOrderedList', false);
+            } else if (node.textContent.endsWith('* ') || node.textContent.endsWith('- ')) {
+                 e.preventDefault();
+                node.textContent = node.textContent.replace(/[\*\-]\s$/, '');
+                document.execCommand('insertUnorderedList', false);
+            }
+        }
+    };
+
+    const applyFormat = (command: 'bold' | 'italic' | 'insertOrderedList' | 'insertUnorderedList') => {
+        editorRef.current?.focus();
+        document.execCommand(command, false);
+    };
 
     if (!event) {
         return (
@@ -114,11 +153,24 @@ const ReportPreview = ({ event }: { event: CalendarEvent | null }) => {
                 </div>
                 <div className="flex">
                     <span className="w-8 font-semibold">IV.</span>
-                     <div className="w-full">
+                     <div className="w-full relative">
                         <p className="font-semibold">Ringkasan Materi</p>
+                         {showToolbar && (
+                            <div className="sticky top-0 z-10 bg-gray-100 p-1 rounded-md flex gap-1 print:hidden mb-2">
+                                <Button type="button" size="icon" variant="outline" className="h-7 w-7" onClick={() => applyFormat('bold')}><Bold className="h-4 w-4" /></Button>
+                                <Button type="button" size="icon" variant="outline" className="h-7 w-7" onClick={() => applyFormat('italic')}><Italic className="h-4 w-4" /></Button>
+                                <Button type="button" size="icon" variant="outline" className="h-7 w-7" onClick={() => applyFormat('insertUnorderedList')}><List className="h-4 w-4" /></Button>
+                                <Button type="button" size="icon" variant="outline" className="h-7 w-7" onClick={() => applyFormat('insertOrderedList')}><ListOrdered className="h-4 w-4" /></Button>
+                            </div>
+                         )}
                          <div
+                            ref={editorRef}
                             contentEditable
                             suppressContentEditableWarning
+                            onFocus={() => setShowToolbar(true)}
+                            onBlur={() => setShowToolbar(false)}
+                            onKeyDown={handleKeyDown}
+                            onInput={handleInput}
                             className="mt-2 p-1 -m-1 rounded-md min-h-[8rem] bg-muted/50 hover:bg-muted focus:bg-background focus:outline-none focus:ring-2 focus:ring-ring print:bg-transparent text-justify"
                             data-placeholder="Isi ringkasan materi di sini..."
                         />
@@ -320,9 +372,9 @@ export default function ReportPage() {
             #print-area div[contentEditable] ul,
             #print-area div[contentEditable] ol {
                 list-style-position: inside;
+                padding-left: 1.5em; 
             }
             #print-area div[contentEditable] li {
-                padding-left: 1.5em; 
                 text-indent: -1.5em;
                 margin-bottom: 0.5em;
             }
