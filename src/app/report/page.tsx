@@ -171,7 +171,7 @@ const ReportEditorTemplate = ({ event, reportContent, onContentChange }: { event
                                         <td><EditableField id="report-pimpinan" placeholder="Isi Pimpinan Rapat" /></td>
                                     </tr>
                                     <tr>
-                                        <td className='w-32 align-top'>Narasumber</td>
+                                        <td className="w-32 align-top"><EditableField id="label-narasumber" placeholder="Label" defaultValue="Narasumber"/></td>
                                         <td className='w-4 align-top'>:</td>
                                         <td><EditableField id="report-narasumber" placeholder="Isi Narasumber" /></td>
                                     </tr>
