@@ -8,7 +8,7 @@ import { Label } from '@/components/ui/label';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { Calendar } from '@/components/ui/calendar';
 import { Popover, PopoverContent, PopoverTrigger } from '@/components/ui/popover';
-import { Calendar as CalendarIcon, Loader2, Printer, Trash, Bold, Italic, List, ListOrdered } from 'lucide-react';
+import { Calendar as CalendarIcon, Loader2, Printer, Trash, Bold, Italic, List, ListOrdered, Indent, Outdent } from 'lucide-react';
 import { useToast } from '@/hooks/use-toast';
 import { cn } from '@/lib/utils';
 import { parseISO, format, isSameDay } from 'date-fns';
@@ -73,6 +73,8 @@ const RichTextEditor = ({ forwardedRef }: { forwardedRef: React.Ref<HTMLDivEleme
                     <Button type="button" size="icon" variant="outline" className="h-7 w-7" onMouseDown={(e) => handleToolbarMouseDown(e, 'italic')}><Italic className="h-4 w-4" /></Button>
                     <Button type="button" size="icon" variant="outline" className="h-7 w-7" onMouseDown={(e) => handleToolbarMouseDown(e, 'insertUnorderedList')}><List className="h-4 w-4" /></Button>
                     <Button type="button" size="icon" variant="outline" className="h-7 w-7" onMouseDown={(e) => handleToolbarMouseDown(e, 'insertOrderedList')}><ListOrdered className="h-4 w-4" /></Button>
+                    <Button type="button" size="icon" variant="outline" className="h-7 w-7" onMouseDown={(e) => handleToolbarMouseDown(e, 'indent')}><Indent className="h-4 w-4" /></Button>
+                    <Button type="button" size="icon" variant="outline" className="h-7 w-7" onMouseDown={(e) => handleToolbarMouseDown(e, 'outdent')}><Outdent className="h-4 w-4" /></Button>
                 </div>
             )}
             <div
