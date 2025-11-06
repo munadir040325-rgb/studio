@@ -60,7 +60,7 @@ const RichTextEditor = ({ forwardedRef }: { forwardedRef: React.Ref<HTMLDivEleme
         }
     };
     
-    const handleToolbarMouseDown = (e: React.MouseEvent<HTMLButtonElement>, command: string) => {
+    const handleToolbarClick = (e: React.MouseEvent<HTMLButtonElement>, command: string) => {
         e.preventDefault(); // Prevent editor from losing focus
         applyFormat(command);
     };
@@ -69,12 +69,12 @@ const RichTextEditor = ({ forwardedRef }: { forwardedRef: React.Ref<HTMLDivEleme
         <div className="w-full relative">
             {showToolbar && (
                 <div className="sticky top-0 z-10 bg-gray-100 p-1 rounded-md flex gap-1 print:hidden mb-2">
-                    <Button type="button" size="icon" variant="outline" className="h-7 w-7" onMouseDown={(e) => handleToolbarMouseDown(e, 'bold')}><Bold className="h-4 w-4" /></Button>
-                    <Button type="button" size="icon" variant="outline" className="h-7 w-7" onMouseDown={(e) => handleToolbarMouseDown(e, 'italic')}><Italic className="h-4 w-4" /></Button>
-                    <Button type="button" size="icon" variant="outline" className="h-7 w-7" onMouseDown={(e) => handleToolbarMouseDown(e, 'insertUnorderedList')}><List className="h-4 w-4" /></Button>
-                    <Button type="button" size="icon" variant="outline" className="h-7 w-7" onMouseDown={(e) => handleToolbarMouseDown(e, 'insertOrderedList')}><ListOrdered className="h-4 w-4" /></Button>
-                    <Button type="button" size="icon" variant="outline" className="h-7 w-7" onMouseDown={(e) => handleToolbarMouseDown(e, 'indent')}><Indent className="h-4 w-4" /></Button>
-                    <Button type="button" size="icon" variant="outline" className="h-7 w-7" onMouseDown={(e) => handleToolbarMouseDown(e, 'outdent')}><Outdent className="h-4 w-4" /></Button>
+                    <Button type="button" size="icon" variant="outline" className="h-7 w-7" onClick={(e) => handleToolbarClick(e, 'bold')}><Bold className="h-4 w-4" /></Button>
+                    <Button type="button" size="icon" variant="outline" className="h-7 w-7" onClick={(e) => handleToolbarClick(e, 'italic')}><Italic className="h-4 w-4" /></Button>
+                    <Button type="button" size="icon" variant="outline" className="h-7 w-7" onClick={(e) => handleToolbarClick(e, 'insertUnorderedList')}><List className="h-4 w-4" /></Button>
+                    <Button type="button" size="icon" variant="outline" className="h-7 w-7" onClick={(e) => handleToolbarClick(e, 'insertOrderedList')}><ListOrdered className="h-4 w-4" /></Button>
+                    <Button type="button" size="icon" variant="outline" className="h-7 w-7" onClick={(e) => handleToolbarClick(e, 'indent')}><Indent className="h-4 w-4" /></Button>
+                    <Button type="button" size="icon" variant="outline" className="h-7 w-7" onClick={(e) => handleToolbarClick(e, 'outdent')}><Outdent className="h-4 w-4" /></Button>
                 </div>
             )}
             <div
@@ -203,7 +203,7 @@ const ReportPreview = ({ event }: { event: CalendarEvent | null }) => {
             
             <p className="mt-4">Demikian untuk menjadikan periksa dan terima kasih.</p>
 
-            <div className="flex justify-end mt-8">
+            <div className="flex justify-end mt-4">
                 <div className="text-center w-64">
                     <p>Yang melaksanakan kegiatan,</p>
                     <br /><br /><br />
@@ -440,7 +440,7 @@ export default function ReportPage() {
             #print-area div[contenteditable] ul,
             #print-area div[contenteditable] ol {
                 list-style-position: inside;
-                padding-left: 0; 
+                padding-left: 0;
             }
 
             #print-area div[contentEditable] p {
