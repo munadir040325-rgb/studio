@@ -26,6 +26,8 @@ import {
   CAN_UNDO_COMMAND,
   FORMAT_ELEMENT_COMMAND,
   FORMAT_TEXT_COMMAND,
+  INDENT_CONTENT_COMMAND,
+  OUTDENT_CONTENT_COMMAND,
   REDO_COMMAND,
   SELECTION_CHANGE_COMMAND,
   UNDO_COMMAND,
@@ -38,6 +40,9 @@ import {
   AlignLeft,
   AlignCenter,
   AlignRight,
+  AlignJustify,
+  Indent,
+  Outdent,
   List,
   ListOrdered,
 } from "lucide-react";
@@ -191,6 +196,20 @@ export function Toolbar() {
         <ListOrdered className="h-4 w-4" />
       </ToolbarItem>
       <ToolbarItem
+        onClick={() => editor.dispatchCommand(OUTDENT_CONTENT_COMMAND, undefined)}
+        active={false}
+        label="Outdent"
+      >
+        <Outdent className="h-4 w-4" />
+      </ToolbarItem>
+      <ToolbarItem
+        onClick={() => editor.dispatchCommand(INDENT_CONTENT_COMMAND, undefined)}
+        active={false}
+        label="Indent"
+      >
+        <Indent className="h-4 w-4" />
+      </ToolbarItem>
+      <ToolbarItem
         onClick={() => editor.dispatchCommand(FORMAT_ELEMENT_COMMAND, "left")}
         active={false}
         label="Align Left"
@@ -210,6 +229,13 @@ export function Toolbar() {
         label="Align Right"
       >
         <AlignRight className="h-4 w-4" />
+      </ToolbarItem>
+      <ToolbarItem
+        onClick={() => editor.dispatchCommand(FORMAT_ELEMENT_COMMAND, "justify")}
+        active={false}
+        label="Align Justify"
+      >
+        <AlignJustify className="h-4 w-4" />
       </ToolbarItem>
     </div>
   );
