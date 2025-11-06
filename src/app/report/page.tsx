@@ -267,8 +267,8 @@ export default function ReportPage() {
             @media print {
                 body, html {
                     visibility: hidden;
-                    margin: 0;
-                    padding: 0;
+                    margin: 0 !important;
+                    padding: 0 !important;
                 }
                 #report-preview-container, #report-preview-container * {
                     visibility: visible;
@@ -318,27 +318,25 @@ export default function ReportPage() {
             }
             
             /* Styling for lists inside contentEditable */
-            #print-area div[contentEditable="true"] ol,
-            #print-area div[contentEditable="true"] ul {
-                padding-left: 2.5rem; /* Indent the whole list */
-                margin-top: 0.5rem;
-                margin-bottom: 0.5rem;
+            #print-area div[contentEditable] ul,
+            #print-area div[contentEditable] ol {
+                margin: 0;
+                padding-left: 2em; /* Gives space for the numbers */
             }
-             #print-area div[contentEditable="true"] li {
-                padding-left: 0.5rem; /* Space between marker and text */
-                margin-bottom: 0.25rem;
+            #print-area div[contentEditable] li {
+                padding-left: 0.5em; /* Space between number and text */
+                margin-bottom: 0.5em; /* Space between list items */
             }
-            #print-area div[contentEditable="true"] ol {
-                list-style-type: decimal;
-            }
-            #print-area div[contentEditable="true"] ul {
-                list-style-type: disc;
-            }
-            /* Nested lists */
-            #print-area div[contentEditable="true"] ol ol,
-            #print-area div[contentEditable="true"] ul ol {
-                list-style-type: lower-alpha;
-            }
+            /* Hanging indent for nested lists */
+             #print-area div[contentEditable] li::marker {
+                font-weight: normal;
+             }
+             #print-area div[contentEditable] ul ul,
+             #print-area div[contentEditable] ol ul,
+             #print-area div[contentEditable] ul ol,
+             #print-area div[contentEditable] ol ol {
+                margin-left: 1em; /* Further indent nested lists */
+             }
         `}</style>
     </div>
   );
