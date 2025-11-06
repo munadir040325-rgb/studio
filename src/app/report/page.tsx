@@ -325,7 +325,7 @@ Hormat kami,
                 <Trash className="mr-2 h-4 w-4"/>
                 Reset
             </Button>
-            <Button onClick={handleCopyToWhatsApp} variant="outline" disabled>
+            <Button onClick={handleCopyToWhatsApp} variant="outline" disabled={!selectedEvent}>
                 <WhatsAppIcon />
                 Salin untuk WA
             </Button>
@@ -472,23 +472,20 @@ Hormat kami,
                    box-shadow: none !important;
                 }
                  span[contentEditable="true"]:empty::before {
-                    content: attr(data-placeholder);
-                    color: #999;
-                    font-style: italic;
-                    visibility: visible;
+                    content: '';
                 }
                 .report-content-preview {
                     color: black !important;
                     display: block !important;
                 }
             }
-             span[contentEditable="true"]:empty::before {
+             span[contenteditable="true"]:empty::before {
                 content: attr(data-placeholder);
                 color: #666;
                 font-style: italic;
                 display: block;
             }
-             span[contentEditable="true"][data-placeholder]:not(:focus):empty {
+             span[contenteditable="true"][data-placeholder]:not(:focus):empty {
                 content: attr(data-placeholder);
                 color: #666;
                 font-style: italic;
