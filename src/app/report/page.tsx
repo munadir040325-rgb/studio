@@ -66,10 +66,12 @@ const ReportPreview = ({ event }: { event: CalendarEvent | null }) => {
              editor.innerHTML = "<p><br></p>";
              const range = document.createRange();
              const sel = window.getSelection();
-             range.setStart(editor.firstChild!, 1);
-             range.collapse(true);
-             sel?.removeAllRanges();
-             sel?.addRange(range);
+             if (sel && editor.firstChild) {
+                range.setStart(editor.firstChild!, 1);
+                range.collapse(true);
+                sel.removeAllRanges();
+                sel.addRange(range);
+             }
         }
 
         const selection = window.getSelection();
@@ -133,7 +135,7 @@ const ReportPreview = ({ event }: { event: CalendarEvent | null }) => {
     }
 
     return (
-        <div id="print-area" className="bg-white text-black p-12 shadow-lg rounded-sm print:shadow-none print:p-4 font-sans">
+        <div id="print-area" className="bg-white text-black p-12 shadow-lg rounded-sm print:shadow-none print:p-4">
             <h3 className="text-center font-bold text-lg">NOTA DINAS</h3>
             <br />
             <table className="w-full border-separate" style={{borderSpacing: '0 4px'}}>
@@ -311,40 +313,21 @@ export default function ReportPage() {
         return;
     }
 
-    // Clone all style sheets from the parent document to the iframe
-    const styleSheets = Array.from(document.styleSheets);
-    styleSheets.forEach(styleSheet => {
-        try {
-            if (styleSheet.cssRules) { // For inline <style> tags
-                const newStyleEl = doc.createElement('style');
-                Array.from(styleSheet.cssRules).forEach(rule => {
-                    newStyleEl.appendChild(doc.createTextNode(rule.cssText));
-                });
-                doc.head.appendChild(newStyleEl);
-            } else if (styleSheet.href) { // For linked <link> stylesheets
-                const newLinkEl = doc.createElement('link');
-                newLinkEl.rel = 'stylesheet';
-                newLinkEl.href = styleSheet.href;
-                doc.head.appendChild(newLinkEl);
-            }
-        } catch (e) {
-            console.warn('Could not copy stylesheet:', e);
-        }
-    });
+    // Copy the entire <head> content
+    doc.head.innerHTML = document.head.innerHTML;
 
     // Copy the HTML content to be printed
-    doc.body.innerHTML = printArea.innerHTML;
+    doc.body.innerHTML = printArea.outerHTML;
     
     // Trigger the print dialog
-    setTimeout(() => {
-        iframe.contentWindow?.focus();
-        iframe.contentWindow?.print();
-
-        // Remove the iframe after printing
-        setTimeout(() => {
+    iframe.onload = function() {
+        setTimeout(() => { // A small delay to ensure styles are fully applied
+            iframe.contentWindow?.focus();
+            iframe.contentWindow?.print();
+            // Remove the iframe after printing is initiated
             document.body.removeChild(iframe);
-        }, 500);
-    }, 250); // A small delay to ensure styles are loaded
+        }, 500); 
+    };
   };
   
   const handleReset = () => {
@@ -456,10 +439,10 @@ export default function ReportPage() {
                     margin: 0 !important;
                     padding: 0 !important;
                 }
-                #report-preview-container, #report-preview-container * {
+                #print-area, #print-area * {
                     visibility: visible;
                 }
-                #report-preview-container {
+                #print-area {
                     position: absolute;
                     left: 0;
                     top: 0;
@@ -467,20 +450,12 @@ export default function ReportPage() {
                     height: auto;
                     margin: 0;
                     padding: 0;
+                    box-shadow: none;
+                    border: none;
                 }
                 main.p-4, main.p-6 {
                     padding: 0 !important;
                     margin: 0 !important;
-                }
-                #print-area * {
-                    font-family: Arial, sans-serif !important;
-                    font-size: 12px !important;
-                }
-                #print-area {
-                    box-shadow: none;
-                    margin: 0;
-                    padding: 0;
-                    border: none;
                 }
                 span[contentEditable="true"], div[contentEditable="true"] {
                    background-color: transparent !important;
@@ -494,6 +469,10 @@ export default function ReportPage() {
                     color: #999;
                     font-style: italic;
                     visibility: visible;
+                }
+                 #print-area * {
+                    font-family: Arial, sans-serif !important;
+                    font-size: 12px !important;
                 }
                  #print-area div[contentEditable] p {
                     text-align: justify;
