@@ -61,7 +61,6 @@ const ReportPreview = ({ event }: { event: CalendarEvent | null }) => {
     const handleInput = (e: React.FormEvent<HTMLDivElement>) => {
         const editor = e.currentTarget;
         
-        // Ensure editor is not completely empty
         if (editor.innerHTML.trim() === "" || editor.innerHTML === "<br>") {
              editor.innerHTML = "<p><br></p>";
              const range = document.createRange();
@@ -80,7 +79,6 @@ const ReportPreview = ({ event }: { event: CalendarEvent | null }) => {
         const range = selection.getRangeAt(0);
         const node = range.startContainer;
         
-        // Auto-create lists
         if (node.textContent) {
             const text = node.textContent;
             if ((range.startOffset > 1 && text.substring(range.startOffset - 2) === '1.') || (range.startOffset > 2 && text.substring(range.startOffset - 3) === '1. ')) {
@@ -101,7 +99,6 @@ const ReportPreview = ({ event }: { event: CalendarEvent | null }) => {
 
         editor.focus();
         
-        // Ensure there's a paragraph to work with for list commands if editor is empty
         if ((command === 'insertOrderedList' || command === 'insertUnorderedList') && (!editor.textContent?.trim() || editor.innerHTML === '<p><br></p>' || editor.innerHTML === '')) {
              if (editor.innerHTML === '' || !editor.querySelector('p')) {
                 editor.innerHTML = '<p><br></p>'; 
@@ -135,12 +132,11 @@ const ReportPreview = ({ event }: { event: CalendarEvent | null }) => {
     }
 
     return (
-        <div id="print-area" className="bg-white text-black p-12 shadow-lg rounded-sm print:shadow-none print:p-4">
+        <div id="print-area" className="bg-white text-black p-12 shadow-lg rounded-sm print:shadow-none print:p-4 font-sans">
             <h3 className="text-center font-bold text-lg">NOTA DINAS</h3>
             <br />
             <table className="w-full border-separate" style={{borderSpacing: '0 4px'}}>
                 <tbody>
-                    {/* Header Section */}
                     <tr><td className="w-8"></td><td className="w-28 align-top">YTH.</td><td className="w-2 align-top">:</td><td className="font-semibold">CAMAT GANDRUNGMANGU</td></tr>
                     <tr><td></td><td className="align-top">DARI</td><td className="align-top">:</td><td><EditableField placeholder="Nama Pelapor, Jabatan" /></td></tr>
                     <tr><td></td><td className="align-top">TEMBUSAN</td><td className="align-top">:</td><td><EditableField placeholder="Isi tembusan" /></td></tr>
@@ -160,7 +156,6 @@ const ReportPreview = ({ event }: { event: CalendarEvent | null }) => {
 
             <table className="w-full mt-4 border-separate" style={{borderSpacing: '0 4px'}}>
                 <tbody>
-                    {/* Section I */}
                     <tr>
                         <td className="w-8 align-top font-semibold">I.</td>
                         <td colSpan={3} className='font-semibold'>Pelaksanaan</td>
@@ -196,10 +191,8 @@ const ReportPreview = ({ event }: { event: CalendarEvent | null }) => {
                         <td><EditableField placeholder="Sebutkan peserta/perwakilan yang hadir" /></td>
                     </tr>
 
-                    {/* Spacer row */}
                     <tr><td colSpan={4} className="h-2"></td></tr>
 
-                    {/* Section II */}
                     <tr>
                         <td className="w-8 align-top font-semibold">II.</td>
                         <td className='w-28 align-top font-semibold'>Pimpinan Rapat</td>
@@ -207,20 +200,16 @@ const ReportPreview = ({ event }: { event: CalendarEvent | null }) => {
                         <td><EditableField placeholder="Isi Pimpinan Rapat" /></td>
                     </tr>
 
-                     {/* Spacer row */}
                     <tr><td colSpan={4} className="h-2"></td></tr>
 
-                    {/* Section III */}
                      <tr>
                         <td className="w-8 align-top font-semibold">III.</td>
                         <td className='w-28 align-top font-semibold'>Narasumber</td>
                         <td className='w-2 align-top'>:</td>
                         <td><EditableField placeholder="Isi Narasumber" /></td>
                     </tr>
-                     {/* Spacer row */}
                     <tr><td colSpan={4} className="h-2"></td></tr>
 
-                     {/* Section IV */}
                     <tr>
                         <td className="w-8 align-top font-semibold">IV.</td>
                         <td colSpan={3} className='font-semibold'>HASIL KEGIATAN & TINDAK LANJUT</td>
@@ -257,7 +246,7 @@ const ReportPreview = ({ event }: { event: CalendarEvent | null }) => {
             
             <p className="mt-4">Demikian untuk menjadikan periksa dan terima kasih.</p>
 
-            <div className="flex justify-end mt-16">
+            <div className="flex justify-end mt-8">
                 <div className="text-center w-64">
                     <p>Yang melaksanakan kegiatan,</p>
                     <br /><br /><br />
@@ -298,12 +287,13 @@ export default function ReportPage() {
         return;
     }
 
-    // Create a hidden iframe
     const iframe = document.createElement('iframe');
-    iframe.style.position = 'absolute';
+    iframe.style.position = 'fixed';
     iframe.style.width = '0';
     iframe.style.height = '0';
     iframe.style.border = '0';
+    iframe.style.top = '-9999px';
+    iframe.style.left = '-9999px';
     document.body.appendChild(iframe);
 
     const doc = iframe.contentWindow?.document;
@@ -312,22 +302,21 @@ export default function ReportPage() {
         document.body.removeChild(iframe);
         return;
     }
-
-    // Copy the entire <head> content
-    doc.head.innerHTML = document.head.innerHTML;
-
-    // Copy the HTML content to be printed
-    doc.body.innerHTML = printArea.outerHTML;
     
-    // Trigger the print dialog
-    iframe.onload = function() {
-        setTimeout(() => { // A small delay to ensure styles are fully applied
+    doc.open();
+    doc.write('<html><head>' + document.head.innerHTML + '</head><body>' + printArea.outerHTML + '</body></html>');
+    doc.close();
+    
+    setTimeout(() => {
+        try {
             iframe.contentWindow?.focus();
             iframe.contentWindow?.print();
-            // Remove the iframe after printing is initiated
+        } catch (e: any) {
+            toast({ variant: 'destructive', title: 'Gagal Mencetak', description: `Terjadi kesalahan: ${e.message}`});
+        } finally {
             document.body.removeChild(iframe);
-        }, 500); 
-    };
+        }
+    }, 500); 
   };
   
   const handleReset = () => {
@@ -422,12 +411,10 @@ export default function ReportPage() {
             </CardFooter>
         </Card>
 
-        {/* --- Area Pratinjau Dokumen --- */}
         <div className="mt-4" id="report-preview-container">
             <ReportPreview event={selectedEvent} />
         </div>
 
-        {/* CSS Khusus untuk Mencetak */}
         <style jsx global>{`
             @page {
                 size: A4;
