@@ -1,6 +1,6 @@
 'use client';
 
-import { useState, useMemo, useEffect, useRef } from 'react';
+import { useState, useMemo, useRef } from 'react';
 import { PageHeader } from '@/components/page-header';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardDescription, CardFooter, CardHeader, CardTitle } from '@/components/ui/card';
@@ -8,16 +8,14 @@ import { Label } from '@/components/ui/label';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { Calendar } from '@/components/ui/calendar';
 import { Popover, PopoverContent, PopoverTrigger } from '@/components/ui/popover';
-import { Textarea } from '@/components/ui/textarea';
-import { Calendar as CalendarIcon, Loader2, Copy, Trash, Bold, Italic, ListOrdered, List } from 'lucide-react';
+import { Calendar as CalendarIcon, Loader2, Printer, Trash } from 'lucide-react';
 import { useToast } from '@/hooks/use-toast';
 import { cn } from '@/lib/utils';
 import { parseISO, format, isSameDay } from 'date-fns';
 import { id as localeId } from 'date-fns/locale';
 import useSWR from 'swr';
 import { extractDisposisi } from '../calendar/page';
-import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from '@/components/ui/tooltip';
-
+import { Alert, AlertDescription, AlertTitle } from '@/components/ui/alert';
 
 type CalendarEvent = {
   id: string;
@@ -38,101 +36,120 @@ const fetcher = (url: string) => fetch(url).then(res => {
     return res.json();
 });
 
-const generateReportTemplate = (event: CalendarEvent): string => {
-    if (!event) return '';
-
-    const disposisi = extractDisposisi(event.description);
-    
-    const template = `
-NOTA DINAS
-
-YTH.      : CAMAT GANDRUNGMANGU
-DARI      : [Nama Pelapor], ([Jabatan Pelapor])
-TEMBUSAN  : SEKRETARIS KECAMATAN GANDRUNGMANGU
-TANGGAL   : ${format(new Date(), 'dd MMMM yyyy', { locale: localeId })}
-NOMOR     : [Nomor Surat]
-SIFAT     : BIASA
-LAMPIRAN  : -
-HAL       : LAPORAN HASIL PELAKSANAAN KEGIATAN
-
-Dasar Surat [Asal Surat] Nomor : [Nomor Surat Undangan] tanggal [Tanggal Surat Undangan] perihal Undangan, dengan ini kami laporkan hasil pelaksanaan kegiatan sebagai berikut:
-
-I.   Pelaksanaan
-     Acara         : ${event.summary || ''}
-     Hari/Tanggal  : ${event.start ? format(parseISO(event.start), 'EEEE, dd MMMM yyyy', { locale: localeId }) : ''}
-     Waktu         : Pukul ${event.start ? format(parseISO(event.start), 'HH:mm', { locale: localeId }) : ''} WIB s.d. Selesai
-     Tempat        : ${event.location || ''}
-     Peserta       : [Sebutkan peserta/perwakilan yang hadir]
-
-II.  Pimpinan Rapat  : [Isi Pimpinan Rapat]
-
-III. Narasumber       : [Isi Narasumber]
-
-IV.  Ringkasan Materi
-     1. Materi Utama
-         a. Sub-materi pertama
-         b. Sub-materi kedua
-     2. Materi Berikutnya
-     ${disposisi ? `\n     Tindak Lanjut: ${disposisi}` : ''}
-
-Demikian untuk menjadikan periksa dan terima kasih.
-
-                                                                Yang melaksanakan kegiatan
-
-
-                                                                [Nama Pelapor]
-`;
-    return template.trim();
-}
-
-
-const EditorToolbar = ({ onInsert }: { onInsert: (text: string) => void }) => (
-    <TooltipProvider delayDuration={100}>
-        <div className="flex items-center gap-1 rounded-t-md border border-b-0 p-2 bg-muted">
-            <Tooltip>
-                <TooltipTrigger asChild>
-                    <Button type="button" variant="outline" size="icon" className="h-8 w-8" onClick={() => onInsert('*text*')}>
-                        <Bold className="h-4 w-4" />
-                    </Button>
-                </TooltipTrigger>
-                <TooltipContent>
-                    <p>Bold</p>
-                </TooltipContent>
-            </Tooltip>
-            <Tooltip>
-                <TooltipTrigger asChild>
-                    <Button type="button" variant="outline" size="icon" className="h-8 w-8" onClick={() => onInsert('_text_')}>
-                        <Italic className="h-4 w-4" />
-                    </Button>
-                </TooltipTrigger>
-                <TooltipContent>
-                    <p>Italic</p>
-                </TooltipContent>
-            </Tooltip>
-             <div className="mx-2 h-6 border-l border-border" />
-            <Tooltip>
-                <TooltipTrigger asChild>
-                    <Button type="button" variant="outline" size="icon" className="h-8 w-8" onClick={() => onInsert('\n1. \n2. \n3. ')}>
-                        <ListOrdered className="h-4 w-4" />
-                    </Button>
-                </TooltipTrigger>
-                <TooltipContent>
-                    <p>Numbered List</p>
-                </TooltipContent>
-            </Tooltip>
-            <Tooltip>
-                <TooltipTrigger asChild>
-                    <Button type="button" variant="outline" size="icon" className="h-8 w-8" onClick={() => onInsert('\n- \n- \n- ')}>
-                        <List className="h-4 w-4" />
-                    </Button>
-                </TooltipTrigger>
-                <TooltipContent>
-                    <p>Bulleted List</p>
-                </TooltipContent>
-            </Tooltip>
-        </div>
-    </TooltipProvider>
+const EditableField = ({ placeholder, className }: { placeholder: string, className?: string }) => (
+    <span
+        contentEditable
+        suppressContentEditableWarning
+        className={cn("p-1 -m-1 rounded-md min-w-[10rem] inline-block bg-muted/50 hover:bg-muted focus:bg-background focus:outline-none focus:ring-2 focus:ring-ring", className)}
+        data-placeholder={placeholder}
+    />
 );
+
+const ReportPreview = ({ event }: { event: CalendarEvent | null }) => {
+    const disposisi = event ? extractDisposisi(event.description) : null;
+    const reportDate = format(new Date(), 'dd MMMM yyyy', { locale: localeId });
+
+    if (!event) {
+        return (
+            <div className="text-center text-muted-foreground py-16">
+                <p>Pilih tanggal dan kegiatan di atas untuk melihat pratinjau laporan.</p>
+            </div>
+        )
+    }
+
+    return (
+        <div id="print-area" className="bg-white text-black p-12 shadow-lg rounded-sm print:shadow-none print:p-4 font-serif">
+            <h3 className="text-center font-bold underline text-lg">NOTA DINAS</h3>
+            <br />
+            <table className="w-full text-sm">
+                <tbody>
+                    <tr><td className="w-28 align-top">YTH.</td><td className="w-2 align-top">:</td><td className="font-semibold">CAMAT GANDRUNGMANGU</td></tr>
+                    <tr><td className="align-top">DARI</td><td className="align-top">:</td><td><EditableField placeholder="Nama Pelapor, Jabatan" /></td></tr>
+                    <tr><td className="align-top">TEMBUSAN</td><td className="align-top">:</td><td>SEKRETARIS KECAMATAN GANDRUNGMANGU</td></tr>
+                    <tr><td className="align-top">TANGGAL</td><td className="align-top">:</td><td>{reportDate}</td></tr>
+                    <tr><td className="align-top">NOMOR</td><td className="align-top">:</td><td><EditableField placeholder="Nomor Surat" /></td></tr>
+                    <tr><td className="align-top">SIFAT</td><td className="align-top">:</td><td>BIASA</td></tr>
+                    <tr><td className="align-top">LAMPIRAN</td><td className="align-top">:</td><td>-</td></tr>
+                    <tr><td className="align-top">HAL</td><td className="align-top">:</td><td className="font-semibold">LAPORAN HASIL PELAKSANAAN KEGIATAN</td></tr>
+                </tbody>
+            </table>
+
+            <hr className="border-black my-4" />
+
+            <p className="text-sm text-justify">
+                Dasar Surat <EditableField placeholder="Asal Surat (e.g., Undangan dari...)" /> Nomor : <EditableField placeholder="Nomor Surat Undangan" /> tanggal <EditableField placeholder="Tanggal Surat Undangan" /> perihal Undangan, dengan ini kami laporkan hasil pelaksanaan kegiatan sebagai berikut:
+            </p>
+
+            <div className="mt-4 text-sm space-y-4">
+                <div className="flex">
+                    <span className="w-8">I.</span>
+                    <div className="w-full">
+                        <p className="font-semibold underline">Pelaksanaan</p>
+                        <table className="w-full">
+                           <tbody>
+                                <tr><td className="w-28 align-top">Acara</td><td className="w-2 align-top">:</td><td>{event.summary}</td></tr>
+                                <tr><td className="align-top">Hari/Tanggal</td><td className="align-top">:</td><td>{format(parseISO(event.start), 'EEEE, dd MMMM yyyy', { locale: localeId })}</td></tr>
+                                <tr><td className="align-top">Waktu</td><td className="align-top">:</td><td>Pukul {format(parseISO(event.start), 'HH:mm', { locale: localeId })} WIB s.d. Selesai</td></tr>
+                                <tr><td className="align-top">Tempat</td><td className="align-top">:</td><td>{event.location || <EditableField placeholder="Tempat Kegiatan" />}</td></tr>
+                                <tr><td className="align-top">Peserta</td><td className="align-top">:</td><td><EditableField placeholder="Sebutkan peserta/perwakilan yang hadir" /></td></tr>
+                           </tbody>
+                        </table>
+                    </div>
+                </div>
+                <div className="flex">
+                    <span className="w-8">II.</span>
+                    <div className="flex items-start gap-1 w-full">
+                        <p className="font-semibold underline w-36">Pimpinan Rapat</p>
+                        <span>:</span>
+                        <EditableField placeholder="Isi Pimpinan Rapat" />
+                    </div>
+                </div>
+                <div className="flex">
+                    <span className="w-8">III.</span>
+                     <div className="flex items-start gap-1 w-full">
+                        <p className="font-semibold underline w-36">Narasumber</p>
+                        <span>:</span>
+                        <EditableField placeholder="Isi Narasumber" />
+                    </div>
+                </div>
+                <div className="flex">
+                    <span className="w-8">IV.</span>
+                     <div className="w-full">
+                        <p className="font-semibold underline">Ringkasan Materi</p>
+                         <div
+                            contentEditable
+                            suppressContentEditableWarning
+                            className="mt-2 p-1 -m-1 rounded-md min-h-[8rem] bg-muted/50 hover:bg-muted focus:bg-background focus:outline-none focus:ring-2 focus:ring-ring"
+                            dangerouslySetInnerHTML={{ __html: `
+                                <ol class="list-decimal list-outside ml-4">
+                                    <li>Materi Utama
+                                        <ul class="list-[lower-alpha] list-outside ml-5">
+                                            <li>Sub-materi pertama</li>
+                                            <li>Sub-materi kedua</li>
+                                        </ul>
+                                    </li>
+                                    <li>Materi Berikutnya</li>
+                                    ${disposisi ? `<li>Tindak Lanjut: ${disposisi}</li>` : ''}
+                                </ol>
+                                <br><p>Demikian untuk menjadikan periksa dan terima kasih.</p>
+                            `}}
+                        />
+                    </div>
+                </div>
+            </div>
+
+            <div className="flex justify-end mt-16">
+                <div className="text-center text-sm w-64">
+                    <p>Yang melaksanakan kegiatan,</p>
+                    <br /><br /><br />
+                    <p className="font-semibold underline">
+                        <EditableField placeholder="Nama Pelapor" />
+                    </p>
+                </div>
+            </div>
+        </div>
+    );
+};
 
 
 export default function ReportPage() {
@@ -140,9 +157,6 @@ export default function ReportPage() {
   
   const [selectedDate, setSelectedDate] = useState<Date | undefined>();
   const [selectedEvent, setSelectedEvent] = useState<CalendarEvent | null>(null);
-  const [reportContent, setReportContent] = useState('');
-  const textareaRef = useRef<HTMLTextAreaElement>(null);
-
 
   const { data: eventsData, error: eventsError, isLoading: isLoadingEvents } = useSWR('/api/events', fetcher);
   
@@ -152,68 +166,34 @@ export default function ReportPage() {
     if (!selectedDate) return [];
     return events.filter(event => isSameDay(parseISO(event.start), selectedDate));
   }, [events, selectedDate]);
-
-  useEffect(() => {
-    if (selectedEvent) {
-        setReportContent(generateReportTemplate(selectedEvent));
-    } else {
-        setReportContent('');
-    }
-  }, [selectedEvent]);
   
-  const handleCopy = () => {
-    if (!reportContent) {
-        toast({ variant: 'destructive', title: 'Gagal Menyalin', description: 'Editor masih kosong.'});
+  const handlePrint = () => {
+    if (!selectedEvent) {
+        toast({ variant: 'destructive', title: 'Gagal Mencetak', description: 'Pilih kegiatan terlebih dahulu.'});
         return;
     }
-    navigator.clipboard.writeText(reportContent);
-    toast({ title: 'Berhasil!', description: 'Isi laporan telah disalin ke clipboard.' });
+    window.print();
   }
   
   const handleReset = () => {
     setSelectedDate(undefined);
     setSelectedEvent(null);
-    setReportContent('');
-    toast({ description: 'Editor telah dikosongkan.' });
+    toast({ description: 'Pilihan telah dikosongkan.' });
   }
 
-  const handleInsertText = (textToInsert: string) => {
-    const textarea = textareaRef.current;
-    if (!textarea) return;
-
-    const start = textarea.selectionStart;
-    const end = textarea.selectionEnd;
-    const text = textarea.value;
-
-    const newText = text.substring(0, start) + textToInsert + text.substring(end);
-    setReportContent(newText);
-
-    // Wait for state to update, then set cursor position
-    setTimeout(() => {
-        const cursorPosition = start + textToInsert.length;
-        textarea.focus();
-        // If inserting a placeholder like *text*, select the word 'text'
-        if (textToInsert.includes('text')) {
-             textarea.setSelectionRange(start + 1, cursorPosition - 1);
-        } else {
-             textarea.setSelectionRange(cursorPosition, cursorPosition);
-        }
-    }, 0);
-  };
-
   return (
-    <div className="flex flex-col gap-6">
+    <div className="flex flex-col gap-6 print:gap-0">
       <PageHeader
         title="Buat Laporan/Notulen"
-        description="Pilih kegiatan untuk membuat draf laporan berdasarkan template yang tersedia."
+        description="Pilih kegiatan untuk membuat draf laporan yang siap cetak."
+        className="print:hidden"
       />
-        <Card>
+        <Card className="print:hidden">
           <CardHeader>
-            <CardTitle>Editor Laporan</CardTitle>
-            <CardDescription>Pilih tanggal dan kegiatan untuk mengisi template. Gunakan toolbar untuk memformat teks.</CardDescription>
+            <CardTitle>Pilih Kegiatan</CardTitle>
           </CardHeader>
-          <CardContent className="space-y-6">
-             {eventsError && <p className="text-red-500 text-sm">Gagal memuat kegiatan: {eventsError.message}</p>}
+          <CardContent>
+             {eventsError && <Alert variant="destructive"><AlertTitle>Error</AlertTitle><AlertDescription>{eventsError.message}</AlertDescription></Alert>}
             
              <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
                 <div className="space-y-2">
@@ -274,34 +254,62 @@ export default function ReportPage() {
                   )}
                 </div>
             </div>
-
-            <div className="space-y-2">
-                <Label htmlFor="report-editor" className="font-semibold">Isi Laporan</Label>
-                <div className="grid w-full gap-0">
-                    <EditorToolbar onInsert={handleInsertText} />
-                    <Textarea
-                        id="report-editor"
-                        ref={textareaRef}
-                        placeholder="Pilih kegiatan untuk memulai, atau tulis manual di sini..."
-                        className="h-[500px] font-mono text-xs leading-relaxed rounded-t-none focus-visible:ring-offset-0 focus-visible:ring-1"
-                        value={reportContent}
-                        onChange={(e) => setReportContent(e.target.value)}
-                    />
-                </div>
-            </div>
-
           </CardContent>
             <CardFooter className="flex justify-end gap-2 mt-4 border-t pt-6">
                 <Button variant="outline" onClick={handleReset}>
                     <Trash className="mr-2 h-4 w-4"/>
                     Reset
                 </Button>
-                <Button onClick={handleCopy}>
-                    <Copy className="mr-2 h-4 w-4" />
-                    Salin Notulen
+                <Button onClick={handlePrint} disabled={!selectedEvent}>
+                    <Printer className="mr-2 h-4 w-4" />
+                    Cetak Laporan
                 </Button>
             </CardFooter>
         </Card>
+
+        {/* --- Area Pratinjau Dokumen --- */}
+        <div className="mt-4">
+            <ReportPreview event={selectedEvent} />
+        </div>
+
+        {/* CSS Khusus untuk Mencetak */}
+        <style jsx global>{`
+            @media print {
+                body {
+                    background-color: #fff;
+                }
+                main.p-4, main.p-6 {
+                    padding: 0 !important;
+                }
+                .print\\:hidden {
+                    display: none;
+                }
+                .print\\:shadow-none {
+                    box-shadow: none;
+                }
+                #print-area {
+                    margin: 0;
+                    padding: 0;
+                    border: none;
+                }
+                span[contentEditable="true"] {
+                   background-color: transparent !important;
+                   border: none !important;
+                   padding: 1px !important;
+                   margin: -1px !important;
+                }
+                 span[contentEditable="true"]:empty::before {
+                    content: attr(data-placeholder);
+                    color: #999;
+                    font-style: italic;
+                }
+            }
+             span[contentEditable="true"]:empty::before {
+                content: attr(data-placeholder);
+                color: #666;
+                font-style: italic;
+            }
+        `}</style>
     </div>
   );
 }
