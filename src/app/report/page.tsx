@@ -407,7 +407,7 @@ export default function ReportPage() {
                 #print-area .report-content-preview li {
                     text-align: justify;
                 }
-                 #print-area .report-content-preview ul, 
+                #print-area .report-content-preview ul, 
                 #print-area .report-content-preview ol {
                   display: block;
                   list-style-position: inside;
@@ -422,6 +422,20 @@ export default function ReportPage() {
                 color: #666;
                 font-style: italic;
                 display: block;
+            }
+            .report-content-preview ol {
+                list-style-type: none;
+                counter-reset: item;
+                padding-left: 1.5rem;
+            }
+            .report-content-preview ol > li {
+                display: block;
+                counter-increment: item;
+                
+            }
+            .report-content-preview ol > li::before {
+                content: counters(item, ".") ". ";
+                margin-right: 0.5rem;
             }
         `}</style>
     </div>

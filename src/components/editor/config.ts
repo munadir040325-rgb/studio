@@ -20,6 +20,10 @@ export const editorConfig: InitialConfigType = {
     list: {
       ul: "list-disc ml-6 mb-2",
       ol: "list-decimal ml-6 mb-2",
+      listitem: "mb-1",
+      nested: {
+        listitem: "list-none",
+      },
     },
     text: {
       bold: "font-bold",
