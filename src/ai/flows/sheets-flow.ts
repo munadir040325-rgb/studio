@@ -6,7 +6,7 @@ import 'dotenv/config';
 /**
  * @fileOverview Flow for writing and deleting data in Google Sheets.
  *
- * - writeEventToSheet - Writes a new event to the appropriate cell in the Google Sheet. It now handles "adopting" existing manual entries.
+ * - writeEventToSheet - Writes a new event to the appropriate cell in the Google Sheet. It now handles "adopting" existing manual entries and iterates over multi-day events.
  * - deleteSheetEntry - Finds and deletes an event entry from the Google Sheet based on eventId.
  * - findBagianByEventIds - Finds the 'bagian' for a list of event IDs in a single batch operation.
  */
@@ -15,7 +15,7 @@ import { ai } from '@/ai/genkit';
 import { z } from 'zod';
 import { google } from 'googleapis';
 import { getGoogleAuth } from '../google-services';
-import { format, parseISO } from 'date-fns';
+import { format, parseISO, eachDayOfInterval, isSameMonth, getYear } from 'date-fns';
 import { id } from 'date-fns/locale';
 import { toZonedTime } from 'date-fns-tz';
 
@@ -38,6 +38,7 @@ const writeToSheetInputSchema = z.object({
   summary: z.string(),
   location: z.string().optional(),
   startDateTime: z.string().datetime(),
+  endDateTime: z.string().datetime(),
   disposisi: z.string().optional(),
   bagian: z.string().refine(val => Object.keys(BAGIAN_ROW_MAP).includes(val), {
       message: "Bagian yang dipilih tidak valid."
@@ -104,7 +105,7 @@ export const writeToSheetFlow = ai.defineFlow(
     inputSchema: writeToSheetInputSchema,
     outputSchema: z.object({
       status: z.string(),
-      cell: z.string().optional()
+      cells: z.array(z.string()).optional()
     }),
   },
   async (input) => {
@@ -117,122 +118,131 @@ export const writeToSheetFlow = ai.defineFlow(
     ]);
     const sheets = google.sheets({ version: 'v4', auth });
     
-    const eventDate = toZonedTime(parseISO(input.startDateTime), 'Asia/Jakarta');
-    const monthName = format(eventDate, 'MMMM', { locale: id });
-    const yearShort = format(eventDate, 'yy');
-    const sheetName = `Giat_${monthName}_${yearShort}`;
+    const startDate = toZonedTime(parseISO(input.startDateTime), 'Asia/Jakarta');
+    const endDate = toZonedTime(parseISO(input.endDateTime), 'Asia/Jakarta');
 
-    // 1. Find the correct column for the event date.
-    const dateRowRange = `${sheetName}!E17:AI17`;
-    let dateRowValues;
-    try {
-        const dateRowResponse = await sheets.spreadsheets.values.get({
-            spreadsheetId,
-            range: dateRowRange,
-            valueRenderOption: 'UNFORMATTED_VALUE',
-        });
-        dateRowValues = dateRowResponse.data.values ? dateRowResponse.data.values[0] : [];
-    } catch(e: any) {
-        if (e.message.includes('Unable to parse range')) {
-            throw new Error(`Sheet dengan nama '${sheetName}' tidak ditemukan. Pastikan sheet untuk bulan dan tahun yang relevan sudah dibuat.`);
-        }
-        throw e;
-    }
+    const eventDays = eachDayOfInterval({ start: startDate, end: endDate });
     
-    let targetColIndex = -1;
-    for (let i = 0; i < dateRowValues.length; i++) {
-        const cellValue = dateRowValues[i];
-        if (typeof cellValue === 'number' && cellValue > 0) {
-            const sheetDate = sheetSerialNumberToDate(cellValue);
-            if (
-              sheetDate.getFullYear() === eventDate.getFullYear() &&
-              sheetDate.getMonth() === eventDate.getMonth() &&
-              sheetDate.getDate() === eventDate.getDate()
-            ) {
-                targetColIndex = START_COL_INDEX + i;
-                break;
+    const writtenCells: string[] = [];
+    let lastSheetName = '';
+    let dateRowValues: (string | number)[] = [];
+
+    for (const eventDate of eventDays) {
+        const monthName = format(eventDate, 'MMMM', { locale: id });
+        const yearShort = format(eventDate, 'yy');
+        const sheetName = `Giat_${monthName}_${yearShort}`;
+
+        // 1. Find the correct column for the event date.
+        // Cache the date row values to avoid fetching for every day in the same month.
+        if (sheetName !== lastSheetName) {
+            const dateRowRange = `${sheetName}!E17:AI17`;
+            try {
+                const dateRowResponse = await sheets.spreadsheets.values.get({
+                    spreadsheetId,
+                    range: dateRowRange,
+                    valueRenderOption: 'UNFORMATTED_VALUE',
+                });
+                dateRowValues = dateRowResponse.data.values ? dateRowResponse.data.values[0] : [];
+                lastSheetName = sheetName;
+            } catch(e: any) {
+                if (e.message.includes('Unable to parse range')) {
+                    console.warn(`Sheet dengan nama '${sheetName}' tidak ditemukan. Melewati tanggal ${format(eventDate, 'dd/MM/yyyy')}.`);
+                    continue; // Skip to the next day if sheet for that month/year doesn't exist
+                }
+                throw e;
             }
         }
-    }
-    
-    if (targetColIndex === -1) {
-        throw new Error(`Kolom untuk tanggal ${format(eventDate, 'dd/MM/yyyy')} tidak ditemukan di sheet '${sheetName}'. Periksa header tanggal di baris 17.`);
-    }
-
-    const targetColLetter = getColumnLetter(targetColIndex);
-    
-    // 2. Look for an existing manual entry or an empty row within the 'bagian' range
-    const bagianRange = BAGIAN_ROW_MAP[input.bagian];
-    if (!bagianRange) {
-        throw new Error(`Rentang baris untuk bagian '${input.bagian}' tidak ditemukan.`);
-    }
-
-    const colRangeForBagian = `${sheetName}!${targetColLetter}${bagianRange.start}:${targetColLetter}${bagianRange.end}`;
-    
-    const colValuesResponse = await sheets.spreadsheets.values.get({
-        spreadsheetId,
-        range: colRangeForBagian,
-    });
-
-    const colValues = colValuesResponse.data.values ? colValuesResponse.data.values.flat() : [];
-    let targetRow = -1;
-    let existingValue = '';
-
-    // Logic: First, try to find a matching manual entry to "adopt".
-    // A manual entry is one that contains the event summary but NOT an eventId.
-    for (let i = 0; i < (bagianRange.end - bagianRange.start + 1); i++) {
-        const cellContent = colValues[i] || '';
-        if (cellContent.includes(input.summary) && !cellContent.includes('eventId:')) {
-            targetRow = bagianRange.start + i;
-            existingValue = cellContent;
-            console.log(`Found matching manual entry to adopt at row ${targetRow}`);
-            break;
+        
+        let targetColIndex = -1;
+        for (let i = 0; i < dateRowValues.length; i++) {
+            const cellValue = dateRowValues[i];
+            if (typeof cellValue === 'number' && cellValue > 0) {
+                const sheetDate = sheetSerialNumberToDate(cellValue);
+                if (
+                  sheetDate.getFullYear() === eventDate.getFullYear() &&
+                  sheetDate.getMonth() === eventDate.getMonth() &&
+                  sheetDate.getDate() === eventDate.getDate()
+                ) {
+                    targetColIndex = START_COL_INDEX + i;
+                    break;
+                }
+            }
         }
-    }
+        
+        if (targetColIndex === -1) {
+            console.warn(`Kolom untuk tanggal ${format(eventDate, 'dd/MM/yyyy')} tidak ditemukan di sheet '${sheetName}'. Melewati.`);
+            continue; // Skip to the next day
+        }
 
-    // If no manual entry to adopt, find the first truly empty row.
-    if (targetRow === -1) {
+        const targetColLetter = getColumnLetter(targetColIndex);
+        
+        // 2. Look for an existing manual entry or an empty row within the 'bagian' range
+        const bagianRange = BAGIAN_ROW_MAP[input.bagian];
+        if (!bagianRange) {
+            throw new Error(`Rentang baris untuk bagian '${input.bagian}' tidak ditemukan.`);
+        }
+
+        const colRangeForBagian = `${sheetName}!${targetColLetter}${bagianRange.start}:${targetColLetter}${bagianRange.end}`;
+        
+        const colValuesResponse = await sheets.spreadsheets.values.get({
+            spreadsheetId,
+            range: colRangeForBagian,
+        });
+
+        const colValues = colValuesResponse.data.values ? colValuesResponse.data.values.flat() : [];
+        let targetRow = -1;
+        
+        // Find the first truly empty row. We won't adopt manual entries for recurring events to keep it simple.
         for(let i = 0; i <= (bagianRange.end - bagianRange.start); i++) {
             if (!colValues[i] || colValues[i] === '') {
                 targetRow = bagianRange.start + i;
-                console.log(`Found first empty row at ${targetRow}`);
                 break;
             }
         }
+        
+        if (targetRow === -1) {
+             console.warn(`Slot untuk bagian '${input.bagian.toUpperCase()}' pada tanggal ${format(eventDate, 'dd/MM/yyyy')} sudah penuh. Melewati.`);
+             continue; // Skip to the next day
+        }
+
+
+        // 3. Format the data and write to the target cell
+        const timeText = `Pukul ${format(startDate, 'HH.mm')}`; // Always use start time
+        const disposisi = input.disposisi || ''; 
+        
+        const cellValue = [
+            input.summary || 'Kegiatan',
+            input.location || '',
+            timeText,
+            disposisi,
+            `eventId:${input.eventId}`
+        ].join('|');
+
+
+        const targetCell = `${sheetName}!${targetColLetter}${targetRow}`;
+
+        await sheets.spreadsheets.values.update({
+            spreadsheetId,
+            range: targetCell,
+            valueInputOption: 'USER_ENTERED',
+            requestBody: {
+                values: [[cellValue]],
+            },
+        });
+        writtenCells.push(targetCell);
     }
-    
-    if (targetRow === -1) {
-        throw new Error(`Slot untuk bagian '${input.bagian.toUpperCase()}' pada tanggal ${format(eventDate, 'dd/MM/yyyy')} sudah penuh.`);
+
+
+    if (writtenCells.length === 0) {
+        return {
+            status: 'warning',
+            cells: [],
+        }
     }
-
-
-    // 3. Format the data and write to the target cell
-    const timeText = `Pukul ${format(eventDate, 'HH.mm')}`;
-    const disposisi = input.disposisi || ''; 
-    
-    const cellValue = [
-        input.summary || 'Kegiatan',
-        input.location || '',
-        timeText,
-        disposisi,
-        `eventId:${input.eventId}`
-    ].join('|');
-
-
-    const targetCell = `${sheetName}!${targetColLetter}${targetRow}`;
-
-    await sheets.spreadsheets.values.update({
-        spreadsheetId,
-        range: targetCell,
-        valueInputOption: 'USER_ENTERED',
-        requestBody: {
-            values: [[cellValue]],
-        },
-    });
 
     return {
       status: 'success',
-      cell: targetCell
+      cells: writtenCells
     };
   }
 );
@@ -274,6 +284,8 @@ export const deleteSheetEntryFlow = ai.defineFlow(
 
                 const rows = response.data.values;
                 if (!rows) return null;
+                
+                const clearRequests = [];
 
                 // Iterate through the rows and columns to find the eventId
                 for (let r = 0; r < rows.length; r++) {
@@ -281,22 +293,26 @@ export const deleteSheetEntryFlow = ai.defineFlow(
                     for (let c = 0; c < row.length; c++) {
                         const cellValue = row[c];
                         if (typeof cellValue === 'string' && cellValue.includes(`eventId:${input.eventId}`)) {
-                            // Found the cell. Construct its A1 notation.
+                            // Found a cell. Construct its A1 notation.
                             const targetRow = 18 + r; // Base row is 18
                             const targetCol = 5 + c;  // Base column is 'E' (5)
                             const targetCellA1 = `${sheetName}!${getColumnLetter(targetCol)}${targetRow}`;
-                            
-                            // Clear the specific cell
-                            await sheets.spreadsheets.values.clear({
-                                spreadsheetId,
-                                range: targetCellA1,
-                            });
-                            
-                            console.log(`Successfully cleared cell: ${targetCellA1}`);
-                            return targetCellA1; // Return the A1 notation of the cleared cell
+                            clearRequests.push(targetCellA1);
                         }
                     }
                 }
+                
+                if (clearRequests.length > 0) {
+                    await sheets.spreadsheets.values.batchClear({
+                        spreadsheetId,
+                        requestBody: {
+                            ranges: clearRequests,
+                        }
+                    });
+                    console.log(`Successfully cleared ${clearRequests.length} cells for event ${input.eventId} in sheet ${sheetName}.`);
+                    return clearRequests.join(', ');
+                }
+
             } catch (e: any) {
                 // Ignore errors from sheets that don't exist or ranges that are invalid
                 if (!e.message.includes('Unable to parse range')) {
@@ -307,10 +323,10 @@ export const deleteSheetEntryFlow = ai.defineFlow(
         });
 
         const results = await Promise.all(searchPromises);
-        const foundCell = results.find(res => res !== null);
+        const foundCells = results.filter(res => res !== null).join(', ');
 
-        if (foundCell) {
-            return { status: 'deleted', cell: foundCell };
+        if (foundCells) {
+            return { status: 'deleted', cell: foundCells };
         } else {
             console.log(`Event ID ${input.eventId} not found in any sheet.`);
             return { status: 'not_found' };
@@ -490,4 +506,6 @@ export async function findBagianByEventIds(input: FindBagianBatchInput): Promise
     }
     return findBagianByEventIdsFlow(input);
 }
+    
+
     

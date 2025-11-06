@@ -146,6 +146,7 @@ export function EventForm({ onSuccess, eventToEdit }: EventFormProps) {
         summary: values.summary,
         location: values.location,
         startDateTime: values.startDateTime.toISOString(),
+        endDateTime: values.endDateTime.toISOString(),
         disposisi: values.description || '',
         bagian: values.bagian,
     };
@@ -161,14 +162,10 @@ export function EventForm({ onSuccess, eventToEdit }: EventFormProps) {
             ...eventPayload
          });
          
-        // Explicitly delete the old sheet entry first, using the original 'bagian'
-        if (originalBagian) {
-            await deleteSheetEntry({ eventId: eventToEdit.id!, bagianLama: originalBagian });
-        } else {
-             await deleteSheetEntry({ eventId: eventToEdit.id! });
-        }
+        // Explicitly delete all old sheet entries for this event first.
+        await deleteSheetEntry({ eventId: eventToEdit.id! });
         
-        // Then, write the new entry
+        // Then, write the new entry/entries
         await writeEventToSheet({
             ...sheetPayload,
             eventId: eventToEdit.id!,
@@ -212,6 +209,7 @@ export function EventForm({ onSuccess, eventToEdit }: EventFormProps) {
     try {
         toast({ description: "Menghapus kegiatan dari Kalender dan Sheet..." });
         
+        // This will now delete all entries for the eventId
         await Promise.all([
              deleteCalendarEvent({ eventId: eventToEdit.id }),
              deleteSheetEntry({ eventId: eventToEdit.id })
@@ -219,7 +217,7 @@ export function EventForm({ onSuccess, eventToEdit }: EventFormProps) {
         
         toast({
             title: "Berhasil Dihapus",
-            description: "Kegiatan telah dihapus dari Kalender dan Sheet.",
+            description: "Kegiatan telah dihapus dari Kalender dan semua entri terkait di Sheet.",
             variant: 'default',
         });
 
@@ -460,7 +458,7 @@ export function EventForm({ onSuccess, eventToEdit }: EventFormProps) {
                         <AlertDialogHeader>
                             <AlertDialogTitle>Apakah Anda benar-benar yakin?</AlertDialogTitle>
                             <AlertDialogDescription>
-                                Tindakan ini akan menghapus kegiatan secara permanen dari Google Calendar dan Google Sheet. Tindakan ini tidak dapat dibatalkan.
+                                Tindakan ini akan menghapus kegiatan secara permanen dari Google Calendar dan semua entri terkait di Google Sheet. Tindakan ini tidak dapat dibatalkan.
                             </AlertDialogDescription>
                         </AlertDialogHeader>
                         <AlertDialogFooter>
@@ -485,4 +483,5 @@ export function EventForm({ onSuccess, eventToEdit }: EventFormProps) {
   );
 }
 
+    
     
