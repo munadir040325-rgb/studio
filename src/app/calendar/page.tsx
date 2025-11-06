@@ -692,22 +692,22 @@ export default function CalendarPage() {
           return;
       }
       
-      const sanitizeForWhatsApp = (text: string) => {
-        // Removes characters that can mess up WhatsApp formatting.
-        return text.replace(/[*_~`]/g, '');
+      const capitalizeEachWord = (str: string) => {
+        return str.toLowerCase().split(' ').map(word => word.charAt(0).toUpperCase() + word.slice(1)).join(' ');
       };
-
+      
       let header;
       if (viewMode === 'harian' && !searchQuery) {
-        header = `*RENGIAT*\n*${format(filterDate, 'EEEE, dd MMMM yyyy', { locale: localeId }).toUpperCase()}*`;
+        const dateStr = format(filterDate, 'EEEE, dd MMMM yyyy', { locale: localeId });
+        header = `RENGIAT\n${capitalizeEachWord(dateStr)}`;
       } else if (viewMode === 'mingguan') {
         const start = startOfWeek(filterDate, { weekStartsOn: 1 });
         const end = endOfWeek(filterDate, { weekStartsOn: 1 });
-        const startFormat = format(start, 'dd MMM', { locale: localeId });
-        const endFormat = format(end, 'dd MMM yyyy', { locale: localeId });
-        header = `*RENGIAT MINGGU INI*\n*${startFormat.toUpperCase()} - ${endFormat.toUpperCase()}*`;
+        const startFormat = capitalizeEachWord(format(start, 'dd MMM', { locale: localeId }));
+        const endFormat = capitalizeEachWord(format(end, 'dd MMM yyyy', { locale: localeId }));
+        header = `RENGIAT MINGGU INI\n${startFormat} - ${endFormat}`;
       } else {
-        header = `*HASIL PENCARIAN KEGIATAN*`
+        header = `HASIL PENCARIAN KEGIATAN`;
       }
 
 
@@ -732,7 +732,7 @@ export default function CalendarPage() {
           if (location) eventDetails.push(`Lokasi: ${location}`);
           if (disposisi) eventDetails.push(`Disposisi: ${disposisi}`);
           
-          message += `*${index + 1}. ${cleanTitle}*`;
+          message += `${index + 1}. *${cleanTitle}*`;
           if (eventDetails.length > 0) {
               message += ` || ${eventDetails.join(' || ')}`;
           }
