@@ -58,23 +58,23 @@ const ReportEditorTemplate = ({ event, reportContent, onContentChange }: { event
                 <table>
                     <tbody>
                         <tr>
-                            <td className="w-28">KEPADA YTH.</td>
+                            <td className="w-32">KEPADA YTH.</td>
                             <td className="w-2">:</td>
                             <td><EditableField placeholder="Isi tujuan surat" /></td>
                         </tr>
                         <tr>
-                            <td>TEMBUSAN</td>
-                            <td>:</td>
-                            <td><EditableField placeholder="Isi tembusan" /></td>
+                            <td className="w-32 align-top">TEMBUSAN</td>
+                            <td className="w-2 align-top">:</td>
+                            <td className="align-top"><EditableField placeholder="Isi tembusan" /></td>
                         </tr>
                         <tr>
-                            <td>DARI</td>
-                            <td>:</td>
+                            <td className="w-32">DARI</td>
+                            <td className="w-2">:</td>
                             <td><EditableField placeholder="Isi pengirim" /></td>
                         </tr>
                         <tr>
-                            <td className='align-top'>HAL</td>
-                            <td className='align-top'>:</td>
+                            <td className='align-top w-32'>HAL</td>
+                            <td className='align-top w-2'>:</td>
                             <td><EditableField placeholder="Isi perihal" /></td>
                         </tr>
                     </tbody>
@@ -106,38 +106,38 @@ const ReportEditorTemplate = ({ event, reportContent, onContentChange }: { event
                              <table className="w-full">
                                 <tbody>
                                     <tr>
-                                        <td className="w-28 align-top">Acara</td>
-                                        <td className="w-2 align-top">:</td>
+                                        <td className="w-32 align-top">Acara</td>
+                                        <td className="w-4 align-top">:</td>
                                         <td>{event.summary}</td>
                                     </tr>
                                     <tr>
-                                        <td className='align-top'>Hari/Tanggal</td>
-                                        <td className='align-top'>:</td>
+                                        <td className='w-32 align-top'>Hari/Tanggal</td>
+                                        <td className='w-4 align-top'>:</td>
                                         <td>{format(parseISO(event.start), 'EEEE, dd MMMM yyyy', { locale: localeId })}</td>
                                     </tr>
                                     <tr>
-                                        <td className='align-top'>Waktu</td>
-                                        <td className='align-top'>:</td>
+                                        <td className='w-32 align-top'>Waktu</td>
+                                        <td className='w-4 align-top'>:</td>
                                         <td>Pukul {format(parseISO(event.start), 'HH:mm', { locale: localeId })} WIB s.d. Selesai</td>
                                     </tr>
                                     <tr>
-                                        <td className='align-top'>Tempat</td>
-                                        <td className='align-top'>:</td>
+                                        <td className='w-32 align-top'>Tempat</td>
+                                        <td className='w-4 align-top'>:</td>
                                         <td>{event.location || <EditableField placeholder="Tempat Kegiatan" />}</td>
                                     </tr>
                                     <tr>
-                                        <td className='align-top'>Pimpinan Rapat</td>
-                                        <td className='align-top'>:</td>
+                                        <td className='w-32 align-top'>Pimpinan Rapat</td>
+                                        <td className='w-4 align-top'>:</td>
                                         <td><EditableField placeholder="Isi Pimpinan Rapat" /></td>
                                     </tr>
                                     <tr>
-                                        <td className='align-top'>Narasumber</td>
-                                        <td className='align-top'>:</td>
+                                        <td className='w-32 align-top'>Narasumber</td>
+                                        <td className='w-4 align-top'>:</td>
                                         <td><EditableField placeholder="Isi Narasumber" /></td>
                                     </tr>
                                     <tr>
-                                        <td className='align-top'>Peserta</td>
-                                        <td className='align-top'>:</td>
+                                        <td className='w-32 align-top'>Peserta</td>
+                                        <td className='w-4 align-top'>:</td>
                                         <td><EditableField placeholder="Sebutkan peserta/perwakilan yang hadir" /></td>
                                     </tr>
                                 </tbody>
@@ -151,7 +151,7 @@ const ReportEditorTemplate = ({ event, reportContent, onContentChange }: { event
                     </tr>
                      <tr>
                         <td></td>
-                        <td colSpan={3} className="w-full pt-2">
+                        <td colSpan={3} className="w-full">
                              <div className='print:hidden'>
                                 <RichTextEditor
                                     onChange={onContentChange}
@@ -172,7 +172,7 @@ const ReportEditorTemplate = ({ event, reportContent, onContentChange }: { event
             </table>
             
             <div className="flex justify-end mt-8">
-                <div className="text-center w-64">
+                <div className="text-center w-72">
                     <EditableField placeholder="Tempat, Tanggal Melaporkan" />
                     <p>Yang melaksanakan kegiatan,</p>
                     <br /><br /><br />
