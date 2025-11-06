@@ -172,7 +172,7 @@ const ReportPreview = ({ event }: { event: CalendarEvent | null }) => {
                             onBlur={() => setShowToolbar(false)}
                             onKeyDown={handleKeyDown}
                             onInput={handleInput}
-                            className="mt-2 p-1 -m-1 rounded-md min-h-[8rem] bg-muted/50 hover:bg-muted focus:bg-background focus:outline-none focus:ring-2 focus:ring-ring print:bg-transparent text-justify"
+                            className="mt-2 p-1 -m-1 rounded-md min-h-[8rem] bg-muted/50 hover:bg-muted focus:bg-background focus:outline-none focus:ring-2 focus:ring-ring print:bg-transparent text-justify w-full"
                             data-placeholder="Isi ringkasan materi di sini..."
                         />
                     </div>
