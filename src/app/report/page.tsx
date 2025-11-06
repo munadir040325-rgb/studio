@@ -316,6 +316,29 @@ export default function ReportPage() {
                 font-style: italic;
                 display: block; /* Ensures placeholder is visible */
             }
+            
+            /* Styling for lists inside contentEditable */
+            #print-area div[contentEditable="true"] ol,
+            #print-area div[contentEditable="true"] ul {
+                padding-left: 2.5rem; /* Indent the whole list */
+                margin-top: 0.5rem;
+                margin-bottom: 0.5rem;
+            }
+             #print-area div[contentEditable="true"] li {
+                padding-left: 0.5rem; /* Space between marker and text */
+                margin-bottom: 0.25rem;
+            }
+            #print-area div[contentEditable="true"] ol {
+                list-style-type: decimal;
+            }
+            #print-area div[contentEditable="true"] ul {
+                list-style-type: disc;
+            }
+            /* Nested lists */
+            #print-area div[contentEditable="true"] ol ol,
+            #print-area div[contentEditable="true"] ul ol {
+                list-style-type: lower-alpha;
+            }
         `}</style>
     </div>
   );
