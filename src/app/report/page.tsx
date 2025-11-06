@@ -100,12 +100,12 @@ const ReportEditorTemplate = ({ event, reportContent, onContentChange }: { event
                         <tr>
                             <td className="w-32 align-top">KEPADA YTH.</td>
                             <td className="w-2 align-top">:</td>
-                            <td><EditableField id="report-kepada" placeholder="Isi tujuan surat" /></td>
+                            <td><EditableField id="report-kepada" placeholder="Isi tujuan surat" defaultValue="Camat Lengkong"/></td>
                         </tr>
                         <tr>
                             <td className="w-32 align-top">TEMBUSAN</td>
                             <td className="w-2 align-top">:</td>
-                            <td className="align-top"><EditableField id="report-tembusan" placeholder="Isi tembusan" /></td>
+                            <td className="align-top"><EditableField id="report-tembusan" placeholder="Isi tembusan" defaultValue="- Arsip"/></td>
                         </tr>
                         <tr>
                             <td className="w-32 align-top">DARI</td>
@@ -115,7 +115,7 @@ const ReportEditorTemplate = ({ event, reportContent, onContentChange }: { event
                         <tr>
                             <td className='align-top w-32'>HAL</td>
                             <td className='align-top w-2'>:</td>
-                            <td><EditableField id="report-hal" placeholder="Isi perihal" /></td>
+                            <td><EditableField id="report-hal" placeholder="Isi perihal" defaultValue="Laporan Hasil Kegiatan" /></td>
                         </tr>
                     </tbody>
                 </table>
@@ -270,32 +270,36 @@ export default function ReportPage() {
         tempDiv.innerHTML = html;
         // Replace list items with a more WA-friendly format
         tempDiv.querySelectorAll('li').forEach(li => {
-            li.innerHTML = `- ${li.innerHTML}<br>`;
+            li.innerHTML = `• ${li.innerHTML.replace(/<br>/g, '\n  ')}\n`;
         });
-        return tempDiv.innerText || '';
+        // Handle paragraphs for better spacing
+        tempDiv.querySelectorAll('p').forEach(p => {
+             p.innerHTML = `${p.innerHTML}<br>`;
+        });
+        return tempDiv.innerText.trim() || '';
     };
-    
-    const pimpinan = getEditableText('report-pimpinan');
-    const narasumber = getEditableText('report-narasumber');
+
+    const kepada = getEditableText('report-kepada');
+    const tembusan = getEditableText('report-tembusan');
     const peserta = getEditableText('report-peserta');
-    const pelapor = getEditableText('report-pelapor');
     const hasilPlainText = htmlToPlainText(reportContent);
 
-    const message = `*LAPORAN KEGIATAN*
+    const message = `*Laporan Kegiatan*
+Kepada Yth: ${kepada || '(Kepada Yth.)'}
+Tembusan: ${tembusan || '(Tembusan)'}
 
-*Acara*: ${selectedEvent.summary}
-*Hari/Tanggal*: ${formatReportDateRange(selectedEvent.start, selectedEvent.end)}
-*Waktu*: Pukul ${format(parseISO(selectedEvent.start), 'HH:mm', { locale: localeId })} WIB s.d. Selesai
-*Tempat*: ${selectedEvent.location || getEditableText('report-tempat')}
-${pimpinan ? `*Pimpinan Rapat*: ${pimpinan}\n` : ''}${narasumber ? `*Narasumber*: ${narasumber}\n` : ''}${peserta ? `*Peserta*: ${peserta}\n` : ''}
-*HASIL & TINDAK LANJUT*
-${hasilPlainText}
+Mohon ijin melaporkan hasil kegiatan dari *${selectedEvent.summary}* sebagai berikut:
 
-Demikian dilaporkan.
-Terima kasih.
+*I. Pelaksanaan*
+  • *Hari, tanggal*: ${formatReportDateRange(selectedEvent.start, selectedEvent.end)}
+  • *Waktu*: Pukul ${format(parseISO(selectedEvent.start), 'HH:mm', { locale: localeId })} WIB s.d. Selesai
+  • *Tempat*: ${selectedEvent.location || getEditableText('report-tempat')}
 
-Hormat kami,
-*${pelapor || '(Nama Pelapor)'}*
+*II. Peserta dan Pihak Terkait*:
+${peserta || '(Tidak ada peserta spesifik)'}
+
+*III. Hasil Kegiatan*:
+${hasilPlainText || '(Belum ada hasil kegiatan yang diisi)'}
 `;
 
     setWhatsAppMessage(message);
