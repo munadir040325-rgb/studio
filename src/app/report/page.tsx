@@ -1,3 +1,4 @@
+
 'use client';
 
 import { useState, useMemo } from 'react';
@@ -75,7 +76,7 @@ const ReportEditorTemplate = ({ event, reportContent, onContentChange }: { event
                         <td className="w-8 align-top font-semibold">I.</td>
                         <td className="w-28 align-top font-semibold">Dasar</td>
                         <td className="w-2 align-top">:</td>
-                        <td>Surat <EditableField placeholder="Asal Surat (e.g., Undangan dari...)" /> Nomor : <EditableField placeholder="Nomor Surat Undangan" /> tanggal <EditableField placeholder="Tanggal Surat Undangan" /> perihal Undangan, dengan ini kami laporkan hasil pelaksanaan kegiatan sebagai berikut:</td>
+                        <td><EditableField placeholder="Isi dasar pelaksanaan kegiatan (contoh: Surat Undangan dari..., atau Perintah Lisan dari Camat, dll.)" className="w-full"/>, dengan ini kami laporkan hasil pelaksanaan kegiatan sebagai berikut:</td>
                     </tr>
                     <tr><td colSpan={4} className="h-2"></td></tr>
 
@@ -353,13 +354,17 @@ export default function ReportPage() {
                 .report-content-preview li {
                     text-align: justify;
                 }
-                .report-content-preview .list-ol {
+                .report-content-preview .list-ol,
+                #print-area .list-ol {
                     padding-left: 20px;
                     list-style-position: inside;
                 }
-                .report-content-preview .list-ol-1 { list-style-type: decimal; }
-                .report-content-preview .list-ol-2 { list-style-type: lower-alpha; }
-                .report-content-preview .list-ol-3 { list-style-type: lower-roman; }
+                .report-content-preview .list-ol-1,
+                #print-area .list-ol-1 { list-style-type: decimal; }
+                .report-content-preview .list-ol-2,
+                #print-area .list-ol-2 { list-style-type: lower-alpha; }
+                .report-content-preview .list-ol-3,
+                #print-area .list-ol-3 { list-style-type: lower-roman; }
             }
              span[contentEditable="true"]:empty::before {
                 content: attr(data-placeholder);
