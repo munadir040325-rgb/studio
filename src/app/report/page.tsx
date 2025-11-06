@@ -1,3 +1,4 @@
+
 'use client';
 
 import { useState, useMemo, useRef } from 'react';
@@ -282,6 +283,7 @@ export default function ReportPage() {
     const kepada = getEditableText('report-kepada');
     const tembusan = getEditableText('report-tembusan');
     const peserta = getEditableText('report-peserta');
+    const pelapor = getEditableText('report-pelapor');
     const hasilPlainText = htmlToPlainText(reportContent);
 
     const message = `*Laporan Kegiatan*
@@ -300,6 +302,11 @@ ${peserta || '(Tidak ada peserta spesifik)'}
 
 *III. Hasil Kegiatan*:
 ${hasilPlainText || '(Belum ada hasil kegiatan yang diisi)'}
+
+Demikian laporan ini disampaikan, terima kasih.
+
+Hormat kami,
+*${pelapor || '(Nama Pelapor)'}*
 `;
 
     setWhatsAppMessage(message);
