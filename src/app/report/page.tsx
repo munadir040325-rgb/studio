@@ -49,8 +49,8 @@ const EditableField = ({ placeholder, className }: { placeholder: string, classN
 
 const RichTextEditor = ({ value, onChange }: { value: string, onChange: (value: string) => void }) => {
     const editorRef = useRef<HTMLDivElement>(null);
-    
-    // Set initial content when the component mounts or the value prop changes
+
+    // Set initial content if it's different from the editor's current HTML
     useEffect(() => {
         if (editorRef.current && value !== editorRef.current.innerHTML) {
             editorRef.current.innerHTML = value;
@@ -60,12 +60,13 @@ const RichTextEditor = ({ value, onChange }: { value: string, onChange: (value: 
     const executeCommand = (command: string) => {
         document.execCommand(command, false);
         if (editorRef.current) {
-            onChange(editorRef.current.innerHTML);
+            onChange(editorRef.current.innerHTML); // Sync state after command
         }
     };
     
+    // Use onMouseDown and preventDefault to stop the editor from losing focus
     const handleToolbarMouseDown = (e: React.MouseEvent<HTMLButtonElement>, command: string) => {
-        e.preventDefault(); // Prevent editor from losing focus
+        e.preventDefault(); 
         executeCommand(command);
     };
 
@@ -110,13 +111,13 @@ const ReportPreview = ({ event, reportContent }: { event: CalendarEvent | null, 
             <table className="w-full border-separate" style={{borderSpacing: '0 4px'}}>
                 <tbody>
                     <tr><td className="w-8"></td><td className="w-28 align-top">YTH.</td><td className="w-2 align-top">:</td><td className="font-semibold">CAMAT GANDRUNGMANGU</td></tr>
-                    <tr><td></td><td className="align-top">DARI</td><td className="align-top">:</td><td><EditableField placeholder="Nama Pelapor, Jabatan" /></td></tr>
-                    <tr><td></td><td className="align-top">TEMBUSAN</td><td className="align-top">:</td><td><EditableField placeholder="Isi tembusan" /></td></tr>
-                    <tr><td></td><td className="align-top">TANGGAL</td><td className="align-top">:</td><td>{reportDate}</td></tr>
-                    <tr><td></td><td className="align-top">NOMOR</td><td className="align-top">:</td><td><EditableField placeholder="Nomor Surat" /></td></tr>
-                    <tr><td></td><td className="align-top">SIFAT</td><td className="align-top">:</td><td>BIASA</td></tr>
-                    <tr><td></td><td className="align-top">LAMPIRAN</td><td className="align-top">:</td><td>-</td></tr>
-                    <tr><td></td><td className="align-top">HAL</td><td className="align-top">:</td><td className="font-semibold">LAPORAN HASIL PELAKSANAAN KEGIATAN</td></tr>
+                    <tr><td></td><td className="align-top">DARI</td><td className="w-2 align-top">:</td><td><EditableField placeholder="Nama Pelapor, Jabatan" /></td></tr>
+                    <tr><td></td><td className="align-top">TEMBUSAN</td><td className="w-2 align-top">:</td><td><EditableField placeholder="Isi tembusan" /></td></tr>
+                    <tr><td></td><td className="align-top">TANGGAL</td><td className="w-2 align-top">:</td><td>{reportDate}</td></tr>
+                    <tr><td></td><td className="align-top">NOMOR</td><td className="w-2 align-top">:</td><td><EditableField placeholder="Nomor Surat" /></td></tr>
+                    <tr><td></td><td className="align-top">SIFAT</td><td className="w-2 align-top">:</td><td>BIASA</td></tr>
+                    <tr><td></td><td className="align-top">LAMPIRAN</td><td className="w-2 align-top">:</td><td>-</td></tr>
+                    <tr><td></td><td className="align-top">HAL</td><td className="w-2 align-top">:</td><td className="font-semibold">LAPORAN HASIL PELAKSANAAN KEGIATAN</td></tr>
                 </tbody>
             </table>
 
@@ -267,20 +268,36 @@ export default function ReportPage() {
     doc.write('<html><head>' + document.head.innerHTML + '</head><body>' + printArea.outerHTML + '</body></html>');
     doc.close();
     
-    setTimeout(() => {
-        try {
-            iframe.contentWindow?.focus();
-            iframe.contentWindow?.print();
-        } catch (e: any) {
-            toast({ variant: 'destructive', title: 'Gagal Mencetak', description: `Terjadi kesalahan: ${e.message}`});
-        } finally {
-             setTimeout(() => {
-                 if (document.body.contains(iframe)) {
-                    document.body.removeChild(iframe);
-                 }
+    const tryPrint = () => {
+      try {
+          iframe.contentWindow?.focus();
+          iframe.contentWindow?.print();
+      } catch (e: any) {
+          toast({ variant: 'destructive', title: 'Gagal Mencetak', description: `Terjadi kesalahan: ${e.message}`});
+      } finally {
+            setTimeout(() => {
+                if (document.body.contains(iframe)) {
+                  document.body.removeChild(iframe);
+                }
             }, 1000);
+      }
+    };
+    
+    // Wait for images and other resources to load before printing
+    let loaded = false;
+    iframe.onload = () => {
+        if (!loaded) {
+            loaded = true;
+            tryPrint();
         }
-    }, 500); 
+    };
+    // Fallback if onload doesn't fire
+    setTimeout(() => {
+        if (!loaded) {
+            loaded = true;
+            tryPrint();
+        }
+    }, 500);
   };
   
   const handleReset = () => {
@@ -432,15 +449,19 @@ export default function ReportPage() {
                     font-size: 12px !important;
                     line-height: 1.2 !important;
                 }
+                #print-area .report-content-preview p,
+                #print-area .report-content-preview div {
+                    text-align: justify;
+                }
+                /* Revised List Styling for Print */
                 #print-area .report-content-preview ul, 
                 #print-area .report-content-preview ol {
                   list-style-position: inside;
-                  padding-left: 20px;
+                  padding-left: 20px; /* Give space for the marker */
                 }
-                #print-area .report-content-preview p,
-                #print-area .report-content-preview li,
-                #print-area .report-content-preview div {
-                    text-align: justify;
+                #print-area .report-content-preview li {
+                  display: list-item; /* Force the marker to be shown */
+                  text-align: justify;
                 }
             }
              span[contentEditable="true"]:empty::before {
