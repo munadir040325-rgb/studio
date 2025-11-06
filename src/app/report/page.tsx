@@ -44,52 +44,43 @@ const generateReportTemplate = (event: CalendarEvent): string => {
     const disposisi = extractDisposisi(event.description);
     
     const template = `
-HASIL MENGIKUTI KEGIATAN
-===================================
+NOTA DINAS
 
-I. DASAR:
-Surat Undangan Nomor: [Nomor Surat] Tanggal [Tanggal Surat]
+YTH.      : CAMAT GANDRUNGMANGU
+DARI      : [Nama Pelapor], ([Jabatan Pelapor])
+TEMBUSAN  : SEKRETARIS KECAMATAN GANDRUNGMANGU
+TANGGAL   : ${format(new Date(), 'dd MMMM yyyy', { locale: localeId })}
+NOMOR     : [Nomor Surat]
+SIFAT     : BIASA
+LAMPIRAN  : -
+HAL       : LAPORAN HASIL PELAKSANAAN KEGIATAN
 
-II. NAMA KEGIATAN:
-${event.summary || ''}
+Dasar Surat [Asal Surat] Nomor : [Nomor Surat Undangan] tanggal [Tanggal Surat Undangan] perihal Undangan, dengan ini kami laporkan hasil pelaksanaan kegiatan sebagai berikut:
 
-III. WAKTU DAN TEMPAT:
-- Hari/Tanggal: ${event.start ? format(parseISO(event.start), 'EEEE, dd MMMM yyyy', { locale: localeId }) : ''}
-- Waktu: Pukul ${event.start ? format(parseISO(event.start), 'HH:mm', { locale: localeId }) : ''} WIB s.d. Selesai
-- Tempat: ${event.location || ''}
+I.   Pelaksanaan
+     Acara         : ${event.summary || ''}
+     Hari/Tanggal  : ${event.start ? format(parseISO(event.start), 'EEEE, dd MMMM yyyy', { locale: localeId }) : ''}
+     Waktu         : Pukul ${event.start ? format(parseISO(event.start), 'HH:mm', { locale: localeId }) : ''} WIB s.d. Selesai
+     Tempat        : ${event.location || ''}
+     Peserta       : [Sebutkan peserta/perwakilan yang hadir]
 
-IV. PENYELENGGARA:
-[Nama Penyelenggara]
+II.  Pimpinan Rapat  : [Isi Pimpinan Rapat]
 
-V. PESERTA:
-[Sebutkan peserta/perwakilan yang hadir]
+III. Narasumber       : [Isi Narasumber]
 
-VI. MATERI/BAHASAN:
-1. Materi Utama
-    a. Sub-materi pertama
-    b. Sub-materi kedua
-2. Materi Berikutnya
+IV.  Ringkasan Materi
+     1. Materi Utama
+         a. Sub-materi pertama
+         b. Sub-materi kedua
+     2. Materi Berikutnya
+     ${disposisi ? `\n     Tindak Lanjut: ${disposisi}` : ''}
 
-VII. KESIMPULAN/TINDAK LANJUT:
-${disposisi ? `- ${disposisi}\n- [Tindak Lanjut Lainnya]` : `- [Isi Kesimpulan atau Tindak Lanjut]`}
+Demikian untuk menjadikan periksa dan terima kasih.
 
-VIII. PENUTUP:
-Demikian laporan ini dibuat sebagai bahan masukan dan informasi lebih lanjut.
+                                                                Yang melaksanakan kegiatan
 
-Dibuat di: [Tempat]
-Pada tanggal: ${format(new Date(), 'dd MMMM yyyy', { locale: localeId })}
 
-Mengetahui,
-[Jabatan Atasan]
-
-[Nama Atasan]
-[NIP Atasan]
-
-Yang Melaporkan,
-[Jabatan Pelapor]
-
-[Nama Pelapor]
-[NIP Pelapor]
+                                                                [Nama Pelapor]
 `;
     return template.trim();
 }
