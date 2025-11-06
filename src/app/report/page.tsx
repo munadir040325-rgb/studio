@@ -90,8 +90,8 @@ const ReportPreview = ({ event }: { event: CalendarEvent | null }) => {
 
         editor.focus();
 
-        if ((command === 'insertOrderedList' || command === 'insertUnorderedList') && (editor.textContent?.trim() === '' || editor.innerHTML === '<p><br></p>' || editor.innerHTML === '')) {
-             if (editor.innerHTML === '' || editor.innerHTML === '<p><br></p>') {
+        if ((command === 'insertOrderedList' || command === 'insertUnorderedList') && (!editor.textContent?.trim() || editor.innerHTML === '<p><br></p>' || editor.innerHTML === '')) {
+             if (editor.innerHTML === '' || !editor.querySelector('p')) {
                 editor.innerHTML = '<p><br></p>'; 
              }
             const range = document.createRange();
@@ -150,7 +150,7 @@ const ReportPreview = ({ event }: { event: CalendarEvent | null }) => {
                     {/* Section I */}
                     <tr>
                         <td className="w-8 align-top font-semibold">I.</td>
-                        <td colSpan={2} className='font-semibold'>Pelaksanaan</td>
+                        <td colSpan={3} className='font-semibold'>Pelaksanaan</td>
                     </tr>
                     <tr>
                         <td></td>
@@ -278,8 +278,63 @@ export default function ReportPage() {
         toast({ variant: 'destructive', title: 'Gagal Mencetak', description: 'Pilih kegiatan terlebih dahulu.'});
         return;
     }
-    window.print();
-  }
+
+    const printArea = document.getElementById('print-area');
+    if (!printArea) {
+        toast({ variant: 'destructive', title: 'Gagal Mencetak', description: 'Area laporan tidak ditemukan.'});
+        return;
+    }
+
+    // Create a hidden iframe
+    const iframe = document.createElement('iframe');
+    iframe.style.position = 'absolute';
+    iframe.style.width = '0';
+    iframe.style.height = '0';
+    iframe.style.border = '0';
+    document.body.appendChild(iframe);
+
+    const doc = iframe.contentWindow?.document;
+    if (!doc) {
+        toast({ variant: 'destructive', title: 'Gagal Mencetak', description: 'Tidak dapat membuat dokumen cetak.'});
+        document.body.removeChild(iframe);
+        return;
+    }
+
+    // Clone all style sheets from the parent document to the iframe
+    const styleSheets = Array.from(document.styleSheets);
+    styleSheets.forEach(styleSheet => {
+        try {
+            if (styleSheet.cssRules) { // For inline <style> tags
+                const newStyleEl = doc.createElement('style');
+                Array.from(styleSheet.cssRules).forEach(rule => {
+                    newStyleEl.appendChild(doc.createTextNode(rule.cssText));
+                });
+                doc.head.appendChild(newStyleEl);
+            } else if (styleSheet.href) { // For linked <link> stylesheets
+                const newLinkEl = doc.createElement('link');
+                newLinkEl.rel = 'stylesheet';
+                newLinkEl.href = styleSheet.href;
+                doc.head.appendChild(newLinkEl);
+            }
+        } catch (e) {
+            console.warn('Could not copy stylesheet:', e);
+        }
+    });
+
+    // Copy the HTML content to be printed
+    doc.body.innerHTML = printArea.innerHTML;
+    
+    // Trigger the print dialog
+    setTimeout(() => {
+        iframe.contentWindow?.focus();
+        iframe.contentWindow?.print();
+
+        // Remove the iframe after printing
+        setTimeout(() => {
+            document.body.removeChild(iframe);
+        }, 500);
+    }, 250); // A small delay to ensure styles are loaded
+  };
   
   const handleReset = () => {
     setSelectedDate(undefined);
