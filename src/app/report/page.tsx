@@ -373,7 +373,7 @@ export default function ReportPage() {
               body {
                   font-family: Arial, sans-serif !important;
                   font-size: 12px !important;
-                  line-height: 1.2 !important;
+                  line-height: 1.5 !important;
               }
               .report-content-preview p,
               .report-content-preview div,
