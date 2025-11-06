@@ -1,4 +1,3 @@
-
 'use client';
 
 import { useState, useMemo } from 'react';
@@ -373,9 +372,14 @@ export default function ReportPage() {
           }
           @media print {
               body {
+                  -webkit-print-color-adjust: exact;
+                  print-color-adjust: exact;
+              }
+              #print-area, #print-area * {
                   font-family: Arial, sans-serif !important;
                   font-size: 12px !important;
                   line-height: 1.5 !important;
+                  visibility: visible;
               }
               .report-content-preview p,
               .report-content-preview div,
