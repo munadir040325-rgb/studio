@@ -53,10 +53,8 @@ const ReportEditorTemplate = ({ event, reportContent, onContentChange }: { event
     return (
         <Card id="print-area" className="bg-white text-black p-8 md:p-12 shadow-lg rounded-sm print:shadow-none print:p-4 print:border-none">
             <h3 className="text-center font-bold text-lg">NOTA DINAS</h3>
-
-             <hr className="border-black my-4" />
-
-            <div className="flex justify-center">
+            
+             <div className="flex justify-center">
                 <table>
                     <tbody>
                         <tr>
@@ -206,54 +204,37 @@ export default function ReportPage() {
   
   const handlePrint = () => {
     if (!selectedEvent) {
-        toast({ variant: 'destructive', title: 'Gagal Mencetak', description: 'Pilih kegiatan terlebih dahulu.' });
-        return;
+      toast({ variant: 'destructive', title: 'Gagal Mencetak', description: 'Pilih kegiatan terlebih dahulu.' });
+      return;
     }
-
+  
     const printArea = document.getElementById('print-area');
     if (!printArea) {
-        toast({ variant: 'destructive', title: 'Gagal Mencetak', description: 'Area laporan tidak ditemukan.' });
-        return;
+      toast({ variant: 'destructive', title: 'Gagal Mencetak', description: 'Area laporan tidak ditemukan.' });
+      return;
     }
-
-    const printContent = printArea.innerHTML;
-    
-    // Create a hidden iframe
-    const iframe = document.createElement('iframe');
-    iframe.style.position = 'absolute';
-    iframe.style.width = '0';
-    iframe.style.height = '0';
-    iframe.style.border = '0';
-    document.body.appendChild(iframe);
-
-    const doc = iframe.contentWindow?.document;
-    if (!doc) {
-        toast({ variant: 'destructive', title: 'Gagal Mencetak', description: 'Tidak dapat membuat dokumen cetak.' });
-        document.body.removeChild(iframe);
-        return;
+  
+    // Buka jendela baru yang bersih
+    const printWindow = window.open('', '_blank', 'width=800,height=600');
+    if (!printWindow) {
+      toast({ variant: 'destructive', title: 'Gagal Membuka Jendela Cetak', description: 'Mohon izinkan pop-up untuk situs ini.' });
+      return;
     }
-
-    // Write the content and styles to the iframe
-    doc.open();
-    doc.write('<html><head><title>Cetak Laporan</title>');
-    
-    // Copy all style sheets from the main window to the iframe
-    Array.from(document.styleSheets).forEach(styleSheet => {
-        try {
-            if (styleSheet.cssRules) {
-                const style = doc.createElement('style');
-                style.textContent = Array.from(styleSheet.cssRules)
-                    .map(rule => rule.cssText)
-                    .join('\n');
-                doc.head.appendChild(style);
-            }
-        } catch (e) {
-            console.warn('Could not copy stylesheet:', e);
-        }
+  
+    // Tulis struktur dasar HTML
+    printWindow.document.write('<html><head><title>Cetak Laporan</title>');
+  
+    // Salin stylesheet global secara eksplisit
+    const styleSheets = Array.from(document.styleSheets);
+    styleSheets.forEach(sheet => {
+      if (sheet.href) {
+        printWindow.document.write(`<link rel="stylesheet" href="${sheet.href}">`);
+      }
     });
-
-    // Write the inline print styles
-    const inlineStyles = `
+  
+    // Suntikkan gaya cetak khusus
+    printWindow.document.write(`
+      <style>
         @page {
             size: A4;
             margin: 2.1cm;
@@ -264,27 +245,51 @@ export default function ReportPage() {
             font-family: Arial, sans-serif !important;
             font-size: 12px !important;
             line-height: 1.2 !important;
+            -webkit-print-color-adjust: exact !important;
+            print-color-adjust: exact !important;
         }
-        .report-content-preview {
-            display: block !important; /* Ensure preview is visible for printing */
+        .report-content-preview { display: block !important; }
+        .print\\:hidden { display: none !important; }
+        .print\\:block { display: block !important; }
+        .print\\:bg-transparent { background-color: transparent !important; }
+        .print\\:shadow-none { box-shadow: none !important; }
+        .print\\:p-4 { padding: 1rem !important; }
+        .print\\:border-none { border: none !important; }
+
+        span[contentEditable="true"] {
+            background-color: transparent !important;
+            border: none !important;
+            box-shadow: none !important;
         }
+        span[contentEditable="true"]:empty::before {
+            content: attr(data-placeholder);
+            color: #999;
+            font-style: italic;
+        }
+        .report-content-preview p,
+        .report-content-preview div,
+        .report-content-preview li {
+            text-align: justify;
+        }
+        .list-ol { padding-left: 20px; list-style-position: inside; }
         .list-ol-1 { list-style-type: decimal; }
         .list-ol-2 { list-style-type: lower-alpha; }
         .list-ol-3 { list-style-type: lower-roman; }
-    `;
-    doc.write(`<style>${inlineStyles}</style>`);
+      </style>
+    `);
     
-    doc.write('</head><body>');
-    doc.write(printContent);
-    doc.write('</body></html>');
-    doc.close();
-
-    // Trigger print and clean up
+    printWindow.document.write('</head><body></body></html>');
+    printWindow.document.close();
+  
+    // Salin konten area cetak ke body jendela baru
+    printWindow.document.body.innerHTML = printArea.innerHTML;
+  
+    // Panggil print setelah semua konten dan gaya dimuat
     setTimeout(() => {
-        iframe.contentWindow?.focus();
-        iframe.contentWindow?.print();
-        document.body.removeChild(iframe);
-    }, 250); // Small delay to ensure content is fully rendered
+      printWindow.focus();
+      printWindow.print();
+      printWindow.close();
+    }, 500); // Penundaan untuk memastikan rendering
   };
   
   const handleReset = () => {
@@ -393,10 +398,6 @@ export default function ReportPage() {
 
         <style jsx global>{`
             @import "@blocknote/core/style.css";
-            @page {
-                size: A4;
-                margin: 2.1cm;
-            }
             @media print {
                 body, html {
                     visibility: hidden;
@@ -424,7 +425,6 @@ export default function ReportPage() {
                    background-color: transparent !important;
                    border: none !important;
                    box-shadow: none !important;
-                   -webkit-print-color-adjust: exact !important;
                 }
                  span[contentEditable="true"]:empty::before {
                     content: attr(data-placeholder);
@@ -432,24 +432,10 @@ export default function ReportPage() {
                     font-style: italic;
                     visibility: visible;
                 }
-                 #print-area * {
-                    font-family: Arial, sans-serif !important;
-                    font-size: 12px !important;
-                    line-height: 1.2 !important;
-                }
                 .report-content-preview {
                     color: black !important;
                     display: block !important;
                 }
-                .report-content-preview p,
-                .report-content-preview div,
-                .report-content-preview li {
-                    text-align: justify;
-                }
-                #print-area .list-ol { padding-left: 20px; list-style-position: inside; }
-                #print-area .list-ol-1 { list-style-type: decimal; }
-                #print-area .list-ol-2 { list-style-type: lower-alpha; }
-                #print-area .list-ol-3 { list-style-type: lower-roman; }
             }
              span[contentEditable="true"]:empty::before {
                 content: attr(data-placeholder);
