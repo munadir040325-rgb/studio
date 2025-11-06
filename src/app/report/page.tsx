@@ -60,8 +60,16 @@ const ReportPreview = ({ event }: { event: CalendarEvent | null }) => {
     
     const handleInput = (e: React.FormEvent<HTMLDivElement>) => {
         const editor = e.currentTarget;
+        
+        // Ensure editor is not completely empty
         if (editor.innerHTML.trim() === "" || editor.innerHTML === "<br>") {
              editor.innerHTML = "<p><br></p>";
+             const range = document.createRange();
+             const sel = window.getSelection();
+             range.setStart(editor.firstChild!, 1);
+             range.collapse(true);
+             sel?.removeAllRanges();
+             sel?.addRange(range);
         }
 
         const selection = window.getSelection();
@@ -70,6 +78,7 @@ const ReportPreview = ({ event }: { event: CalendarEvent | null }) => {
         const range = selection.getRangeAt(0);
         const node = range.startContainer;
         
+        // Auto-create lists
         if (node.textContent) {
             const text = node.textContent;
             if ((range.startOffset > 1 && text.substring(range.startOffset - 2) === '1.') || (range.startOffset > 2 && text.substring(range.startOffset - 3) === '1. ')) {
@@ -89,7 +98,8 @@ const ReportPreview = ({ event }: { event: CalendarEvent | null }) => {
         if (!editor) return;
 
         editor.focus();
-
+        
+        // Ensure there's a paragraph to work with for list commands if editor is empty
         if ((command === 'insertOrderedList' || command === 'insertUnorderedList') && (!editor.textContent?.trim() || editor.innerHTML === '<p><br></p>' || editor.innerHTML === '')) {
              if (editor.innerHTML === '' || !editor.querySelector('p')) {
                 editor.innerHTML = '<p><br></p>'; 
@@ -128,6 +138,7 @@ const ReportPreview = ({ event }: { event: CalendarEvent | null }) => {
             <br />
             <table className="w-full border-separate" style={{borderSpacing: '0 4px'}}>
                 <tbody>
+                    {/* Header Section */}
                     <tr><td className="w-8"></td><td className="w-28 align-top">YTH.</td><td className="w-2 align-top">:</td><td className="font-semibold">CAMAT GANDRUNGMANGU</td></tr>
                     <tr><td></td><td className="align-top">DARI</td><td className="align-top">:</td><td><EditableField placeholder="Nama Pelapor, Jabatan" /></td></tr>
                     <tr><td></td><td className="align-top">TEMBUSAN</td><td className="align-top">:</td><td><EditableField placeholder="Isi tembusan" /></td></tr>
@@ -214,7 +225,7 @@ const ReportPreview = ({ event }: { event: CalendarEvent | null }) => {
                     </tr>
                      <tr>
                         <td></td>
-                        <td colSpan={3}>
+                        <td colSpan={3} className="w-full">
                             <div className="w-full relative">
                                 {showToolbar && (
                                     <div className="sticky top-0 z-10 bg-gray-100 p-1 rounded-md flex gap-1 print:hidden mb-2">
@@ -242,10 +253,10 @@ const ReportPreview = ({ event }: { event: CalendarEvent | null }) => {
                 </tbody>
             </table>
             
-            <p className="text-sm mt-4">Demikian untuk menjadikan periksa dan terima kasih.</p>
+            <p className="mt-4">Demikian untuk menjadikan periksa dan terima kasih.</p>
 
             <div className="flex justify-end mt-16">
-                <div className="text-center text-sm w-64">
+                <div className="text-center w-64">
                     <p>Yang melaksanakan kegiatan,</p>
                     <br /><br /><br />
                     <p className="font-semibold underline">
@@ -461,13 +472,15 @@ export default function ReportPage() {
                     padding: 0 !important;
                     margin: 0 !important;
                 }
+                #print-area * {
+                    font-family: Arial, sans-serif !important;
+                    font-size: 12px !important;
+                }
                 #print-area {
                     box-shadow: none;
                     margin: 0;
                     padding: 0;
                     border: none;
-                    font-size: 12px;
-                    font-family: Arial, sans-serif;
                 }
                 span[contentEditable="true"], div[contentEditable="true"] {
                    background-color: transparent !important;
@@ -481,6 +494,9 @@ export default function ReportPage() {
                     color: #999;
                     font-style: italic;
                     visibility: visible;
+                }
+                 #print-area div[contentEditable] p {
+                    text-align: justify;
                 }
             }
              span[contentEditable="true"]:empty::before,
