@@ -11,7 +11,7 @@ import { Popover, PopoverContent, PopoverTrigger } from '@/components/ui/popover
 import { Calendar as CalendarIcon, Loader2, Printer, Trash } from 'lucide-react';
 import { useToast } from '@/hooks/use-toast';
 import { cn } from '@/lib/utils';
-import { parseISO, format, isSameDay } from 'date-fns';
+import { parseISO, format, isSameDay, isSameMonth } from 'date-fns';
 import { id as localeId } from 'date-fns/locale';
 import useSWR from 'swr';
 import { Alert, AlertDescription, AlertTitle } from '@/components/ui/alert';
@@ -22,6 +22,7 @@ type CalendarEvent = {
   id: string;
   summary: string;
   start: string;
+  end?: string;
   location?: string | null;
   description?: string | null;
 };
@@ -48,18 +49,47 @@ const EditableField = ({ placeholder, className, defaultValue }: { placeholder: 
     </span>
 );
 
+const formatReportDateRange = (startStr: string, endStr?: string): string => {
+    try {
+        const startDate = parseISO(startStr);
+        const endDate = endStr ? parseISO(endStr) : startDate;
+
+        if (isSameDay(startDate, endDate)) {
+            return format(startDate, 'EEEE, dd MMMM yyyy', { locale: localeId });
+        }
+
+        const startDayName = format(startDate, 'EEEE', { locale: localeId });
+        const endDayName = format(endDate, 'EEEE', { locale: localeId });
+        const daysRange = `${startDayName}-${endDayName}`;
+
+        if (isSameMonth(startDate, endDate)) {
+            const startDay = format(startDate, 'dd');
+            const endDayAndMonth = format(endDate, 'dd MMMM yyyy', { locale: localeId });
+            return `${daysRange}, ${startDay} s.d. ${endDayAndMonth}`;
+        } else {
+            const startDayAndMonth = format(startDate, 'dd MMMM');
+            const endDayAndMonth = format(endDate, 'dd MMMM yyyy', { locale: localeId });
+            return `${daysRange}, ${startDayAndMonth} s.d. ${endDayAndMonth}`;
+        }
+    } catch (e) {
+        console.error("Error formatting date range:", e);
+        return "Tanggal tidak valid";
+    }
+};
+
 
 const ReportEditorTemplate = ({ event, reportContent, onContentChange }: { event: CalendarEvent, reportContent: string, onContentChange: (content: string) => void }) => {
     return (
         <Card id="print-area" className="bg-white text-black p-8 md:p-12 shadow-lg rounded-sm print:shadow-none print:p-4 print:border-none">
             <h3 className="text-center font-bold text-lg">NOTA DINAS</h3>
-            <hr className="border-black my-4" />
+             <hr className="border-t-2 border-black mt-1" />
+            <hr className="border-black mt-0.5 mb-4" />
             <div className="flex justify-center">
                 <table>
                     <tbody>
                         <tr>
-                            <td className="w-32">KEPADA YTH.</td>
-                            <td className="w-2">:</td>
+                            <td className="w-32 align-top">KEPADA YTH.</td>
+                            <td className="w-2 align-top">:</td>
                             <td><EditableField placeholder="Isi tujuan surat" /></td>
                         </tr>
                         <tr>
@@ -68,8 +98,8 @@ const ReportEditorTemplate = ({ event, reportContent, onContentChange }: { event
                             <td className="align-top"><EditableField placeholder="Isi tembusan" /></td>
                         </tr>
                         <tr>
-                            <td className="w-32">DARI</td>
-                            <td className="w-2">:</td>
+                            <td className="w-32 align-top">DARI</td>
+                            <td className="w-2 align-top">:</td>
                             <td><EditableField placeholder="Isi pengirim" /></td>
                         </tr>
                         <tr>
@@ -113,7 +143,7 @@ const ReportEditorTemplate = ({ event, reportContent, onContentChange }: { event
                                     <tr>
                                         <td className='w-32 align-top'>Hari/Tanggal</td>
                                         <td className='w-4 align-top'>:</td>
-                                        <td>{format(parseISO(event.start), 'EEEE, dd MMMM yyyy', { locale: localeId })}</td>
+                                        <td>{formatReportDateRange(event.start, event.end)}</td>
                                     </tr>
                                     <tr>
                                         <td className='w-32 align-top'>Waktu</td>
@@ -164,7 +194,7 @@ const ReportEditorTemplate = ({ event, reportContent, onContentChange }: { event
                             />
                         </td>
                     </tr>
-                    <tr>
+                    <tr className='text-justify'>
                        <td></td>
                        <td colSpan={3} className="pt-4">Demikian untuk menjadikan periksa dan terima kasih.</td>
                     </tr>
