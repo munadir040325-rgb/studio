@@ -40,7 +40,7 @@ const EditableField = ({ placeholder, className }: { placeholder: string, classN
     <span
         contentEditable
         suppressContentEditableWarning
-        className={cn("p-1 -m-1 rounded-md min-w-[10rem] inline-block bg-muted/50 hover:bg-muted focus:bg-background focus:outline-none focus:ring-2 focus:ring-ring", className)}
+        className={cn("p-1 -m-1 rounded-md min-w-[10rem] inline-block bg-muted/50 hover:bg-muted focus:bg-background focus:outline-none focus:ring-2 focus:ring-ring print:bg-transparent", className)}
         data-placeholder={placeholder}
     />
 );
@@ -84,7 +84,7 @@ const ReportPreview = ({ event }: { event: CalendarEvent | null }) => {
                 <div className="flex">
                     <span className="w-8">I.</span>
                     <div className="w-full">
-                        <p className="font-semibold underline">Pelaksanaan</p>
+                        <p className="font-semibold">Pelaksanaan</p>
                         <table className="w-full">
                            <tbody>
                                 <tr><td className="w-28 align-top">Acara</td><td className="w-2 align-top">:</td><td>{event.summary}</td></tr>
@@ -99,7 +99,7 @@ const ReportPreview = ({ event }: { event: CalendarEvent | null }) => {
                 <div className="flex">
                     <span className="w-8">II.</span>
                     <div className="flex items-start gap-1 w-full">
-                        <p className="font-semibold underline w-36">Pimpinan Rapat</p>
+                        <p className="font-semibold w-36">Pimpinan Rapat</p>
                         <span>:</span>
                         <EditableField placeholder="Isi Pimpinan Rapat" />
                     </div>
@@ -107,7 +107,7 @@ const ReportPreview = ({ event }: { event: CalendarEvent | null }) => {
                 <div className="flex">
                     <span className="w-8">III.</span>
                      <div className="flex items-start gap-1 w-full">
-                        <p className="font-semibold underline w-36">Narasumber</p>
+                        <p className="font-semibold w-36">Narasumber</p>
                         <span>:</span>
                         <EditableField placeholder="Isi Narasumber" />
                     </div>
@@ -115,11 +115,11 @@ const ReportPreview = ({ event }: { event: CalendarEvent | null }) => {
                 <div className="flex">
                     <span className="w-8">IV.</span>
                      <div className="w-full">
-                        <p className="font-semibold underline">Ringkasan Materi</p>
+                        <p className="font-semibold">Ringkasan Materi</p>
                          <div
                             contentEditable
                             suppressContentEditableWarning
-                            className="mt-2 p-1 -m-1 rounded-md min-h-[8rem] bg-muted/50 hover:bg-muted focus:bg-background focus:outline-none focus:ring-2 focus:ring-ring"
+                            className="mt-2 p-1 -m-1 rounded-md min-h-[8rem] bg-muted/50 hover:bg-muted focus:bg-background focus:outline-none focus:ring-2 focus:ring-ring print:bg-transparent"
                             dangerouslySetInnerHTML={{ __html: `
                                 <ol class="list-decimal list-outside ml-4">
                                     <li>Materi Utama
@@ -286,8 +286,10 @@ export default function ReportPage() {
                     left: 0;
                     top: 0;
                     width: 100%;
+                    margin: 0;
+                    padding: 0;
                 }
-                main.p-4, main.p-6 {
+                 main.p-4, main.p-6 {
                     padding: 0 !important;
                     margin: 0 !important;
                 }
@@ -300,13 +302,16 @@ export default function ReportPage() {
                     padding: 0;
                     border: none;
                 }
-                span[contentEditable="true"] {
+                span[contentEditable="true"], div[contentEditable="true"] {
                    background-color: transparent !important;
                    border: none !important;
                    padding: 1px !important;
                    margin: -1px !important;
+                   box-shadow: none !important;
+                   -webkit-print-color-adjust: exact;
                 }
-                 span[contentEditable="true"]:empty::before {
+                 span[contentEditable="true"]:empty::before,
+                 div[contentEditable="true"]:empty::before {
                     content: attr(data-placeholder);
                     color: #999;
                     font-style: italic;
