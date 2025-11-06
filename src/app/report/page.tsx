@@ -1,6 +1,6 @@
 'use client';
 
-import { useState, useMemo, useRef, useEffect } from 'react';
+import { useState, useMemo, useRef } from 'react';
 import { PageHeader } from '@/components/page-header';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardDescription, CardFooter, CardHeader, CardTitle } from '@/components/ui/card';
@@ -45,85 +45,55 @@ const EditableField = ({ placeholder, className }: { placeholder: string, classN
     />
 );
 
+// A more robust rich text editor component
+const RichTextEditor = ({ forwardedRef }: { forwardedRef: React.Ref<HTMLDivElement> }) => {
+    const editorRef = useRef<HTMLDivElement>(null);
+    const [showToolbar, setShowToolbar] = useState(false);
+
+    // Use forwardedRef if provided, otherwise use internal ref
+    const effectiveRef = forwardedRef || editorRef;
+
+    const applyFormat = (command: string) => {
+        document.execCommand(command, false);
+        if (effectiveRef && 'current' in effectiveRef && effectiveRef.current) {
+             effectiveRef.current.focus();
+        }
+    };
+    
+    const handleToolbarMouseDown = (e: React.MouseEvent<HTMLButtonElement>, command: string) => {
+        e.preventDefault(); // Prevent editor from losing focus
+        applyFormat(command);
+    };
+
+    return (
+        <div className="w-full relative">
+            {showToolbar && (
+                <div className="sticky top-0 z-10 bg-gray-100 p-1 rounded-md flex gap-1 print:hidden mb-2">
+                    <Button type="button" size="icon" variant="outline" className="h-7 w-7" onMouseDown={(e) => handleToolbarMouseDown(e, 'bold')}><Bold className="h-4 w-4" /></Button>
+                    <Button type="button" size="icon" variant="outline" className="h-7 w-7" onMouseDown={(e) => handleToolbarMouseDown(e, 'italic')}><Italic className="h-4 w-4" /></Button>
+                    <Button type="button" size="icon" variant="outline" className="h-7 w-7" onMouseDown={(e) => handleToolbarMouseDown(e, 'insertUnorderedList')}><List className="h-4 w-4" /></Button>
+                    <Button type="button" size="icon" variant="outline" className="h-7 w-7" onMouseDown={(e) => handleToolbarMouseDown(e, 'insertOrderedList')}><ListOrdered className="h-4 w-4" /></Button>
+                </div>
+            )}
+            <div
+                ref={effectiveRef}
+                contentEditable
+                suppressContentEditableWarning
+                onFocus={() => setShowToolbar(true)}
+                onBlur={() => setShowToolbar(false)}
+                className="mt-2 p-1 -m-1 rounded-md min-h-[8rem] bg-muted/50 hover:bg-muted focus:bg-background focus:outline-none focus:ring-2 focus:ring-ring print:bg-transparent w-full"
+                data-placeholder="Isi hasil kegiatan dan tindak lanjut..."
+            >
+            </div>
+        </div>
+    );
+};
+
+
 const ReportPreview = ({ event }: { event: CalendarEvent | null }) => {
     const disposisi = event ? extractDisposisi(event.description) : null;
     const reportDate = format(new Date(), 'dd MMMM yyyy', { locale: localeId });
     const editorRef = useRef<HTMLDivElement>(null);
-    const [showToolbar, setShowToolbar] = useState(false);
-
-    const handleKeyDown = (e: React.KeyboardEvent<HTMLDivElement>) => {
-        if (e.key === 'Tab') {
-            e.preventDefault();
-            document.execCommand(e.shiftKey ? 'outdent' : 'indent', false);
-        }
-    };
-    
-    const handleInput = (e: React.FormEvent<HTMLDivElement>) => {
-        const editor = e.currentTarget;
-        
-        if (editor.innerHTML.trim() === "" || editor.innerHTML === "<br>") {
-             editor.innerHTML = "<p><br></p>";
-             const range = document.createRange();
-             const sel = window.getSelection();
-             if (sel && editor.firstChild) {
-                range.setStart(editor.firstChild!, 1);
-                range.collapse(true);
-                sel.removeAllRanges();
-                sel.addRange(range);
-             }
-        }
-
-        const selection = window.getSelection();
-        if (!selection || selection.rangeCount === 0) return;
-        
-        const range = selection.getRangeAt(0);
-        const node = range.startContainer;
-        
-        if (node.textContent) {
-            const text = node.textContent;
-            if ((range.startOffset > 1 && text.substring(range.startOffset - 2) === '1.') || (range.startOffset > 2 && text.substring(range.startOffset - 3) === '1. ')) {
-                e.preventDefault();
-                node.textContent = text.replace(/1\.\s?$/, '');
-                document.execCommand('insertOrderedList', false);
-            } else if ((range.startOffset > 0 && text.substring(range.startOffset - 1) === '*') || (range.startOffset > 1 && text.substring(range.startOffset - 2) === '* ') || (range.startOffset > 0 && text.substring(range.startOffset-1) === '-') || (range.startOffset > 1 && text.substring(range.startOffset - 2) === '- ')) {
-                e.preventDefault();
-                node.textContent = text.replace(/[\*\-]\s?$/, '');
-                document.execCommand('insertUnorderedList', false);
-            }
-        }
-    };
-
-    const applyFormat = (command: 'bold' | 'italic' | 'insertOrderedList' | 'insertUnorderedList') => {
-        const editor = editorRef.current;
-        if (!editor) return;
-
-        editor.focus();
-        
-        // If the editor is empty, ensure there's a paragraph to apply the list to
-        if ((command === 'insertOrderedList' || command === 'insertUnorderedList') && (!editor.textContent?.trim() || editor.innerHTML === '<p><br></p>' || editor.innerHTML === '')) {
-             if (editor.innerHTML === '' || !editor.querySelector('p')) {
-                editor.innerHTML = '<p><br></p>'; 
-             }
-            const range = document.createRange();
-            const sel = window.getSelection();
-            const p = editor.getElementsByTagName('p')[0] || editor;
-            if (p && sel) {
-              // Place cursor at the start of the paragraph
-              range.setStart(p.firstChild || p, 0);
-              range.collapse(true);
-              sel.removeAllRanges();
-              sel.addRange(range);
-            }
-        }
-        
-        document.execCommand(command, false);
-        editor.focus();
-    };
-
-    const handleToolbarButtonClick = (e: React.MouseEvent<HTMLButtonElement>, command: 'bold' | 'italic' | 'insertOrderedList' | 'insertUnorderedList') => {
-        e.preventDefault(); // This is crucial to prevent the editor from losing focus
-        applyFormat(command);
-    };
 
     if (!event) {
         return (
@@ -152,20 +122,24 @@ const ReportPreview = ({ event }: { event: CalendarEvent | null }) => {
 
             <hr className="border-black my-4" />
             
-            <p className="text-justify">
-                Dasar Surat <EditableField placeholder="Asal Surat (e.g., Undangan dari...)" /> Nomor : <EditableField placeholder="Nomor Surat Undangan" /> tanggal <EditableField placeholder="Tanggal Surat Undangan" /> perihal Undangan, dengan ini kami laporkan hasil pelaksanaan kegiatan sebagai berikut:
-            </p>
-
             <table className="w-full mt-4 border-separate" style={{borderSpacing: '0 4px'}}>
                 <tbody>
                     <tr>
                         <td className="w-8 align-top font-semibold">I.</td>
+                        <td className="w-28 align-top font-semibold">Dasar</td>
+                        <td className="w-2 align-top">:</td>
+                        <td>Surat <EditableField placeholder="Asal Surat (e.g., Undangan dari...)" /> Nomor : <EditableField placeholder="Nomor Surat Undangan" /> tanggal <EditableField placeholder="Tanggal Surat Undangan" /> perihal Undangan, dengan ini kami laporkan hasil pelaksanaan kegiatan sebagai berikut:</td>
+                    </tr>
+                    <tr><td colSpan={4} className="h-2"></td></tr>
+
+                    <tr>
+                        <td className="align-top font-semibold">II.</td>
                         <td colSpan={3} className='font-semibold'>Pelaksanaan</td>
                     </tr>
                     <tr>
                         <td></td>
-                        <td className='w-28 align-top'>Acara</td>
-                        <td className='w-2 align-top'>:</td>
+                        <td className='align-top'>Acara</td>
+                        <td className='align-top'>:</td>
                         <td>{event.summary}</td>
                     </tr>
                     <tr>
@@ -196,8 +170,8 @@ const ReportPreview = ({ event }: { event: CalendarEvent | null }) => {
                     <tr><td colSpan={4} className="h-2"></td></tr>
 
                     <tr>
-                        <td className="w-8 align-top font-semibold">II.</td>
-                        <td className='w-28 align-top font-semibold'>Pimpinan Rapat</td>
+                        <td className="align-top font-semibold">III.</td>
+                        <td className='align-top font-semibold'>Pimpinan Rapat</td>
                         <td className='w-2 align-top'>:</td>
                         <td><EditableField placeholder="Isi Pimpinan Rapat" /></td>
                     </tr>
@@ -205,42 +179,21 @@ const ReportPreview = ({ event }: { event: CalendarEvent | null }) => {
                     <tr><td colSpan={4} className="h-2"></td></tr>
 
                      <tr>
-                        <td className="w-8 align-top font-semibold">III.</td>
-                        <td className='w-28 align-top font-semibold'>Narasumber</td>
+                        <td className="align-top font-semibold">IV.</td>
+                        <td className='align-top font-semibold'>Narasumber</td>
                         <td className='w-2 align-top'>:</td>
                         <td><EditableField placeholder="Isi Narasumber" /></td>
                     </tr>
                     <tr><td colSpan={4} className="h-2"></td></tr>
 
                     <tr>
-                        <td className="w-8 align-top font-semibold">IV.</td>
-                        <td colSpan={3} className='font-semibold'>HASIL KEGIATAN & TINDAK LANJUT</td>
+                        <td className="align-top font-semibold">V.</td>
+                        <td colSpan={3} className='font-semibold'>HASIL KEGIATAN &amp; TINDAK LANJUT</td>
                     </tr>
                      <tr>
                         <td></td>
                         <td colSpan={3} className="w-full">
-                            <div className="w-full relative">
-                                {showToolbar && (
-                                    <div className="sticky top-0 z-10 bg-gray-100 p-1 rounded-md flex gap-1 print:hidden mb-2">
-                                        <Button type="button" size="icon" variant="outline" className="h-7 w-7" onMouseDown={(e) => handleToolbarButtonClick(e, 'bold')}><Bold className="h-4 w-4" /></Button>
-                                        <Button type="button" size="icon" variant="outline" className="h-7 w-7" onMouseDown={(e) => handleToolbarButtonClick(e, 'italic')}><Italic className="h-4 w-4" /></Button>
-                                        <Button type="button" size="icon" variant="outline" className="h-7 w-7" onMouseDown={(e) => handleToolbarButtonClick(e, 'insertUnorderedList')}><List className="h-4 w-4" /></Button>
-                                        <Button type="button" size="icon" variant="outline" className="h-7 w-7" onMouseDown={(e) => handleToolbarButtonClick(e, 'insertOrderedList')}><ListOrdered className="h-4 w-4" /></Button>
-                                    </div>
-                                )}
-                                <div
-                                    ref={editorRef}
-                                    contentEditable
-                                    suppressContentEditableWarning
-                                    onFocus={() => setShowToolbar(true)}
-                                    onBlur={() => setShowToolbar(false)}
-                                    onKeyDown={handleKeyDown}
-                                    onInput={handleInput}
-                                    className="mt-2 p-1 -m-1 rounded-md min-h-[8rem] bg-muted/50 hover:bg-muted focus:bg-background focus:outline-none focus:ring-2 focus:ring-ring print:bg-transparent w-full"
-                                >
-                                    <p><br /></p>
-                                </div>
-                            </div>
+                           <RichTextEditor forwardedRef={editorRef} />
                         </td>
                     </tr>
                 </tbody>
@@ -248,7 +201,7 @@ const ReportPreview = ({ event }: { event: CalendarEvent | null }) => {
             
             <p className="mt-4">Demikian untuk menjadikan periksa dan terima kasih.</p>
 
-            <div className="flex justify-end mt-8">
+            <div className="flex justify-end mt-4">
                 <div className="text-center w-64">
                     <p>Yang melaksanakan kegiatan,</p>
                     <br /><br /><br />
@@ -316,8 +269,7 @@ export default function ReportPage() {
         } catch (e: any) {
             toast({ variant: 'destructive', title: 'Gagal Mencetak', description: `Terjadi kesalahan: ${e.message}`});
         } finally {
-            // Use a timeout to ensure printing is done before removing the iframe
-            setTimeout(() => {
+             setTimeout(() => {
                  if (document.body.contains(iframe)) {
                     document.body.removeChild(iframe);
                  }
@@ -469,7 +421,9 @@ export default function ReportPage() {
                     font-size: 12px !important;
                     line-height: 1.2 !important;
                 }
-                 #print-area div[contentEditable] p {
+                #print-area div[contentEditable] p,
+                #print-area div[contentEditable] li,
+                #print-area div[contentEditable] div {
                     text-align: justify;
                 }
             }
@@ -481,10 +435,18 @@ export default function ReportPage() {
                 display: block;
             }
             
-            #print-area div[contentEditable] ul,
-            #print-area div[contentEditable] ol {
+            #print-area div[contenteditable] ul,
+            #print-area div[contenteditable] ol {
                 list-style-position: inside;
+                padding-left: 1.5em; 
             }
+             #print-area div[contenteditable] ul {
+                list-style-type: disc;
+             }
+              #print-area div[contenteditable] ol {
+                list-style-type: decimal;
+             }
+
             #print-area div[contentEditable] p {
                 text-align: justify;
             }
