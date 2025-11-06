@@ -123,7 +123,7 @@ const ReportPreview = ({ event }: { event: CalendarEvent | null }) => {
     }
 
     return (
-        <div id="print-area" className="bg-white text-black p-12 shadow-lg rounded-sm print:shadow-none print:p-4 font-serif">
+        <div id="print-area" className="bg-white text-black p-12 shadow-lg rounded-sm print:shadow-none print:p-4 font-sans">
             <h3 className="text-center font-bold text-lg">NOTA DINAS</h3>
             <br />
             <table className="w-full border-separate" style={{borderSpacing: '0 4px'}}>
@@ -451,3 +451,4 @@ export default function ReportPage() {
     </div>
   );
 }
+
