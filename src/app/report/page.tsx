@@ -268,26 +268,34 @@ export default function ReportPage() {
         </Card>
 
         {/* --- Area Pratinjau Dokumen --- */}
-        <div className="mt-4">
+        <div className="mt-4" id="report-preview-container">
             <ReportPreview event={selectedEvent} />
         </div>
 
         {/* CSS Khusus untuk Mencetak */}
         <style jsx global>{`
             @media print {
-                body {
-                    background-color: #fff;
+                body * {
+                    visibility: hidden;
+                }
+                #report-preview-container, #report-preview-container * {
+                    visibility: visible;
+                }
+                #report-preview-container {
+                    position: absolute;
+                    left: 0;
+                    top: 0;
+                    width: 100%;
                 }
                 main.p-4, main.p-6 {
                     padding: 0 !important;
+                    margin: 0 !important;
                 }
                 .print\\:hidden {
                     display: none;
                 }
-                .print\\:shadow-none {
-                    box-shadow: none;
-                }
                 #print-area {
+                    box-shadow: none;
                     margin: 0;
                     padding: 0;
                     border: none;
