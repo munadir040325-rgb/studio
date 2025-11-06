@@ -1,35 +1,16 @@
 "use client";
 
 import {
-  BlockNoteView,
   useBlockNote,
-  lightDefaultTheme,
-  Theme,
 } from "@blocknote/react";
 import { BlockNoteEditor } from "@blocknote/core";
 import "@blocknote/react/style.css";
 
-// Custom theme to match app's aesthetic
-const reportTheme = {
-  ...lightDefaultTheme,
-  fontFamily: "PT Sans, sans-serif",
-  colors: {
-    ...lightDefaultTheme.colors,
-    editor: {
-      text: "#111827", // foreground
-      background: "#ffffff", // card
-    },
-    // You can customize other colors here if needed
-    // e.g., blockquote, sideMenu, search, etc.
-  },
-} satisfies Theme;
-
 interface EditorProps {
   onContentChange: (html: string) => void;
-  onEditorMount: (editor: BlockNoteEditor) => void;
 }
 
-export function Editor({ onContentChange, onEditorMount }: EditorProps) {
+export function Editor({ onContentChange }: EditorProps) {
   // Creates a new editor instance.
   const editor = useBlockNote({
     onEditorContentChange: (editor) => {
@@ -40,9 +21,6 @@ export function Editor({ onContentChange, onEditorMount }: EditorProps) {
       };
       saveContent();
     },
-    onEditorReady: (editor) => {
-      onEditorMount(editor);
-    }
   });
 
   if (!editor) {
@@ -52,11 +30,9 @@ export function Editor({ onContentChange, onEditorMount }: EditorProps) {
   // Renders the editor instance using a React component.
   return (
     <div className="w-full relative border rounded-md">
-        <BlockNoteView
-            editor={editor}
-            theme={reportTheme}
-            className="min-h-[10rem] w-full p-2 focus:outline-none"
-        />
+        <div className="min-h-[10rem] w-full p-2 focus:outline-none">
+          {editor && <editor.BlockNoteView editor={editor} />}
+        </div>
     </div>
   );
 }

@@ -1,6 +1,6 @@
 'use client';
 
-import { useState, useMemo, useEffect } from 'react';
+import { useState, useMemo } from 'react';
 import { PageHeader } from '@/components/page-header';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardDescription, CardFooter, CardHeader, CardTitle } from '@/components/ui/card';
@@ -17,7 +17,7 @@ import useSWR from 'swr';
 import { Alert, AlertDescription, AlertTitle } from '@/components/ui/alert';
 import DOMPurify from 'isomorphic-dompurify';
 import { Editor } from './editor';
-import { BlockNoteEditor } from '@blocknote/core';
+import { type BlockNoteEditor } from '@blocknote/core';
 
 type CalendarEvent = {
   id: string;
@@ -144,7 +144,7 @@ const ReportPreview = ({ event, reportContent }: { event: CalendarEvent | null, 
 
                     <tr>
                         <td className="align-top font-semibold">V.</td>
-                        <td colSpan={3} className='font-semibold'>HASIL KEGIATAN &amp; TINDAK LANJUT</td>
+                        <td colSpan={3} className='font-semibold'>HASIL KEGIATAN & TINDAK LANJUT</td>
                     </tr>
                      <tr>
                         <td></td>
@@ -180,7 +180,6 @@ export default function ReportPage() {
   const [selectedDate, setSelectedDate] = useState<Date | undefined>();
   const [selectedEvent, setSelectedEvent] = useState<CalendarEvent | null>(null);
   const [reportContent, setReportContent] = useState('');
-  const [editor, setEditor] = useState<BlockNoteEditor | null>(null);
 
   const { data: eventsData, error: eventsError, isLoading: isLoadingEvents } = useSWR('/api/events', fetcher);
     
@@ -255,9 +254,6 @@ export default function ReportPage() {
     setSelectedDate(undefined);
     setSelectedEvent(null);
     setReportContent('');
-    if (editor) {
-        editor.removeBlocks(editor.topLevelBlocks);
-    }
     toast({ description: 'Pilihan telah dikosongkan.' });
   }
 
@@ -343,7 +339,6 @@ export default function ReportPage() {
                             onContentChange={(html) => {
                                 setReportContent(html);
                             }}
-                            onEditorMount={(editor) => setEditor(editor)}
                         />
                     </div>
                 </CardContent>
@@ -420,6 +415,7 @@ export default function ReportPage() {
                 #print-area .report-content-preview ol {
                   padding-left: 20px;
                   list-style-position: inside;
+                  display: block;
                 }
                 #print-area .report-content-preview li {
                   display: list-item;
