@@ -62,7 +62,6 @@ const ReportEditorTemplate = ({ event, reportContent, onContentChange }: { event
                     <tr><td className="w-8"></td><td className="w-28 align-top">YTH.</td><td className="w-2 align-top">:</td><td className="font-semibold">CAMAT GANDRUNGMANGU</td></tr>
                     <tr><td></td><td className="align-top">DARI</td><td className="w-2 align-top">:</td><td><EditableField placeholder="Nama Pelapor, Jabatan" /></td></tr>
                     <tr><td></td><td className="align-top">TEMBUSAN</td><td className="w-2 align-top">:</td><td><EditableField placeholder="Isi tembusan" /></td></tr>
-                    <tr><td></td><td className="align-top">TANGGAL</td><td className="w-2 align-top">:</td><td>{reportDate}</td></tr>
                     <tr><td></td><td className="align-top">HAL</td><td className="w-2 align-top">:</td><td className="font-semibold">LAPORAN HASIL PELAKSANAAN KEGIATAN</td></tr>
                 </tbody>
             </table>
