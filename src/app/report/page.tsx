@@ -54,11 +54,7 @@ const ReportPreview = ({ event }: { event: CalendarEvent | null }) => {
     const handleKeyDown = (e: React.KeyboardEvent<HTMLDivElement>) => {
         if (e.key === 'Tab') {
             e.preventDefault();
-            if (e.shiftKey) {
-                document.execCommand('outdent', false);
-            } else {
-                document.execCommand('indent', false);
-            }
+            document.execCommand(e.shiftKey ? 'outdent' : 'indent', false);
         }
     };
     
@@ -69,15 +65,15 @@ const ReportPreview = ({ event }: { event: CalendarEvent | null }) => {
         const range = selection.getRangeAt(0);
         const node = range.startContainer;
         
-        // Handle list creation
         if (node.textContent) {
-            if (node.textContent.endsWith('1. ')) {
+            const text = node.textContent;
+            if (range.startOffset > 1 && (text.substring(range.startOffset - 2) === '1.' || text.substring(range.startOffset - 3) === '1. ')) {
                 e.preventDefault();
-                node.textContent = node.textContent.replace(/1\.\s$/, '');
+                node.textContent = text.replace(/1\.\s?$/, '');
                 document.execCommand('insertOrderedList', false);
-            } else if (node.textContent.endsWith('* ') || node.textContent.endsWith('- ')) {
-                 e.preventDefault();
-                node.textContent = node.textContent.replace(/[\*\-]\s$/, '');
+            } else if (range.startOffset > 0 && (text.substring(range.startOffset - 1) === '*' || text.substring(range.startOffset - 2) === '* ' || text.substring(range.startOffset - 1) === '-' || text.substring(range.startOffset - 2) === '- ')) {
+                e.preventDefault();
+                node.textContent = text.replace(/[\*\-]\s?$/, '');
                 document.execCommand('insertUnorderedList', false);
             }
         }
@@ -86,6 +82,11 @@ const ReportPreview = ({ event }: { event: CalendarEvent | null }) => {
     const applyFormat = (command: 'bold' | 'italic' | 'insertOrderedList' | 'insertUnorderedList') => {
         editorRef.current?.focus();
         document.execCommand(command, false);
+    };
+
+    const handleToolbarButtonClick = (e: React.MouseEvent<HTMLButtonElement>, command: 'bold' | 'italic' | 'insertOrderedList' | 'insertUnorderedList') => {
+        e.preventDefault(); // This is crucial to prevent the editor from losing focus
+        applyFormat(command);
     };
 
     if (!event) {
@@ -157,10 +158,10 @@ const ReportPreview = ({ event }: { event: CalendarEvent | null }) => {
                         <p className="font-semibold">Ringkasan Materi</p>
                          {showToolbar && (
                             <div className="sticky top-0 z-10 bg-gray-100 p-1 rounded-md flex gap-1 print:hidden mb-2">
-                                <Button type="button" size="icon" variant="outline" className="h-7 w-7" onClick={() => applyFormat('bold')}><Bold className="h-4 w-4" /></Button>
-                                <Button type="button" size="icon" variant="outline" className="h-7 w-7" onClick={() => applyFormat('italic')}><Italic className="h-4 w-4" /></Button>
-                                <Button type="button" size="icon" variant="outline" className="h-7 w-7" onClick={() => applyFormat('insertUnorderedList')}><List className="h-4 w-4" /></Button>
-                                <Button type="button" size="icon" variant="outline" className="h-7 w-7" onClick={() => applyFormat('insertOrderedList')}><ListOrdered className="h-4 w-4" /></Button>
+                                <Button type="button" size="icon" variant="outline" className="h-7 w-7" onMouseDown={(e) => handleToolbarButtonClick(e, 'bold')}><Bold className="h-4 w-4" /></Button>
+                                <Button type="button" size="icon" variant="outline" className="h-7 w-7" onMouseDown={(e) => handleToolbarButtonClick(e, 'italic')}><Italic className="h-4 w-4" /></Button>
+                                <Button type="button" size="icon" variant="outline" className="h-7 w-7" onMouseDown={(e) => handleToolbarButtonClick(e, 'insertUnorderedList')}><List className="h-4 w-4" /></Button>
+                                <Button type="button" size="icon" variant="outline" className="h-7 w-7" onMouseDown={(e) => handleToolbarButtonClick(e, 'insertOrderedList')}><ListOrdered className="h-4 w-4" /></Button>
                             </div>
                          )}
                          <div
