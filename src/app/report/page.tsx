@@ -1,7 +1,6 @@
 'use client';
 
 import { useState, useMemo, useRef, useEffect } from 'react';
-import { useForm, Controller } from 'react-hook-form';
 import { PageHeader } from '@/components/page-header';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardDescription, CardFooter, CardHeader, CardTitle } from '@/components/ui/card';
@@ -50,13 +49,6 @@ const EditableField = ({ placeholder, className }: { placeholder: string, classN
 
 const RichTextEditor = ({ value, onChange }: { value: string, onChange: (value: string) => void }) => {
     const editorRef = useRef<HTMLDivElement>(null);
-
-    const executeCommand = (command: string) => {
-        document.execCommand(command, false);
-        if(editorRef.current) {
-            onChange(editorRef.current.innerHTML);
-        }
-    };
     
     // Set initial content when the component mounts or the value prop changes
     useEffect(() => {
@@ -65,15 +57,27 @@ const RichTextEditor = ({ value, onChange }: { value: string, onChange: (value: 
         }
     }, [value]);
 
+    const executeCommand = (command: string) => {
+        document.execCommand(command, false);
+        if (editorRef.current) {
+            onChange(editorRef.current.innerHTML);
+        }
+    };
+    
+    const handleToolbarMouseDown = (e: React.MouseEvent<HTMLButtonElement>, command: string) => {
+        e.preventDefault(); // Prevent editor from losing focus
+        executeCommand(command);
+    };
+
     return (
         <div className="w-full relative border rounded-md">
             <div className="sticky top-0 z-10 bg-gray-100 p-1 rounded-t-md flex gap-1 print:hidden border-b">
-                <Button type="button" size="icon" variant="outline" className="h-7 w-7" onClick={() => executeCommand('bold')}><Bold className="h-4 w-4" /></Button>
-                <Button type="button" size="icon" variant="outline" className="h-7 w-7" onClick={() => executeCommand('italic')}><Italic className="h-4 w-4" /></Button>
-                <Button type="button" size="icon" variant="outline" className="h-7 w-7" onClick={() => executeCommand('insertUnorderedList')}><List className="h-4 w-4" /></Button>
-                <Button type="button" size="icon" variant="outline" className="h-7 w-7" onClick={() => executeCommand('insertOrderedList')}><ListOrdered className="h-4 w-4" /></Button>
-                <Button type="button" size="icon" variant="outline" className="h-7 w-7" onClick={() => executeCommand('indent')}><Indent className="h-4 w-4" /></Button>
-                <Button type="button" size="icon" variant="outline" className="h-7 w-7" onClick={() => executeCommand('outdent')}><Outdent className="h-4 w-4" /></Button>
+                <Button type="button" size="icon" variant="outline" className="h-7 w-7" onMouseDown={(e) => handleToolbarMouseDown(e, 'bold')}><Bold className="h-4 w-4" /></Button>
+                <Button type="button" size="icon" variant="outline" className="h-7 w-7" onMouseDown={(e) => handleToolbarMouseDown(e, 'italic')}><Italic className="h-4 w-4" /></Button>
+                <Button type="button" size="icon" variant="outline" className="h-7 w-7" onMouseDown={(e) => handleToolbarMouseDown(e, 'insertUnorderedList')}><List className="h-4 w-4" /></Button>
+                <Button type="button" size="icon" variant="outline" className="h-7 w-7" onMouseDown={(e) => handleToolbarMouseDown(e, 'insertOrderedList')}><ListOrdered className="h-4 w-4" /></Button>
+                <Button type="button" size="icon" variant="outline" className="h-7 w-7" onMouseDown={(e) => handleToolbarMouseDown(e, 'indent')}><Indent className="h-4 w-4" /></Button>
+                <Button type="button" size="icon" variant="outline" className="h-7 w-7" onMouseDown={(e) => handleToolbarMouseDown(e, 'outdent')}><Outdent className="h-4 w-4" /></Button>
             </div>
             <div
                 ref={editorRef}
@@ -89,7 +93,6 @@ const RichTextEditor = ({ value, onChange }: { value: string, onChange: (value: 
 
 
 const ReportPreview = ({ event, reportContent }: { event: CalendarEvent | null, reportContent: string }) => {
-    const disposisi = event ? extractDisposisi(event.description) : null;
     const reportDate = format(new Date(), 'dd MMMM yyyy', { locale: localeId });
 
     if (!event) {
@@ -432,7 +435,7 @@ export default function ReportPage() {
                 #print-area .report-content-preview ul, 
                 #print-area .report-content-preview ol {
                   list-style-position: inside;
-                  padding-left: 0;
+                  padding-left: 20px;
                 }
                 #print-area .report-content-preview p,
                 #print-area .report-content-preview li,
