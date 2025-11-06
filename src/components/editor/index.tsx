@@ -34,9 +34,13 @@ export function RichTextEditor({
         <Toolbar />
         <div className="relative">
           <RichTextPlugin
-            contentEditable={<ContentEditable placeholder={placeholder} />}
+            contentEditable={<ContentEditable />}
             ErrorBoundary={LexicalErrorBoundary}
-            placeholder={null}
+            placeholder={
+              <div className="pointer-events-none absolute left-4 top-2 select-none text-muted-foreground">
+                {placeholder}
+              </div>
+            }
           />
           <ListPlugin />
           <OnChangePlugin onChange={handleOnChange} />

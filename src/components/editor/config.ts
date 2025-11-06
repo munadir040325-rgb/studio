@@ -18,8 +18,8 @@ export const editorConfig: InitialConfigType = {
       h3: "text-lg font-semibold mb-2",
     },
     list: {
-        ul: 'list-disc ml-6 mb-2',
-        ol: 'list-decimal ml-6 mb-2',
+      ul: "list-disc ml-6 mb-2",
+      ol: "list-decimal ml-6 mb-2",
     },
     text: {
       bold: "font-bold",
