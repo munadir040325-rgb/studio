@@ -699,19 +699,19 @@ export default function CalendarPage() {
 
       let header;
       if (viewMode === 'harian' && !searchQuery) {
-        header = `RENGIAT\n${format(filterDate, 'EEEE, dd MMMM yyyy', { locale: localeId }).toUpperCase()}`;
+        header = `*RENGIAT*\n*${format(filterDate, 'EEEE, dd MMMM yyyy', { locale: localeId }).toUpperCase()}*`;
       } else if (viewMode === 'mingguan') {
         const start = startOfWeek(filterDate, { weekStartsOn: 1 });
         const end = endOfWeek(filterDate, { weekStartsOn: 1 });
         const startFormat = format(start, 'dd MMM', { locale: localeId });
         const endFormat = format(end, 'dd MMM yyyy', { locale: localeId });
-        header = `RENGIAT MINGGU INI\n${startFormat.toUpperCase()} - ${endFormat.toUpperCase()}`;
+        header = `*RENGIAT MINGGU INI*\n*${startFormat.toUpperCase()} - ${endFormat.toUpperCase()}*`;
       } else {
-        header = `HASIL PENCARIAN KEGIATAN`
+        header = `*HASIL PENCARIAN KEGIATAN*`
       }
 
 
-      let message = `*${sanitizeForWhatsApp(header)}*\n\n`;
+      let message = `${header}\n\n`;
       let eventsToFormat = filteredEvents;
 
       if (viewMode === 'mingguan') {
@@ -726,23 +726,20 @@ export default function CalendarPage() {
           const time = formatEventDisplay(event.start, event.end, event.isAllDay);
           const location = event.location;
           const disposisi = extractDisposisi(event.description);
-          const eventDate = event.start ? format(parseISO(event.start), 'EEEE, dd MMM yyyy', { locale: localeId }) : 'Tanggal tidak valid';
-
-          message += `*${index + 1}. ${sanitizeForWhatsApp(cleanTitle)}*\n`;
-          if (viewMode !== 'harian' || (viewMode === 'harian' && searchQuery)) {
-            message += `    _Tanggal: ${sanitizeForWhatsApp(eventDate)}_\n`;
-          }
-          message += `    _Waktu: ${sanitizeForWhatsApp(time)}_\n`;
-          if (location) {
-              message += `    _Lokasi: ${sanitizeForWhatsApp(location)}_\n`;
-          }
-          if (disposisi) {
-              message += `    _Disposisi: ${sanitizeForWhatsApp(disposisi)}_\n`;
+          
+          let eventDetails = [];
+          if (time) eventDetails.push(`Waktu: ${time}`);
+          if (location) eventDetails.push(`Lokasi: ${location}`);
+          if (disposisi) eventDetails.push(`Disposisi: ${disposisi}`);
+          
+          message += `*${index + 1}. ${cleanTitle}*`;
+          if (eventDetails.length > 0) {
+              message += ` || ${eventDetails.join(' || ')}`;
           }
           message += '\n';
       });
 
-      message += "Mohon ralat jika ada kekurangan atau tambahan dari bagian lain.";
+      message += "\nMohon ralat jika ada kekurangan atau tambahan dari bagian lain.";
       setWhatsAppMessage(message);
       setIsWhatsAppModalOpen(true);
   };
