@@ -125,16 +125,6 @@ Untuk membuat draf laporan/nota dinas dari sebuah kegiatan yang sudah ada dalam 
 
 Bagian ini berisi jawaban untuk masalah umum yang mungkin Anda temui saat menggunakan aplikasi.
 
-**T: Muncul pesan error "Quota exceeded" atau aplikasi terasa lambat saat memuat banyak kegiatan.**
-**J:** Ini terjadi karena terlalu banyak permintaan data ke Google dalam waktu singkat.
-*   **Penyebab**: Versi awal aplikasi meminta data "bagian" untuk setiap kegiatan secara satu per satu. Jika ada 50 kegiatan, terjadi 50 permintaan.
-*   **Solusi**: Aplikasi telah dioptimalkan. Sekarang, ia hanya membuat **satu permintaan** untuk mengambil semua informasi "bagian" yang diperlukan untuk semua kegiatan yang ditampilkan, sehingga jauh lebih efisien dan tidak akan melebihi kuota.
-
-**T: Muncul error "Kredensial Google Service Account... belum dikonfigurasi" atau "Kalender/Sheet tidak ditemukan".**
-**J:** Error ini berarti aplikasi tidak dapat terhubung ke akun Google Anda.
-*   **Penyebab**: File konfigurasi `.env` di server belum diisi dengan benar. Variabel seperti `NEXT_PUBLIC_CALENDAR_ID`, `NEXT_PUBLIC_SHEET_ID`, `GOOGLE_CLIENT_EMAIL`, atau `GOOGLE_PRIVATE_KEY` mungkin kosong atau salah.
-*   **Solusi**: Hubungi administrator teknis. Pastikan semua ID dan kredensial Service Account di file `.env` sudah benar dan Service Account tersebut telah diberi akses **Editor** ke Google Calendar, Google Sheet, dan folder Google Drive yang digunakan.
-
 **T: Saat upload lampiran, muncul pesan "Izin Gagal" atau "Gagal mendapatkan izin Google Drive".**
 **J:** Ini adalah masalah izin di sisi browser Anda (client-side authorization).
 *   **Penyebab**: Browser Anda memblokir pop-up otorisasi Google, atau Anda menolak permintaan izin akses ke Google Drive.
