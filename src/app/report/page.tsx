@@ -408,6 +408,7 @@ export default function ReportPage() {
                   font-size: 12pt !important;
                   line-height: 1.2 !important;
                   visibility: visible;
+                  color: black !important;
               }
               .report-content-preview p,
               .report-content-preview div,
