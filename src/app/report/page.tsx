@@ -56,30 +56,32 @@ const ReportEditorTemplate = ({ event, reportContent, onContentChange }: { event
 
              <hr className="border-black my-4" />
 
-            <table className="w-full">
-                <tbody>
-                    <tr>
-                        <td className="w-28">Yth.</td>
-                        <td className="w-2">:</td>
-                        <td><EditableField placeholder="Isi tujuan surat" /></td>
-                    </tr>
-                    <tr>
-                        <td>Dari</td>
-                        <td>:</td>
-                        <td><EditableField placeholder="Isi pengirim" /></td>
-                    </tr>
-                    <tr>
-                        <td>Tembusan</td>
-                        <td>:</td>
-                        <td><EditableField placeholder="Isi tembusan" /></td>
-                    </tr>
-                     <tr>
-                        <td className='align-top'>Hal</td>
-                        <td className='align-top'>:</td>
-                        <td><EditableField placeholder="Isi perihal" /></td>
-                    </tr>
-                </tbody>
-            </table>
+            <div className="flex justify-center">
+                <table>
+                    <tbody>
+                        <tr>
+                            <td className="w-28">Yth.</td>
+                            <td className="w-2">:</td>
+                            <td><EditableField placeholder="Isi tujuan surat" /></td>
+                        </tr>
+                        <tr>
+                            <td>Dari</td>
+                            <td>:</td>
+                            <td><EditableField placeholder="Isi pengirim" /></td>
+                        </tr>
+                        <tr>
+                            <td>Tembusan</td>
+                            <td>:</td>
+                            <td><EditableField placeholder="Isi tembusan" /></td>
+                        </tr>
+                        <tr>
+                            <td className='align-top'>Hal</td>
+                            <td className='align-top'>:</td>
+                            <td><EditableField placeholder="Isi perihal" /></td>
+                        </tr>
+                    </tbody>
+                </table>
+            </div>
 
             <hr className="border-black my-4" />
             
