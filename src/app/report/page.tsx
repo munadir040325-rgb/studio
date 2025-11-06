@@ -1,3 +1,4 @@
+
 'use client';
 
 import { useState, useMemo } from 'react';
@@ -203,93 +204,7 @@ export default function ReportPage() {
   }, [events, selectedDate]);
   
   const handlePrint = () => {
-    if (!selectedEvent) {
-      toast({ variant: 'destructive', title: 'Gagal Mencetak', description: 'Pilih kegiatan terlebih dahulu.' });
-      return;
-    }
-  
-    const printArea = document.getElementById('print-area');
-    if (!printArea) {
-      toast({ variant: 'destructive', title: 'Gagal Mencetak', description: 'Area laporan tidak ditemukan.' });
-      return;
-    }
-  
-    // Buka jendela baru yang bersih
-    const printWindow = window.open('', '_blank', 'width=800,height=600');
-    if (!printWindow) {
-      toast({ variant: 'destructive', title: 'Gagal Membuka Jendela Cetak', description: 'Mohon izinkan pop-up untuk situs ini.' });
-      return;
-    }
-  
-    // Tulis struktur dasar HTML
-    printWindow.document.write('<html><head><title>Cetak Laporan</title>');
-  
-    // Salin stylesheet global secara eksplisit
-    const styleSheets = Array.from(document.styleSheets);
-    styleSheets.forEach(sheet => {
-      if (sheet.href) {
-        printWindow.document.write(`<link rel="stylesheet" href="${sheet.href}">`);
-      }
-    });
-  
-    // Suntikkan gaya cetak khusus
-    printWindow.document.write(`
-      <style>
-        @page {
-            size: A4;
-            margin: 2.1cm;
-        }
-        body {
-            margin: 0;
-            padding: 0;
-            font-family: Arial, sans-serif !important;
-            font-size: 12px !important;
-            line-height: 1.2 !important;
-            -webkit-print-color-adjust: exact !important;
-            print-color-adjust: exact !important;
-        }
-        .report-content-preview { display: block !important; }
-        .print\\:hidden { display: none !important; }
-        .print\\:block { display: block !important; }
-        .print\\:bg-transparent { background-color: transparent !important; }
-        .print\\:shadow-none { box-shadow: none !important; }
-        .print\\:p-4 { padding: 1rem !important; }
-        .print\\:border-none { border: none !important; }
-
-        span[contentEditable="true"] {
-            background-color: transparent !important;
-            border: none !important;
-            box-shadow: none !important;
-        }
-        span[contentEditable="true"]:empty::before {
-            content: attr(data-placeholder);
-            color: #999;
-            font-style: italic;
-        }
-        .report-content-preview p,
-        .report-content-preview div,
-        .report-content-preview li {
-            text-align: justify;
-        }
-        .list-ol { padding-left: 20px; list-style-position: inside; }
-        .list-ol-1 { list-style-type: decimal; }
-        .list-ol-2 { list-style-type: lower-alpha; }
-        .list-ol-3 { list-style-type: lower-roman; }
-      </style>
-    `);
-    
-    printWindow.document.write('</head><body></body></html>');
-    printWindow.document.close();
-  
-    // Salin konten area cetak ke body jendela baru
-    printWindow.document.body.innerHTML = printArea.innerHTML;
-  
-    // Panggil print setelah semua konten dan gaya dimuat
-    setTimeout(() => {
-      printWindow.focus();
-      printWindow.print();
-      printWindow.close();
-    }, 500); // Penundaan untuk memastikan rendering
+    window.print();
   };
   
   const handleReset = () => {
@@ -448,6 +363,24 @@ export default function ReportPage() {
                 color: #666;
                 font-style: italic;
              }
+        `}</style>
+        <style jsx global>{`
+          @page {
+              size: A4;
+              margin: 2.1cm;
+          }
+          @media print {
+              body {
+                  font-family: Arial, sans-serif !important;
+                  font-size: 12px !important;
+                  line-height: 1.2 !important;
+              }
+              .report-content-preview p,
+              .report-content-preview div,
+              .report-content-preview li {
+                  text-align: justify;
+              }
+          }
         `}</style>
     </div>
   );
