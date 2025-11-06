@@ -618,6 +618,8 @@ export default function CalendarPage() {
         friendlyMessage = "Kredensial Google Service Account (di file .env) sepertinya belum diatur, tidak valid, atau salah format. Silakan periksa kembali.";
       } else if (friendlyMessage.includes("not found")) {
         friendlyMessage = "Kalender tidak ditemukan atau belum dibagikan ke email Service Account. Pastikan ID Kalender benar dan izin telah diberikan.";
+      } else if (friendlyMessage.includes("Quota exceeded")) {
+        friendlyMessage = "Melebihi kuota permintaan API Google. Coba lagi dalam beberapa saat.";
       }
       setError(friendlyMessage);
       setEvents([]);
@@ -809,8 +811,8 @@ export default function CalendarPage() {
             </div>
             
             {/* Right Side: Actions */}
-            <div className="flex flex-col md:flex-row items-center justify-center gap-2 w-full md:w-auto">
-                <div className="flex items-center gap-2 w-full md:w-auto">
+            <div className="flex w-full flex-col items-center justify-center gap-2 md:w-auto md:flex-row">
+                <div className="flex w-full items-center gap-2 md:w-auto">
                     <div className="relative flex-grow">
                         <Search className="absolute left-2.5 top-2.5 h-4 w-4 text-muted-foreground" />
                         <Input
@@ -829,14 +831,14 @@ export default function CalendarPage() {
                         </TabsList>
                     </Tabs>
                 </div>
-                <div className='flex items-center gap-2 w-full md:w-auto'>
-                    <Button variant="outline" onClick={handleRefresh} disabled={isLoading} size="icon" className="w-10">
+                <div className='flex w-full items-center gap-2 md:w-auto'>
+                    <Button variant="outline" onClick={handleRefresh} disabled={isLoading} size="icon" className="w-10 flex-shrink-0">
                         <RefreshCw className={cn("h-4 w-4", isLoading && "animate-spin")} />
                         <span className="sr-only">Muat Ulang</span>
                     </Button>
                     <Popover>
                         <PopoverTrigger asChild>
-                            <Button variant="outline" size='icon' className="w-10">
+                            <Button variant="outline" size='icon' className="w-10 flex-shrink-0">
                             <CalendarIcon className="h-4 w-4" />
                             </Button>
                         </PopoverTrigger>

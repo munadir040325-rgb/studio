@@ -341,49 +341,10 @@ export const findBagianByEventIdFlow = ai.defineFlow({
         bagian: z.string().nullable(),
     }),
 }, async (input) => {
-    if (!spreadsheetId) throw new Error("ID Google Sheet (NEXT_PUBLIC_SHEET_ID) belum diatur.");
     if (!input.eventId) return { bagian: null };
-    
-    const auth = await getGoogleAuth(['https://www.googleapis.com/auth/spreadsheets.readonly']);
-    const sheets = google.sheets({ version: 'v4', auth });
-
-    const spreadsheetMeta = await sheets.spreadsheets.get({ spreadsheetId });
-    const allSheets = spreadsheetMeta.data.sheets || [];
-
-    for (const sheet of allSheets) {
-        const sheetName = sheet.properties?.title;
-        if (!sheetName || !sheetName.startsWith('Giat_')) continue;
-
-        const searchRange = `${sheetName}!E18:AI52`; // Search data matrix
-
-        try {
-            const dataResponse = await sheets.spreadsheets.values.get({ spreadsheetId, range: searchRange });
-            const rows = dataResponse.data.values;
-            if (!rows) continue;
-            
-            for (let r = 0; r < rows.length; r++) {
-                const row = rows[r];
-                for (let c = 0; c < row.length; c++) {
-                    const cellValue = row[c];
-                    if (typeof cellValue === 'string' && cellValue.includes(`eventId:${input.eventId}`)) {
-                        // Found the event. Now determine its 'bagian'.
-                        const currentRow = 18 + r;
-                         for (const [key, range] of Object.entries(BAGIAN_ROW_MAP)) {
-                             if (currentRow >= range.start && currentRow <= range.end) {
-                                return { bagian: key };
-                             }
-                         }
-                        return { bagian: null }; // Found but couldn't map to a bagian
-                    }
-                }
-            }
-        } catch (e: any) {
-            if (!e.message.includes('Unable to parse range')) {
-                console.error(`Error in findBagian sheet '${sheetName}':`, e.message);
-            }
-        }
-    }
-    return { bagian: null };
+    // This is now just a wrapper for the batch flow for simplicity
+    const result = await findBagianByEventIdsFlow({ eventIds: [input.eventId] });
+    return { bagian: result[input.eventId] || null };
 });
 
 
@@ -423,8 +384,16 @@ export const findBagianByEventIdsFlow = ai.defineFlow({
         if (remainingEventIds.size === 0) break;
 
         const dataRange = valueRanges[i];
-        const bagianRange = valueRanges[i+1];
         
+        // This is a safety check in case a sheet exists but the corresponding A18:A52 range doesn't
+        if (!valueRanges[i+1] || !dataRange.range?.startsWith(valueRanges[i+1].range?.split('!')[0]!)) {
+            console.warn(`Mismatch or missing range for data starting with ${dataRange.range}. Skipping.`);
+            i--; // Decrement i to correctly align the next pair.
+            continue;
+        }
+        const bagianRange = valueRanges[i+1];
+
+
         const rows = dataRange.values;
         const bagianNames = bagianRange.values;
 
