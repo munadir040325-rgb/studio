@@ -102,7 +102,7 @@ const ReportEditorTemplate = ({ event, reportContent, onContentChange }: { event
                             <td className="w-2 align-top">:</td>
                             <td><EditableField id="report-kepada" placeholder="Isi tujuan surat" defaultValue="Camat Lengkong"/></td>
                         </tr>
-                        <tr>
+                        <tr id="row-tembusan">
                             <td className="w-32 align-top">TEMBUSAN</td>
                             <td className="w-2 align-top">:</td>
                             <td className="align-top"><EditableField id="report-tembusan" placeholder="Isi tembusan" defaultValue="- Arsip"/></td>
@@ -479,16 +479,9 @@ Hormat kami,
                     display: block !important;
                 }
                 
-                #row-dasar-kegiatan:has(+ #row-dasar-kegiatan-content #report-dasar:empty),
-                #row-dasar-kegiatan-content:has(#report-dasar:empty) {
-                    display: none;
-                }
-                #row-pimpinan:has(#report-pimpinan:empty) {
-                    display: none;
-                }
-                #row-narasumber:has(#report-narasumber:empty) {
-                    display: none;
-                }
+                #row-dasar-kegiatan-content:has(#report-dasar:empty),
+                #row-pimpinan:has(#report-pimpinan:empty),
+                #row-narasumber:has(#report-narasumber:empty),
                 #row-peserta:has(#report-peserta:empty) {
                     display: none;
                 }
