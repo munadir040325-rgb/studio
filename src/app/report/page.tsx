@@ -60,7 +60,6 @@ const ReportPreview = ({ event }: { event: CalendarEvent | null }) => {
     
     const handleInput = (e: React.FormEvent<HTMLDivElement>) => {
         const editor = e.currentTarget;
-        // Ensure the editor is not empty; if it is, add a paragraph tag.
         if (editor.innerHTML.trim() === "" || editor.innerHTML === "<br>") {
             editor.innerHTML = "<p><br></p>";
         }
@@ -91,15 +90,17 @@ const ReportPreview = ({ event }: { event: CalendarEvent | null }) => {
 
         editor.focus();
 
-        // For lists, ensure there's content to format
-        if ((command === 'insertOrderedList' || command === 'insertUnorderedList') && editor.innerHTML.trim() === '') {
+        if ((command === 'insertOrderedList' || command === 'insertUnorderedList') && editor.textContent?.trim() === '') {
             editor.innerHTML = '<p><br></p>';
             const range = document.createRange();
             const sel = window.getSelection();
-            range.setStart(editor.getElementsByTagName('p')[0], 0);
-            range.collapse(true);
-            sel?.removeAllRanges();
-            sel?.addRange(range);
+            const p = editor.getElementsByTagName('p')[0];
+            if (p && sel) {
+              range.setStart(p, 0);
+              range.collapse(true);
+              sel.removeAllRanges();
+              sel.addRange(range);
+            }
         }
         
         document.execCommand(command, false);
@@ -107,7 +108,7 @@ const ReportPreview = ({ event }: { event: CalendarEvent | null }) => {
     };
 
     const handleToolbarButtonClick = (e: React.MouseEvent<HTMLButtonElement>, command: 'bold' | 'italic' | 'insertOrderedList' | 'insertUnorderedList') => {
-        e.preventDefault(); // Crucial to prevent the editor from losing focus
+        e.preventDefault();
         applyFormat(command);
     };
 
@@ -121,7 +122,7 @@ const ReportPreview = ({ event }: { event: CalendarEvent | null }) => {
 
     return (
         <div id="print-area" className="bg-white text-black p-12 shadow-lg rounded-sm print:shadow-none print:p-4 font-serif">
-            <h3 className="text-center font-bold underline text-lg">NOTA DINAS</h3>
+            <h3 className="text-center font-bold text-lg">NOTA DINAS</h3>
             <br />
             <table className="w-full text-sm">
                 <tbody>
@@ -194,7 +195,7 @@ const ReportPreview = ({ event }: { event: CalendarEvent | null }) => {
                             onBlur={() => setShowToolbar(false)}
                             onKeyDown={handleKeyDown}
                             onInput={handleInput}
-                            className="mt-2 p-1 -m-1 rounded-md min-h-[8rem] bg-muted/50 hover:bg-muted focus:bg-background focus:outline-none focus:ring-2 focus:ring-ring print:bg-transparent text-justify w-full"
+                            className="mt-2 p-1 -m-1 rounded-md min-h-[8rem] bg-muted/50 hover:bg-muted focus:bg-background focus:outline-none focus:ring-2 focus:ring-ring print:bg-transparent w-full"
                             data-placeholder="Isi ringkasan materi di sini..."
                         />
                     </div>
@@ -389,7 +390,7 @@ export default function ReportPage() {
                 content: attr(data-placeholder);
                 color: #666;
                 font-style: italic;
-                display: block; /* Ensures placeholder is visible */
+                display: block;
             }
             
             #print-area div[contentEditable] ul,
@@ -400,6 +401,9 @@ export default function ReportPage() {
             #print-area div[contentEditable] li {
                 text-indent: -1.5em;
                 margin-bottom: 0.5em;
+            }
+            #print-area div[contentEditable] p {
+                text-align: justify;
             }
         `}</style>
     </div>
