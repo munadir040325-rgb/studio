@@ -99,6 +99,7 @@ const ReportPreview = ({ event }: { event: CalendarEvent | null }) => {
 
         editor.focus();
         
+        // If the editor is empty, ensure there's a paragraph to apply the list to
         if ((command === 'insertOrderedList' || command === 'insertUnorderedList') && (!editor.textContent?.trim() || editor.innerHTML === '<p><br></p>' || editor.innerHTML === '')) {
              if (editor.innerHTML === '' || !editor.querySelector('p')) {
                 editor.innerHTML = '<p><br></p>'; 
@@ -107,6 +108,7 @@ const ReportPreview = ({ event }: { event: CalendarEvent | null }) => {
             const sel = window.getSelection();
             const p = editor.getElementsByTagName('p')[0] || editor;
             if (p && sel) {
+              // Place cursor at the start of the paragraph
               range.setStart(p.firstChild || p, 0);
               range.collapse(true);
               sel.removeAllRanges();
@@ -119,7 +121,7 @@ const ReportPreview = ({ event }: { event: CalendarEvent | null }) => {
     };
 
     const handleToolbarButtonClick = (e: React.MouseEvent<HTMLButtonElement>, command: 'bold' | 'italic' | 'insertOrderedList' | 'insertUnorderedList') => {
-        e.preventDefault();
+        e.preventDefault(); // This is crucial to prevent the editor from losing focus
         applyFormat(command);
     };
 
@@ -314,7 +316,12 @@ export default function ReportPage() {
         } catch (e: any) {
             toast({ variant: 'destructive', title: 'Gagal Mencetak', description: `Terjadi kesalahan: ${e.message}`});
         } finally {
-            document.body.removeChild(iframe);
+            // Use a timeout to ensure printing is done before removing the iframe
+            setTimeout(() => {
+                 if (document.body.contains(iframe)) {
+                    document.body.removeChild(iframe);
+                 }
+            }, 1000);
         }
     }, 500); 
   };
@@ -460,6 +467,7 @@ export default function ReportPage() {
                  #print-area * {
                     font-family: Arial, sans-serif !important;
                     font-size: 12px !important;
+                    line-height: 1.2 !important;
                 }
                  #print-area div[contentEditable] p {
                     text-align: justify;
