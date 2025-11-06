@@ -14,6 +14,7 @@ import {
 import {
   CalendarDays,
   FileUp,
+  FilePenLine,
 } from 'lucide-react';
 import Link from 'next/link';
 import { AppHeader } from '@/components/app-header';
@@ -54,6 +55,11 @@ export default function RootLayout({
                   <SidebarMenuItem>
                     <SidebarMenuButton asChild size="lg">
                       <Link href="/calendar"><CalendarDays />Kalender</Link>
+                    </SidebarMenuButton>
+                  </SidebarMenuItem>
+                   <SidebarMenuItem>
+                    <SidebarMenuButton asChild size="lg">
+                      <Link href="/report"><FilePenLine />Buat Laporan</Link>
                     </SidebarMenuButton>
                   </SidebarMenuItem>
                   <SidebarMenuItem>

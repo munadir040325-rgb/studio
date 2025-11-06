@@ -13,6 +13,7 @@ const formatSegment = (segment: string) => {
   const customFormats: { [key: string]: string } = {
     'calendar': 'Kalender',
     'upload': 'Upload Lampiran',
+    'report': 'Buat Laporan',
   };
 
   if (customFormats[segment]) {
@@ -94,5 +95,3 @@ export function Breadcrumbs() {
     </nav>
   );
 }
-
-    
