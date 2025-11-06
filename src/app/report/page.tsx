@@ -65,9 +65,10 @@ V. PESERTA:
 [Sebutkan peserta/perwakilan yang hadir]
 
 VI. MATERI/BAHASAN:
-1. [Materi 1]
-2. [Materi 2]
-3. [Dst...]
+1. Materi Utama
+    a. Sub-materi pertama
+    b. Sub-materi kedua
+2. Materi Berikutnya
 
 VII. KESIMPULAN/TINDAK LANJUT:
 ${disposisi ? `- ${disposisi}\n- [Tindak Lanjut Lainnya]` : `- [Isi Kesimpulan atau Tindak Lanjut]`}
