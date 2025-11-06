@@ -119,9 +119,19 @@ const ReportPreview = ({ event }: { event: CalendarEvent | null }) => {
                          <div
                             contentEditable
                             suppressContentEditableWarning
-                            className="mt-2 p-1 -m-1 rounded-md min-h-[8rem] bg-muted/50 hover:bg-muted focus:bg-background focus:outline-none focus:ring-2 focus:ring-ring print:bg-transparent"
+                            className="mt-2 p-1 -m-1 rounded-md min-h-[8rem] bg-muted/50 hover:bg-muted focus:bg-background focus:outline-none focus:ring-2 focus:ring-ring print:bg-transparent text-justify"
                             data-placeholder="Isi ringkasan materi di sini. Anda bisa membuat daftar bernomor (1., 2., ...) atau paragraf biasa."
                         />
+                         <div className="print:hidden mt-2 text-xs text-muted-foreground p-2 bg-muted/30 rounded-md">
+                            <p className="font-bold">Tips Formatting:</p>
+                            <ul className="list-disc pl-4">
+                                <li><b>Tebal:</b> Gunakan `Ctrl+B` atau `Cmd+B`.</li>
+                                <li><b>Miring:</b> Gunakan `Ctrl+I` atau `Cmd+I`.</li>
+                                <li><b>Numbered List:</b> Ketik `1.` diikuti spasi.</li>
+                                <li><b>Bulleted List:</b> Ketik `-` atau `*` diikuti spasi.</li>
+                                <li><b>Indentasi:</b> Gunakan tombol `Tab` untuk membuat sub-list (misal: dari `1.` menjadi `a.`).</li>
+                            </ul>
+                        </div>
                     </div>
                 </div>
             </div>
@@ -317,26 +327,14 @@ export default function ReportPage() {
                 display: block; /* Ensures placeholder is visible */
             }
             
-            /* Styling for lists inside contentEditable */
             #print-area div[contentEditable] ul,
             #print-area div[contentEditable] ol {
-                margin: 0;
-                padding-left: 2em; /* Gives space for the numbers */
+                padding-left: 1.5em; 
             }
             #print-area div[contentEditable] li {
-                padding-left: 0.5em; /* Space between number and text */
-                margin-bottom: 0.5em; /* Space between list items */
+                padding-left: 0.5em; 
+                margin-bottom: 0.5em;
             }
-            /* Hanging indent for nested lists */
-             #print-area div[contentEditable] li::marker {
-                font-weight: normal;
-             }
-             #print-area div[contentEditable] ul ul,
-             #print-area div[contentEditable] ol ul,
-             #print-area div[contentEditable] ul ol,
-             #print-area div[contentEditable] ol ol {
-                margin-left: 1em; /* Further indent nested lists */
-             }
         `}</style>
     </div>
   );
