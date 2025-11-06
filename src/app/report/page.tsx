@@ -16,6 +16,7 @@ import { id as localeId } from 'date-fns/locale';
 import useSWR from 'swr';
 import { Alert, AlertDescription, AlertTitle } from '@/components/ui/alert';
 import DOMPurify from 'isomorphic-dompurify';
+import { RichTextEditor } from '@/components/editor';
 
 type CalendarEvent = {
   id: string;
@@ -332,10 +333,10 @@ export default function ReportPage() {
            {selectedEvent && (
                 <CardContent>
                     <Label className="font-semibold">Hasil Kegiatan & Tindak Lanjut</Label>
-                    <div className="mt-1 p-2 border rounded-md min-h-[10rem]">
-                      {/* Editor will go here */}
-                      <p className='text-muted-foreground'>Editor sedang dalam pengembangan.</p>
-                    </div>
+                    <RichTextEditor
+                        onChange={setReportContent}
+                        placeholder="Ketik hasil laporan di sini..."
+                    />
                 </CardContent>
             )}
             <CardFooter className="flex justify-end gap-2 mt-4 border-t pt-6">
@@ -408,9 +409,9 @@ export default function ReportPage() {
                 }
                  #print-area .report-content-preview ul, 
                 #print-area .report-content-preview ol {
-                  padding-left: 20px;
-                  list-style-position: inside;
                   display: block;
+                  list-style-position: inside;
+                  padding-left: 20px;
                 }
                 #print-area .report-content-preview li {
                   display: list-item;
