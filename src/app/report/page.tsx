@@ -1,7 +1,6 @@
-
 'use client';
 
-import { useState, useMemo, useEffect } from 'react';
+import { useState, useMemo, useEffect, useRef } from 'react';
 import { PageHeader } from '@/components/page-header';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardDescription, CardFooter, CardHeader, CardTitle } from '@/components/ui/card';
@@ -10,13 +9,14 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@
 import { Calendar } from '@/components/ui/calendar';
 import { Popover, PopoverContent, PopoverTrigger } from '@/components/ui/popover';
 import { Textarea } from '@/components/ui/textarea';
-import { Calendar as CalendarIcon, Loader2, Copy, Trash } from 'lucide-react';
+import { Calendar as CalendarIcon, Loader2, Copy, Trash, Bold, Italic, ListOrdered, List } from 'lucide-react';
 import { useToast } from '@/hooks/use-toast';
 import { cn } from '@/lib/utils';
 import { parseISO, format, isSameDay } from 'date-fns';
 import { id as localeId } from 'date-fns/locale';
 import useSWR from 'swr';
 import { extractDisposisi } from '../calendar/page';
+import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from '@/components/ui/tooltip';
 
 
 type CalendarEvent = {
@@ -95,12 +95,63 @@ Yang Melaporkan,
 }
 
 
+const EditorToolbar = ({ onInsert }: { onInsert: (text: string) => void }) => (
+    <TooltipProvider delayDuration={100}>
+        <div className="flex items-center gap-1 rounded-t-md border border-b-0 p-2 bg-muted">
+            <Tooltip>
+                <TooltipTrigger asChild>
+                    <Button type="button" variant="outline" size="icon" className="h-8 w-8" onClick={() => onInsert('*text*')}>
+                        <Bold className="h-4 w-4" />
+                    </Button>
+                </TooltipTrigger>
+                <TooltipContent>
+                    <p>Bold</p>
+                </TooltipContent>
+            </Tooltip>
+            <Tooltip>
+                <TooltipTrigger asChild>
+                    <Button type="button" variant="outline" size="icon" className="h-8 w-8" onClick={() => onInsert('_text_')}>
+                        <Italic className="h-4 w-4" />
+                    </Button>
+                </TooltipTrigger>
+                <TooltipContent>
+                    <p>Italic</p>
+                </TooltipContent>
+            </Tooltip>
+             <div className="mx-2 h-6 border-l border-border" />
+            <Tooltip>
+                <TooltipTrigger asChild>
+                    <Button type="button" variant="outline" size="icon" className="h-8 w-8" onClick={() => onInsert('\n1. \n2. \n3. ')}>
+                        <ListOrdered className="h-4 w-4" />
+                    </Button>
+                </TooltipTrigger>
+                <TooltipContent>
+                    <p>Numbered List</p>
+                </TooltipContent>
+            </Tooltip>
+            <Tooltip>
+                <TooltipTrigger asChild>
+                    <Button type="button" variant="outline" size="icon" className="h-8 w-8" onClick={() => onInsert('\n- \n- \n- ')}>
+                        <List className="h-4 w-4" />
+                    </Button>
+                </TooltipTrigger>
+                <TooltipContent>
+                    <p>Bulleted List</p>
+                </TooltipContent>
+            </Tooltip>
+        </div>
+    </TooltipProvider>
+);
+
+
 export default function ReportPage() {
   const { toast } = useToast();
   
   const [selectedDate, setSelectedDate] = useState<Date | undefined>();
   const [selectedEvent, setSelectedEvent] = useState<CalendarEvent | null>(null);
   const [reportContent, setReportContent] = useState('');
+  const textareaRef = useRef<HTMLTextAreaElement>(null);
+
 
   const { data: eventsData, error: eventsError, isLoading: isLoadingEvents } = useSWR('/api/events', fetcher);
   
@@ -135,6 +186,30 @@ export default function ReportPage() {
     toast({ description: 'Editor telah dikosongkan.' });
   }
 
+  const handleInsertText = (textToInsert: string) => {
+    const textarea = textareaRef.current;
+    if (!textarea) return;
+
+    const start = textarea.selectionStart;
+    const end = textarea.selectionEnd;
+    const text = textarea.value;
+
+    const newText = text.substring(0, start) + textToInsert + text.substring(end);
+    setReportContent(newText);
+
+    // Wait for state to update, then set cursor position
+    setTimeout(() => {
+        const cursorPosition = start + textToInsert.length;
+        textarea.focus();
+        // If inserting a placeholder like *text*, select the word 'text'
+        if (textToInsert.includes('text')) {
+             textarea.setSelectionRange(start + 1, cursorPosition - 1);
+        } else {
+             textarea.setSelectionRange(cursorPosition, cursorPosition);
+        }
+    }, 0);
+  };
+
   return (
     <div className="flex flex-col gap-6">
       <PageHeader
@@ -144,7 +219,7 @@ export default function ReportPage() {
         <Card>
           <CardHeader>
             <CardTitle>Editor Laporan</CardTitle>
-            <CardDescription>Pilih tanggal dan kegiatan untuk mengisi template secara otomatis.</CardDescription>
+            <CardDescription>Pilih tanggal dan kegiatan untuk mengisi template. Gunakan toolbar untuk memformat teks.</CardDescription>
           </CardHeader>
           <CardContent className="space-y-6">
              {eventsError && <p className="text-red-500 text-sm">Gagal memuat kegiatan: {eventsError.message}</p>}
@@ -211,13 +286,17 @@ export default function ReportPage() {
 
             <div className="space-y-2">
                 <Label htmlFor="report-editor" className="font-semibold">Isi Laporan</Label>
-                <Textarea
-                    id="report-editor"
-                    placeholder="Pilih kegiatan untuk memulai, atau tulis manual di sini..."
-                    className="h-[500px] font-mono text-xs leading-relaxed"
-                    value={reportContent}
-                    onChange={(e) => setReportContent(e.target.value)}
-                />
+                <div className="grid w-full gap-0">
+                    <EditorToolbar onInsert={handleInsertText} />
+                    <Textarea
+                        id="report-editor"
+                        ref={textareaRef}
+                        placeholder="Pilih kegiatan untuk memulai, atau tulis manual di sini..."
+                        className="h-[500px] font-mono text-xs leading-relaxed rounded-t-none focus-visible:ring-offset-0 focus-visible:ring-1"
+                        value={reportContent}
+                        onChange={(e) => setReportContent(e.target.value)}
+                    />
+                </div>
             </div>
 
           </CardContent>
