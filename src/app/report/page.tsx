@@ -48,7 +48,6 @@ const EditableField = ({ placeholder, className }: { placeholder: string, classN
 // A more robust rich text editor component
 const RichTextEditor = ({ forwardedRef }: { forwardedRef: React.Ref<HTMLDivElement> }) => {
     const editorRef = useRef<HTMLDivElement>(null);
-    const [showToolbar, setShowToolbar] = useState(false);
 
     // Use forwardedRef if provided, otherwise use internal ref
     const effectiveRef = forwardedRef || editorRef;
@@ -60,29 +59,25 @@ const RichTextEditor = ({ forwardedRef }: { forwardedRef: React.Ref<HTMLDivEleme
         }
     };
     
-    const handleToolbarClick = (e: React.MouseEvent<HTMLButtonElement>, command: string) => {
+    const handleToolbarMouseDown = (e: React.MouseEvent<HTMLButtonElement>, command: string) => {
         e.preventDefault(); // Prevent editor from losing focus
         applyFormat(command);
     };
 
     return (
         <div className="w-full relative">
-            {showToolbar && (
-                <div className="sticky top-0 z-10 bg-gray-100 p-1 rounded-md flex gap-1 print:hidden mb-2">
-                    <Button type="button" size="icon" variant="outline" className="h-7 w-7" onClick={(e) => handleToolbarClick(e, 'bold')}><Bold className="h-4 w-4" /></Button>
-                    <Button type="button" size="icon" variant="outline" className="h-7 w-7" onClick={(e) => handleToolbarClick(e, 'italic')}><Italic className="h-4 w-4" /></Button>
-                    <Button type="button" size="icon" variant="outline" className="h-7 w-7" onClick={(e) => handleToolbarClick(e, 'insertUnorderedList')}><List className="h-4 w-4" /></Button>
-                    <Button type="button" size="icon" variant="outline" className="h-7 w-7" onClick={(e) => handleToolbarClick(e, 'insertOrderedList')}><ListOrdered className="h-4 w-4" /></Button>
-                    <Button type="button" size="icon" variant="outline" className="h-7 w-7" onClick={(e) => handleToolbarClick(e, 'indent')}><Indent className="h-4 w-4" /></Button>
-                    <Button type="button" size="icon" variant="outline" className="h-7 w-7" onClick={(e) => handleToolbarClick(e, 'outdent')}><Outdent className="h-4 w-4" /></Button>
-                </div>
-            )}
+            <div className="sticky top-0 z-10 bg-gray-100 p-1 rounded-md flex gap-1 print:hidden mb-2">
+                <Button type="button" size="icon" variant="outline" className="h-7 w-7" onMouseDown={(e) => handleToolbarMouseDown(e, 'bold')}><Bold className="h-4 w-4" /></Button>
+                <Button type="button" size="icon" variant="outline" className="h-7 w-7" onMouseDown={(e) => handleToolbarMouseDown(e, 'italic')}><Italic className="h-4 w-4" /></Button>
+                <Button type="button" size="icon" variant="outline" className="h-7 w-7" onMouseDown={(e) => handleToolbarMouseDown(e, 'insertUnorderedList')}><List className="h-4 w-4" /></Button>
+                <Button type="button" size="icon" variant="outline" className="h-7 w-7" onMouseDown={(e) => handleToolbarMouseDown(e, 'insertOrderedList')}><ListOrdered className="h-4 w-4" /></Button>
+                <Button type="button" size="icon" variant="outline" className="h-7 w-7" onMouseDown={(e) => handleToolbarMouseDown(e, 'indent')}><Indent className="h-4 w-4" /></Button>
+                <Button type="button" size="icon" variant="outline" className="h-7 w-7" onMouseDown={(e) => handleToolbarMouseDown(e, 'outdent')}><Outdent className="h-4 w-4" /></Button>
+            </div>
             <div
                 ref={effectiveRef}
                 contentEditable
                 suppressContentEditableWarning
-                onFocus={() => setShowToolbar(true)}
-                onBlur={() => setShowToolbar(false)}
                 className="mt-2 p-1 -m-1 rounded-md min-h-[8rem] bg-muted/50 hover:bg-muted focus:bg-background focus:outline-none focus:ring-2 focus:ring-ring print:bg-transparent w-full"
                 data-placeholder="Isi hasil kegiatan dan tindak lanjut..."
             >
