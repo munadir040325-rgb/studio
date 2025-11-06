@@ -93,8 +93,7 @@ const ReportEditorTemplate = ({ event, reportContent, onContentChange }: { event
     return (
         <Card id="print-area" className="bg-white text-black p-8 md:p-12 shadow-lg rounded-sm print:shadow-none print:p-4 print:border-none">
             <h3 className="text-center font-bold text-lg">NOTA DINAS</h3>
-             <hr className="border-t-2 border-black mt-1" />
-            <hr className="border-black mt-0.5 mb-4" />
+            <hr className="border-t-2 border-black mt-1 mb-4" />
             <div className="flex justify-center">
                 <table>
                     <tbody>
@@ -122,7 +121,7 @@ const ReportEditorTemplate = ({ event, reportContent, onContentChange }: { event
                 </table>
             </div>
 
-            <hr className="border-black my-4" />
+            <hr className="border-t border-black my-4" />
             
             <table className="w-full mt-4 border-separate" style={{borderSpacing: '0 8px'}}>
                 <tbody>
@@ -326,7 +325,7 @@ Hormat kami,
                 <Trash className="mr-2 h-4 w-4"/>
                 Reset
             </Button>
-            <Button onClick={handleCopyToWhatsApp} variant="outline" disabled={!selectedEvent}>
+            <Button onClick={handleCopyToWhatsApp} variant="outline" disabled>
                 <WhatsAppIcon />
                 Salin untuk WA
             </Button>
