@@ -53,7 +53,7 @@ const ReportEditorTemplate = ({ event, reportContent, onContentChange }: { event
     return (
         <Card id="print-area" className="bg-white text-black p-8 md:p-12 shadow-lg rounded-sm print:shadow-none print:p-4 print:border-none">
             <h3 className="text-center font-bold text-lg">NOTA DINAS</h3>
-            <br />
+            <hr className="border-black my-4" />
             <div className="flex justify-center">
                 <table>
                     <tbody>
@@ -164,9 +164,9 @@ const ReportEditorTemplate = ({ event, reportContent, onContentChange }: { event
                             />
                         </td>
                     </tr>
-                     <tr>
-                        <td></td>
-                        <td colSpan={3} className="pt-8">Demikian untuk menjadikan periksa dan terima kasih.</td>
+                    <tr>
+                       <td></td>
+                       <td colSpan={3} className="pt-8">Demikian untuk menjadikan periksa dan terima kasih.</td>
                     </tr>
                 </tbody>
             </table>
@@ -376,7 +376,7 @@ export default function ReportPage() {
               #print-area, #print-area * {
                   font-family: Arial, sans-serif !important;
                   font-size: 12pt !important;
-                  line-height: 1.5 !important;
+                  line-height: 1.2 !important;
                   visibility: visible;
               }
               .report-content-preview p,
