@@ -76,7 +76,7 @@ const ReportPreview = ({ event }: { event: CalendarEvent | null }) => {
                 e.preventDefault();
                 node.textContent = text.replace(/1\.\s?$/, '');
                 document.execCommand('insertOrderedList', false);
-            } else if ((range.startOffset > 0 && text.substring(range.startOffset - 1) === '*') || (range.startOffset > 1 && text.substring(range.startOffset - 2) === '* ') || (range.startOffset > 0 && text.substring(range-startOffset - 1) === '-') || (range.startOffset > 1 && text.substring(range.startOffset - 2) === '- ')) {
+            } else if ((range.startOffset > 0 && text.substring(range.startOffset - 1) === '*') || (range.startOffset > 1 && text.substring(range.startOffset - 2) === '* ') || (range.startOffset > 0 && text.substring(range.startOffset-1) === '-') || (range.startOffset > 1 && text.substring(range.startOffset - 2) === '- ')) {
                 e.preventDefault();
                 node.textContent = text.replace(/[\*\-]\s?$/, '');
                 document.execCommand('insertUnorderedList', false);
@@ -92,10 +92,8 @@ const ReportPreview = ({ event }: { event: CalendarEvent | null }) => {
 
         if ((command === 'insertOrderedList' || command === 'insertUnorderedList') && (editor.textContent?.trim() === '' || editor.innerHTML === '<p><br></p>' || editor.innerHTML === '')) {
              if (editor.innerHTML === '' || editor.innerHTML === '<p><br></p>') {
-                // Ensure there is a paragraph to work with
                 editor.innerHTML = '<p><br></p>'; 
              }
-            // Set the selection to the beginning of the paragraph
             const range = document.createRange();
             const sel = window.getSelection();
             const p = editor.getElementsByTagName('p')[0] || editor;
@@ -112,7 +110,7 @@ const ReportPreview = ({ event }: { event: CalendarEvent | null }) => {
     };
 
     const handleToolbarButtonClick = (e: React.MouseEvent<HTMLButtonElement>, command: 'bold' | 'italic' | 'insertOrderedList' | 'insertUnorderedList') => {
-        e.preventDefault(); // crucial to prevent editor from losing focus
+        e.preventDefault();
         applyFormat(command);
     };
 
@@ -125,7 +123,7 @@ const ReportPreview = ({ event }: { event: CalendarEvent | null }) => {
     }
 
     return (
-        <div id="print-area" className="bg-white text-black p-12 shadow-lg rounded-sm print:shadow-none print:p-4 font-serif text-[12px]">
+        <div id="print-area" className="bg-white text-black p-12 shadow-lg rounded-sm print:shadow-none print:p-4 font-serif">
             <h3 className="text-center font-bold text-lg">NOTA DINAS</h3>
             <br />
             <table className="w-full">
@@ -200,7 +198,6 @@ const ReportPreview = ({ event }: { event: CalendarEvent | null }) => {
                             onKeyDown={handleKeyDown}
                             onInput={handleInput}
                             className="mt-2 p-1 -m-1 rounded-md min-h-[8rem] bg-muted/50 hover:bg-muted focus:bg-background focus:outline-none focus:ring-2 focus:ring-ring print:bg-transparent w-full"
-                            data-placeholder="Isi hasil kegiatan dan tindak lanjut di sini..."
                          >
                             <p><br /></p>
                          </div>
@@ -348,7 +345,7 @@ export default function ReportPage() {
         <style jsx global>{`
             @page {
                 size: A4;
-                margin: 2.54cm;
+                margin: 2.1cm;
             }
             @media print {
                 body, html {
@@ -407,9 +404,9 @@ export default function ReportPage() {
             #print-area div[contentEditable] ul,
             #print-area div[contentEditable] ol {
                 list-style-position: inside;
-                padding-left: 1.5em; 
             }
             #print-area div[contentEditable] li {
+                padding-left: 1.5em;
                 text-indent: -1.5em;
                 margin-bottom: 0.5em;
             }
