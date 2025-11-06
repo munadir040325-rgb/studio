@@ -76,7 +76,7 @@ const ReportPreview = ({ event }: { event: CalendarEvent | null }) => {
                 e.preventDefault();
                 node.textContent = text.replace(/1\.\s?$/, '');
                 document.execCommand('insertOrderedList', false);
-            } else if ((range.startOffset > 0 && text.substring(range.startOffset - 1) === '*') || (range.startOffset > 1 && text.substring(range.startOffset - 2) === '* ') || (range.startOffset > 0 && text.substring(range.startOffset - 1) === '-') || (range.startOffset > 1 && text.substring(range.startOffset - 2) === '- ')) {
+            } else if ((range.startOffset > 0 && text.substring(range.startOffset - 1) === '*') || (range.startOffset > 1 && text.substring(range.startOffset - 2) === '* ') || (range.startOffset > 0 && text.substring(range-startOffset - 1) === '-') || (range.startOffset > 1 && text.substring(range.startOffset - 2) === '- ')) {
                 e.preventDefault();
                 node.textContent = text.replace(/[\*\-]\s?$/, '');
                 document.execCommand('insertUnorderedList', false);
@@ -92,8 +92,10 @@ const ReportPreview = ({ event }: { event: CalendarEvent | null }) => {
 
         if ((command === 'insertOrderedList' || command === 'insertUnorderedList') && (editor.textContent?.trim() === '' || editor.innerHTML === '<p><br></p>' || editor.innerHTML === '')) {
              if (editor.innerHTML === '' || editor.innerHTML === '<p><br></p>') {
+                // Ensure there is a paragraph to work with
                 editor.innerHTML = '<p><br></p>'; 
              }
+            // Set the selection to the beginning of the paragraph
             const range = document.createRange();
             const sel = window.getSelection();
             const p = editor.getElementsByTagName('p')[0] || editor;
@@ -110,7 +112,7 @@ const ReportPreview = ({ event }: { event: CalendarEvent | null }) => {
     };
 
     const handleToolbarButtonClick = (e: React.MouseEvent<HTMLButtonElement>, command: 'bold' | 'italic' | 'insertOrderedList' | 'insertUnorderedList') => {
-        e.preventDefault();
+        e.preventDefault(); // crucial to prevent editor from losing focus
         applyFormat(command);
     };
 
@@ -130,7 +132,7 @@ const ReportPreview = ({ event }: { event: CalendarEvent | null }) => {
                 <tbody>
                     <tr><td className="w-28 align-top">YTH.</td><td className="w-2 align-top">:</td><td className="font-semibold">CAMAT GANDRUNGMANGU</td></tr>
                     <tr><td className="align-top">DARI</td><td className="align-top">:</td><td><EditableField placeholder="Nama Pelapor, Jabatan" /></td></tr>
-                    <tr><td className="align-top">TEMBUSAN</td><td className="align-top">:</td><td><EditableField placeholder="Tembusan" /></td></tr>
+                    <tr><td className="align-top">TEMBUSAN</td><td className="align-top">:</td><td><EditableField placeholder="Isi tembusan" /></td></tr>
                     <tr><td className="align-top">TANGGAL</td><td className="align-top">:</td><td>{reportDate}</td></tr>
                     <tr><td className="align-top">NOMOR</td><td className="align-top">:</td><td><EditableField placeholder="Nomor Surat" /></td></tr>
                     <tr><td className="align-top">SIFAT</td><td className="align-top">:</td><td>BIASA</td></tr>
@@ -387,7 +389,7 @@ export default function ReportPage() {
                    -webkit-print-color-adjust: exact !important;
                 }
                  span[contentEditable="true"]:empty::before,
-                 div[contentEditable="true"]:empty::before {
+                 div[contentEditable="true"][data-placeholder]:empty::before {
                     content: attr(data-placeholder);
                     color: #999;
                     font-style: italic;
@@ -395,7 +397,7 @@ export default function ReportPage() {
                 }
             }
              span[contentEditable="true"]:empty::before,
-             div[contentEditable="true"]:empty::before {
+             div[contentEditable="true"][data-placeholder]:empty::before {
                 content: attr(data-placeholder);
                 color: #666;
                 font-style: italic;
