@@ -54,7 +54,8 @@ const ReportEditorTemplate = ({ event, reportContent, onContentChange }: { event
     return (
         <Card id="print-area" className="bg-white text-black p-8 md:p-12 shadow-lg rounded-sm print:shadow-none print:p-4 print:border-none">
             <h3 className="text-center font-bold text-lg">NOTA DINAS</h3>
-            
+            <br />
+            <hr className="border-black my-4" />
              <div className="flex justify-center">
                 <table>
                     <tbody>
@@ -175,6 +176,7 @@ const ReportEditorTemplate = ({ event, reportContent, onContentChange }: { event
 
             <div className="flex justify-end mt-8">
                 <div className="text-center w-64">
+                    <EditableField placeholder="Tempat, Tanggal Melaporkan" />
                     <p>Yang melaksanakan kegiatan,</p>
                     <br /><br /><br />
                     <p className="font-semibold underline">
