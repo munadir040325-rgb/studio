@@ -691,6 +691,11 @@ export default function CalendarPage() {
           });
           return;
       }
+      
+      const sanitizeForWhatsApp = (text: string) => {
+        // Removes characters that can mess up WhatsApp formatting.
+        return text.replace(/[*_~`]/g, '');
+      };
 
       let header;
       if (viewMode === 'harian' && !searchQuery) {
@@ -706,7 +711,7 @@ export default function CalendarPage() {
       }
 
 
-      let message = `${header}\n\n`;
+      let message = `*${sanitizeForWhatsApp(header)}*\n\n`;
       let eventsToFormat = filteredEvents;
 
       if (viewMode === 'mingguan') {
@@ -723,16 +728,16 @@ export default function CalendarPage() {
           const disposisi = extractDisposisi(event.description);
           const eventDate = event.start ? format(parseISO(event.start), 'EEEE, dd MMM yyyy', { locale: localeId }) : 'Tanggal tidak valid';
 
-          message += `${index + 1}. ${cleanTitle}\n`;
+          message += `*${index + 1}. ${sanitizeForWhatsApp(cleanTitle)}*\n`;
           if (viewMode !== 'harian' || (viewMode === 'harian' && searchQuery)) {
-            message += `    - Tanggal: ${eventDate}\n`;
+            message += `    _Tanggal: ${sanitizeForWhatsApp(eventDate)}_\n`;
           }
-          message += `    • Waktu: ${time}\n`;
+          message += `    _Waktu: ${sanitizeForWhatsApp(time)}_\n`;
           if (location) {
-              message += `    • Lokasi: ${location}\n`;
+              message += `    _Lokasi: ${sanitizeForWhatsApp(location)}_\n`;
           }
           if (disposisi) {
-              message += `    • Disposisi: ${disposisi}\n`;
+              message += `    _Disposisi: ${sanitizeForWhatsApp(disposisi)}_\n`;
           }
           message += '\n';
       });
