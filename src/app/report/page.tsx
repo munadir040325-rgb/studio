@@ -126,7 +126,7 @@ const ReportPreview = ({ event }: { event: CalendarEvent | null }) => {
         <div id="print-area" className="bg-white text-black p-12 shadow-lg rounded-sm print:shadow-none print:p-4 font-serif">
             <h3 className="text-center font-bold text-lg">NOTA DINAS</h3>
             <br />
-            <table className="w-full">
+            <table className="w-full border-separate" style={{borderSpacing: '0 4px'}}>
                 <tbody>
                     <tr><td className="w-28 align-top">YTH.</td><td className="w-2 align-top">:</td><td className="font-semibold">CAMAT GANDRUNGMANGU</td></tr>
                     <tr><td className="align-top">DARI</td><td className="align-top">:</td><td><EditableField placeholder="Nama Pelapor, Jabatan" /></td></tr>
@@ -140,70 +140,107 @@ const ReportPreview = ({ event }: { event: CalendarEvent | null }) => {
             </table>
 
             <hr className="border-black my-4" />
-
-            <p className="text-justify">
+            
+             <p className="text-justify">
                 Dasar Surat <EditableField placeholder="Asal Surat (e.g., Undangan dari...)" /> Nomor : <EditableField placeholder="Nomor Surat Undangan" /> tanggal <EditableField placeholder="Tanggal Surat Undangan" /> perihal Undangan, dengan ini kami laporkan hasil pelaksanaan kegiatan sebagai berikut:
             </p>
 
-            <div className="mt-4 space-y-4">
-                <div className="flex">
-                    <span className="w-8 font-semibold">I.</span>
-                    <div className="w-full">
-                        <p className="font-semibold">Pelaksanaan</p>
-                        <table className="w-full">
-                           <tbody>
-                                <tr><td className="w-28 align-top">Acara</td><td className="w-2 align-top">:</td><td>{event.summary}</td></tr>
-                                <tr><td className="align-top">Hari/Tanggal</td><td className="align-top">:</td><td>{format(parseISO(event.start), 'EEEE, dd MMMM yyyy', { locale: localeId })}</td></tr>
-                                <tr><td className="align-top">Waktu</td><td className="align-top">:</td><td>Pukul {format(parseISO(event.start), 'HH:mm', { locale: localeId })} WIB s.d. Selesai</td></tr>
-                                <tr><td className="align-top">Tempat</td><td className="align-top">:</td><td>{event.location || <EditableField placeholder="Tempat Kegiatan" />}</td></tr>
-                                <tr><td className="align-top">Peserta</td><td className="align-top">:</td><td><EditableField placeholder="Sebutkan peserta/perwakilan yang hadir" /></td></tr>
-                           </tbody>
-                        </table>
-                    </div>
-                </div>
-                <div className="flex">
-                    <span className="w-8 font-semibold">II.</span>
-                    <div className="flex items-start gap-1 w-full">
-                        <p className="font-semibold w-36">Pimpinan Rapat</p>
-                        <span>:</span>
-                        <EditableField placeholder="Isi Pimpinan Rapat" />
-                    </div>
-                </div>
-                <div className="flex">
-                    <span className="w-8 font-semibold">III.</span>
-                     <div className="flex items-start gap-1 w-full">
-                        <p className="font-semibold w-36">Narasumber</p>
-                        <span>:</span>
-                        <EditableField placeholder="Isi Narasumber" />
-                    </div>
-                </div>
-                <div className="flex">
-                    <span className="w-8 font-semibold">IV.</span>
-                     <div className="w-full relative">
-                        <p className="font-semibold">HASIL KEGIATAN & TINDAK LANJUT</p>
-                         {showToolbar && (
-                            <div className="sticky top-0 z-10 bg-gray-100 p-1 rounded-md flex gap-1 print:hidden mb-2">
-                                <Button type="button" size="icon" variant="outline" className="h-7 w-7" onMouseDown={(e) => handleToolbarButtonClick(e, 'bold')}><Bold className="h-4 w-4" /></Button>
-                                <Button type="button" size="icon" variant="outline" className="h-7 w-7" onMouseDown={(e) => handleToolbarButtonClick(e, 'italic')}><Italic className="h-4 w-4" /></Button>
-                                <Button type="button" size="icon" variant="outline" className="h-7 w-7" onMouseDown={(e) => handleToolbarButtonClick(e, 'insertUnorderedList')}><List className="h-4 w-4" /></Button>
-                                <Button type="button" size="icon" variant="outline" className="h-7 w-7" onMouseDown={(e) => handleToolbarButtonClick(e, 'insertOrderedList')}><ListOrdered className="h-4 w-4" /></Button>
+            <table className="w-full mt-4 border-separate" style={{borderSpacing: '0 4px'}}>
+                <tbody>
+                    {/* Section I */}
+                    <tr>
+                        <td className="w-8 align-top font-semibold">I.</td>
+                        <td colSpan={2} className='font-semibold'>Pelaksanaan</td>
+                    </tr>
+                    <tr>
+                        <td></td>
+                        <td className='w-28 align-top'>Acara</td>
+                        <td className='w-2 align-top'>:</td>
+                        <td>{event.summary}</td>
+                    </tr>
+                    <tr>
+                        <td></td>
+                        <td className='align-top'>Hari/Tanggal</td>
+                        <td className='align-top'>:</td>
+                        <td>{format(parseISO(event.start), 'EEEE, dd MMMM yyyy', { locale: localeId })}</td>
+                    </tr>
+                    <tr>
+                        <td></td>
+                        <td className='align-top'>Waktu</td>
+                        <td className='align-top'>:</td>
+                        <td>Pukul {format(parseISO(event.start), 'HH:mm', { locale: localeId })} WIB s.d. Selesai</td>
+                    </tr>
+                    <tr>
+                        <td></td>
+                        <td className='align-top'>Tempat</td>
+                        <td className='align-top'>:</td>
+                        <td>{event.location || <EditableField placeholder="Tempat Kegiatan" />}</td>
+                    </tr>
+                     <tr>
+                        <td></td>
+                        <td className='align-top'>Peserta</td>
+                        <td className='align-top'>:</td>
+                        <td><EditableField placeholder="Sebutkan peserta/perwakilan yang hadir" /></td>
+                    </tr>
+
+                    {/* Spacer row */}
+                    <tr><td colSpan={4} className="h-2"></td></tr>
+
+                    {/* Section II */}
+                    <tr>
+                        <td className="w-8 align-top font-semibold">II.</td>
+                        <td className='w-28 align-top font-semibold'>Pimpinan Rapat</td>
+                        <td className='w-2 align-top'>:</td>
+                        <td><EditableField placeholder="Isi Pimpinan Rapat" /></td>
+                    </tr>
+
+                     {/* Spacer row */}
+                    <tr><td colSpan={4} className="h-2"></td></tr>
+
+                    {/* Section III */}
+                     <tr>
+                        <td className="w-8 align-top font-semibold">III.</td>
+                        <td className='w-28 align-top font-semibold'>Narasumber</td>
+                        <td className='w-2 align-top'>:</td>
+                        <td><EditableField placeholder="Isi Narasumber" /></td>
+                    </tr>
+                     {/* Spacer row */}
+                    <tr><td colSpan={4} className="h-2"></td></tr>
+
+                     {/* Section IV */}
+                    <tr>
+                        <td className="w-8 align-top font-semibold">IV.</td>
+                        <td colSpan={3} className='font-semibold'>HASIL KEGIATAN & TINDAK LANJUT</td>
+                    </tr>
+                     <tr>
+                        <td></td>
+                        <td colSpan={3}>
+                            <div className="w-full relative">
+                                {showToolbar && (
+                                    <div className="sticky top-0 z-10 bg-gray-100 p-1 rounded-md flex gap-1 print:hidden mb-2">
+                                        <Button type="button" size="icon" variant="outline" className="h-7 w-7" onMouseDown={(e) => handleToolbarButtonClick(e, 'bold')}><Bold className="h-4 w-4" /></Button>
+                                        <Button type="button" size="icon" variant="outline" className="h-7 w-7" onMouseDown={(e) => handleToolbarButtonClick(e, 'italic')}><Italic className="h-4 w-4" /></Button>
+                                        <Button type="button" size="icon" variant="outline" className="h-7 w-7" onMouseDown={(e) => handleToolbarButtonClick(e, 'insertUnorderedList')}><List className="h-4 w-4" /></Button>
+                                        <Button type="button" size="icon" variant="outline" className="h-7 w-7" onMouseDown={(e) => handleToolbarButtonClick(e, 'insertOrderedList')}><ListOrdered className="h-4 w-4" /></Button>
+                                    </div>
+                                )}
+                                <div
+                                    ref={editorRef}
+                                    contentEditable
+                                    suppressContentEditableWarning
+                                    onFocus={() => setShowToolbar(true)}
+                                    onBlur={() => setShowToolbar(false)}
+                                    onKeyDown={handleKeyDown}
+                                    onInput={handleInput}
+                                    className="mt-2 p-1 -m-1 rounded-md min-h-[8rem] bg-muted/50 hover:bg-muted focus:bg-background focus:outline-none focus:ring-2 focus:ring-ring print:bg-transparent w-full"
+                                >
+                                    <p><br /></p>
+                                </div>
                             </div>
-                         )}
-                         <div
-                            ref={editorRef}
-                            contentEditable
-                            suppressContentEditableWarning
-                            onFocus={() => setShowToolbar(true)}
-                            onBlur={() => setShowToolbar(false)}
-                            onKeyDown={handleKeyDown}
-                            onInput={handleInput}
-                            className="mt-2 p-1 -m-1 rounded-md min-h-[8rem] bg-muted/50 hover:bg-muted focus:bg-background focus:outline-none focus:ring-2 focus:ring-ring print:bg-transparent w-full"
-                         >
-                            <p><br /></p>
-                         </div>
-                    </div>
-                </div>
-            </div>
+                        </td>
+                    </tr>
+                </tbody>
+            </table>
             
             <p className="text-sm mt-4">Demikian untuk menjadikan periksa dan terima kasih.</p>
 
@@ -368,9 +405,6 @@ export default function ReportPage() {
                 main.p-4, main.p-6 {
                     padding: 0 !important;
                     margin: 0 !important;
-                }
-                .print\\:hidden {
-                    display: none !important;
                 }
                 #print-area {
                     box-shadow: none;
