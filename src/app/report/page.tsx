@@ -416,6 +416,19 @@ export default function ReportPage() {
                 #print-area .report-content-preview li {
                   display: list-item;
                 }
+                #print-area .report-content-preview .list-ol {
+                    padding-left: 20px;
+                    list-style-position: inside;
+                }
+                #print-area .report-content-preview .list-ol-1 {
+                    list-style-type: decimal;
+                }
+                #print-area .report-content-preview .list-ol-2 {
+                    list-style-type: lower-alpha;
+                }
+                #print-area .report-content-preview .list-ol-3 {
+                    list-style-type: lower-roman;
+                }
             }
              span[contentEditable="true"]:empty::before {
                 content: attr(data-placeholder);
