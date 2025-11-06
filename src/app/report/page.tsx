@@ -1,6 +1,6 @@
 'use client';
 
-import { useState, useMemo } from 'react';
+import { useState, useMemo, useRef } from 'react';
 import { PageHeader } from '@/components/page-header';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardDescription, CardFooter, CardHeader, CardTitle } from '@/components/ui/card';
@@ -8,7 +8,8 @@ import { Label } from '@/components/ui/label';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { Calendar } from '@/components/ui/calendar';
 import { Popover, PopoverContent, PopoverTrigger } from '@/components/ui/popover';
-import { Calendar as CalendarIcon, Loader2, Printer, Trash } from 'lucide-react';
+import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter, DialogDescription } from '@/components/ui/dialog';
+import { Calendar as CalendarIcon, Loader2, Printer, Trash, Copy, MessageCircle } from 'lucide-react';
 import { useToast } from '@/hooks/use-toast';
 import { cn } from '@/lib/utils';
 import { parseISO, format, isSameDay, isSameMonth } from 'date-fns';
@@ -17,6 +18,14 @@ import useSWR from 'swr';
 import { Alert, AlertDescription, AlertTitle } from '@/components/ui/alert';
 import DOMPurify from 'isomorphic-dompurify';
 import { RichTextEditor } from '@/components/editor';
+import { Textarea } from '@/components/ui/textarea';
+
+
+const WhatsAppIcon = () => (
+    <svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="currentColor" className="mr-2 h-4 w-4">
+        <path d="M.057 24l1.687-6.163c-1.041-1.804-1.588-3.849-1.587-5.946.003-6.556 5.338-11.891 11.893-11.891 3.181.001 6.167 1.24 8.413 3.488 2.245 2.248 3.487 5.235 3.487 8.413.003 6.557-5.338 11.892-11.893 11.892-1.99-.001-3.951-.5-5.688-1.448l-6.305 1.654zm6.597-3.807c1.676.995 3.276 1.591 5.392 1.592 5.448 0 9.886-4.434 9.889-9.885.002-5.462-4.415-9.89-9.881-9.89-5.451 0-9.887 4.434-9.889 9.884-.002 2.024.63 3.891 1.742 5.634l-.999 3.648 3.742-1.001z"/>
+    </svg>
+);
 
 type CalendarEvent = {
   id: string;
@@ -38,8 +47,9 @@ const fetcher = (url: string) => fetch(url).then(res => {
     return res.json();
 });
 
-const EditableField = ({ placeholder, className, defaultValue }: { placeholder: string, className?: string, defaultValue?: string }) => (
+const EditableField = ({ id, placeholder, className, defaultValue }: { id: string, placeholder: string, className?: string, defaultValue?: string }) => (
     <span
+        id={id}
         contentEditable
         suppressContentEditableWarning
         className={cn("p-1 -m-1 rounded-md min-w-[10rem] inline-block bg-muted/50 hover:bg-muted focus:bg-background focus:outline-none focus:ring-2 focus:ring-ring print:bg-transparent", className)}
@@ -90,22 +100,22 @@ const ReportEditorTemplate = ({ event, reportContent, onContentChange }: { event
                         <tr>
                             <td className="w-32 align-top">KEPADA YTH.</td>
                             <td className="w-2 align-top">:</td>
-                            <td><EditableField placeholder="Isi tujuan surat" /></td>
+                            <td><EditableField id="report-kepada" placeholder="Isi tujuan surat" /></td>
                         </tr>
                         <tr>
                             <td className="w-32 align-top">TEMBUSAN</td>
                             <td className="w-2 align-top">:</td>
-                            <td className="align-top"><EditableField placeholder="Isi tembusan" /></td>
+                            <td className="align-top"><EditableField id="report-tembusan" placeholder="Isi tembusan" /></td>
                         </tr>
                         <tr>
                             <td className="w-32 align-top">DARI</td>
                             <td className="w-2 align-top">:</td>
-                            <td><EditableField placeholder="Isi pengirim" /></td>
+                            <td><EditableField id="report-dari" placeholder="Isi pengirim" /></td>
                         </tr>
                         <tr>
                             <td className='align-top w-32'>HAL</td>
                             <td className='align-top w-2'>:</td>
-                            <td><EditableField placeholder="Isi perihal" /></td>
+                            <td><EditableField id="report-hal" placeholder="Isi perihal" /></td>
                         </tr>
                     </tbody>
                 </table>
@@ -122,7 +132,7 @@ const ReportEditorTemplate = ({ event, reportContent, onContentChange }: { event
                     <tr>
                         <td></td>
                         <td colSpan={3} className='pb-2'>
-                           <EditableField placeholder="Isi dasar kegiatan (contoh: Perintah Lisan Camat)" className="w-full" />
+                           <EditableField id="report-dasar" placeholder="Isi dasar kegiatan (contoh: Perintah Lisan Camat)" className="w-full" />
                         </td>
                     </tr>
 
@@ -153,22 +163,22 @@ const ReportEditorTemplate = ({ event, reportContent, onContentChange }: { event
                                     <tr>
                                         <td className='w-32 align-top'>Tempat</td>
                                         <td className='w-4 align-top'>:</td>
-                                        <td>{event.location || <EditableField placeholder="Tempat Kegiatan" />}</td>
+                                        <td>{event.location || <EditableField id="report-tempat" placeholder="Tempat Kegiatan" />}</td>
                                     </tr>
                                     <tr>
                                         <td className='w-32 align-top'>Pimpinan Rapat</td>
                                         <td className='w-4 align-top'>:</td>
-                                        <td><EditableField placeholder="Isi Pimpinan Rapat" /></td>
+                                        <td><EditableField id="report-pimpinan" placeholder="Isi Pimpinan Rapat" /></td>
                                     </tr>
                                     <tr>
                                         <td className='w-32 align-top'>Narasumber</td>
                                         <td className='w-4 align-top'>:</td>
-                                        <td><EditableField placeholder="Isi Narasumber" /></td>
+                                        <td><EditableField id="report-narasumber" placeholder="Isi Narasumber" /></td>
                                     </tr>
                                     <tr>
                                         <td className='w-32 align-top'>Peserta</td>
                                         <td className='w-4 align-top'>:</td>
-                                        <td><EditableField placeholder="Sebutkan peserta/perwakilan yang hadir" /></td>
+                                        <td><EditableField id="report-peserta" placeholder="Sebutkan peserta/perwakilan yang hadir" /></td>
                                     </tr>
                                 </tbody>
                             </table>
@@ -203,11 +213,11 @@ const ReportEditorTemplate = ({ event, reportContent, onContentChange }: { event
             
             <div className="flex justify-end mt-8">
                 <div className="text-center w-72">
-                    <EditableField placeholder="Tempat, Tanggal Melaporkan" />
+                    <EditableField id="report-lokasi-tanggal" placeholder="Tempat, Tanggal Melaporkan" />
                     <p>Yang melaksanakan kegiatan,</p>
                     <br /><br /><br />
                     <p className="font-semibold underline">
-                        <EditableField placeholder="Nama Pelapor" />
+                        <EditableField id="report-pelapor" placeholder="Nama Pelapor" />
                     </p>
                 </div>
             </div>
@@ -222,6 +232,8 @@ export default function ReportPage() {
   const [selectedDate, setSelectedDate] = useState<Date | undefined>();
   const [selectedEvent, setSelectedEvent] = useState<CalendarEvent | null>(null);
   const [reportContent, setReportContent] = useState('');
+  const [isWhatsAppModalOpen, setIsWhatsAppModalOpen] = useState(false);
+  const [whatsAppMessage, setWhatsAppMessage] = useState('');
 
   const { data: eventsData, error: eventsError, isLoading: isLoadingEvents } = useSWR('/api/events', fetcher);
     
@@ -243,6 +255,54 @@ export default function ReportPage() {
     toast({ description: 'Pilihan telah dikosongkan.' });
   }
 
+  const handleCopyToWhatsApp = () => {
+    if (!selectedEvent) return;
+
+    // Helper to get text from contentEditable fields
+    const getEditableText = (id: string) => {
+        const element = document.getElementById(id);
+        return element?.innerText?.trim() || '';
+    };
+
+    // Helper to convert HTML from Rich Text Editor to plain text
+    const htmlToPlainText = (html: string) => {
+        const tempDiv = document.createElement('div');
+        tempDiv.innerHTML = html;
+        // Replace list items with a more WA-friendly format
+        tempDiv.querySelectorAll('li').forEach(li => {
+            li.innerHTML = `- ${li.innerHTML}<br>`;
+        });
+        return tempDiv.innerText || '';
+    };
+    
+    const pimpinan = getEditableText('report-pimpinan');
+    const narasumber = getEditableText('report-narasumber');
+    const peserta = getEditableText('report-peserta');
+    const pelapor = getEditableText('report-pelapor');
+    const hasilPlainText = htmlToPlainText(reportContent);
+
+    const message = `*LAPORAN KEGIATAN*
+
+*Acara*: ${selectedEvent.summary}
+*Hari/Tanggal*: ${formatReportDateRange(selectedEvent.start, selectedEvent.end)}
+*Waktu*: Pukul ${format(parseISO(selectedEvent.start), 'HH:mm', { locale: localeId })} WIB s.d. Selesai
+*Tempat*: ${selectedEvent.location || getEditableText('report-tempat')}
+${pimpinan ? `*Pimpinan Rapat*: ${pimpinan}\n` : ''}${narasumber ? `*Narasumber*: ${narasumber}\n` : ''}${peserta ? `*Peserta*: ${peserta}\n` : ''}
+*HASIL & TINDAK LANJUT*
+${hasilPlainText}
+
+Demikian dilaporkan.
+Terima kasih.
+
+Hormat kami,
+*${pelapor || '(Nama Pelapor)'}*
+`;
+
+    setWhatsAppMessage(message);
+    setIsWhatsAppModalOpen(true);
+  };
+
+
   return (
     <div className="flex flex-col gap-6 print:gap-0">
       <PageHeader
@@ -254,6 +314,10 @@ export default function ReportPage() {
             <Button variant="outline" onClick={handleReset}>
                 <Trash className="mr-2 h-4 w-4"/>
                 Reset
+            </Button>
+            <Button onClick={handleCopyToWhatsApp} variant="outline" disabled={!selectedEvent}>
+                <WhatsAppIcon />
+                Salin untuk WA
             </Button>
             <Button onClick={handlePrint} disabled={!selectedEvent}>
                 <Printer className="mr-2 h-4 w-4" />
@@ -339,6 +403,33 @@ export default function ReportPage() {
                 </Card>
             )}
         </div>
+
+        {/* WhatsApp Modal */}
+        <Dialog open={isWhatsAppModalOpen} onOpenChange={setIsWhatsAppModalOpen}>
+            <DialogContent>
+                <DialogHeader>
+                    <DialogTitle>Format Laporan untuk WhatsApp</DialogTitle>
+                    <DialogDescription>
+                        Salin teks di bawah ini dan tempelkan di WhatsApp.
+                    </DialogDescription>
+                </DialogHeader>
+                <Textarea
+                    readOnly
+                    value={whatsAppMessage}
+                    className="h-72 text-sm bg-muted/50 whitespace-pre-wrap"
+                />
+                <DialogFooter>
+                    <Button onClick={() => {
+                        navigator.clipboard.writeText(whatsAppMessage);
+                        toast({ title: "Teks disalin!", description: "Anda sekarang dapat menempelkan laporan di WhatsApp." });
+                    }}>
+                        <Copy className="mr-2 h-4 w-4" />
+                        Salin Teks
+                    </Button>
+                </DialogFooter>
+            </DialogContent>
+        </Dialog>
+
 
         <style jsx global>{`
             @import "@blocknote/core/style.css";
