@@ -121,7 +121,7 @@ const ReportEditorTemplate = ({ event, reportContent, onContentChange }: { event
                 </table>
             </div>
 
-            <hr className="border-t border-black my-4" />
+            <hr className="border-t-2 border-black my-4" />
             
             <table className="w-full mt-4 border-separate" style={{borderSpacing: '0 8px'}}>
                 <tbody>
@@ -325,7 +325,7 @@ Hormat kami,
                 <Trash className="mr-2 h-4 w-4"/>
                 Reset
             </Button>
-            <Button onClick={handleCopyToWhatsApp} variant="outline" disabled={!selectedEvent}>
+            <Button onClick={handleCopyToWhatsApp} variant="outline" disabled={true}>
                 <WhatsAppIcon />
                 Salin untuk WA
             </Button>
@@ -478,6 +478,15 @@ Hormat kami,
                     color: black !important;
                     display: block !important;
                 }
+                 tr:has(span[contenteditable]:empty) {
+                    display: none;
+                }
+                /* These selectors need to be more specific to only hide rows for specific empty fields */
+                tr:has(#report-tembusan:empty),
+                tr:has(#report-pimpinan:empty),
+                tr:has(#report-narasumber:empty) {
+                    display: none;
+                }
             }
              span[contenteditable="true"]:empty::before {
                 content: attr(data-placeholder);
@@ -512,6 +521,9 @@ Hormat kami,
               .report-content-preview div,
               .report-content-preview li {
                   text-align: justify;
+              }
+              span[contenteditable]:empty::before {
+                content: '';
               }
           }
         `}</style>
