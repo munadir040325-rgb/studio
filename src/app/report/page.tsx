@@ -128,14 +128,14 @@ const ReportPreview = ({ event }: { event: CalendarEvent | null }) => {
             <br />
             <table className="w-full border-separate" style={{borderSpacing: '0 4px'}}>
                 <tbody>
-                    <tr><td className="w-28 align-top">YTH.</td><td className="w-2 align-top">:</td><td className="font-semibold">CAMAT GANDRUNGMANGU</td></tr>
-                    <tr><td className="align-top">DARI</td><td className="align-top">:</td><td><EditableField placeholder="Nama Pelapor, Jabatan" /></td></tr>
-                    <tr><td className="align-top">TEMBUSAN</td><td className="align-top">:</td><td><EditableField placeholder="Isi tembusan" /></td></tr>
-                    <tr><td className="align-top">TANGGAL</td><td className="align-top">:</td><td>{reportDate}</td></tr>
-                    <tr><td className="align-top">NOMOR</td><td className="align-top">:</td><td><EditableField placeholder="Nomor Surat" /></td></tr>
-                    <tr><td className="align-top">SIFAT</td><td className="align-top">:</td><td>BIASA</td></tr>
-                    <tr><td className="align-top">LAMPIRAN</td><td className="align-top">:</td><td>-</td></tr>
-                    <tr><td className="align-top">HAL</td><td className="align-top">:</td><td className="font-semibold">LAPORAN HASIL PELAKSANAAN KEGIATAN</td></tr>
+                    <tr><td className="w-8"></td><td className="w-28 align-top">YTH.</td><td className="w-2 align-top">:</td><td className="font-semibold">CAMAT GANDRUNGMANGU</td></tr>
+                    <tr><td></td><td className="align-top">DARI</td><td className="align-top">:</td><td><EditableField placeholder="Nama Pelapor, Jabatan" /></td></tr>
+                    <tr><td></td><td className="align-top">TEMBUSAN</td><td className="align-top">:</td><td><EditableField placeholder="Isi tembusan" /></td></tr>
+                    <tr><td></td><td className="align-top">TANGGAL</td><td className="align-top">:</td><td>{reportDate}</td></tr>
+                    <tr><td></td><td className="align-top">NOMOR</td><td className="align-top">:</td><td><EditableField placeholder="Nomor Surat" /></td></tr>
+                    <tr><td></td><td className="align-top">SIFAT</td><td className="align-top">:</td><td>BIASA</td></tr>
+                    <tr><td></td><td className="align-top">LAMPIRAN</td><td className="align-top">:</td><td>-</td></tr>
+                    <tr><td></td><td className="align-top">HAL</td><td className="align-top">:</td><td className="font-semibold">LAPORAN HASIL PELAKSANAAN KEGIATAN</td></tr>
                 </tbody>
             </table>
 
@@ -412,6 +412,7 @@ export default function ReportPage() {
                     padding: 0;
                     border: none;
                     font-size: 12px;
+                    font-family: Arial, sans-serif;
                 }
                 span[contentEditable="true"], div[contentEditable="true"] {
                    background-color: transparent !important;
@@ -451,4 +452,3 @@ export default function ReportPage() {
     </div>
   );
 }
-
