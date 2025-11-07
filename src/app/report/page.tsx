@@ -452,6 +452,7 @@ Hormat kami,
                 }
                 #print-area, #print-area * {
                     visibility: visible;
+                    color: black !important;
                 }
                 #print-area {
                     position: absolute;
@@ -475,11 +476,11 @@ Hormat kami,
                     content: '';
                 }
                 .report-content-preview {
-                    color: black !important;
                     display: block !important;
                 }
                 
                 #row-dasar-kegiatan-content:has(#report-dasar:empty),
+                #row-tembusan:has(#report-tembusan:empty),
                 #row-pimpinan:has(#report-pimpinan:empty),
                 #row-narasumber:has(#report-narasumber:empty),
                 #row-peserta:has(#report-peserta:empty) {
