@@ -95,7 +95,7 @@ const ReportEditorTemplate = ({ event, reportContent, onContentChange }: { event
             <h3 className="text-center font-bold text-lg">NOTA DINAS</h3>
             <hr className="border-t-2 border-black mt-1 mb-4" />
             <div className="flex justify-center">
-                <table>
+                <table className="w-full">
                     <tbody>
                         <tr>
                             <td className="w-32 align-top">KEPADA YTH.</td>
@@ -404,11 +404,11 @@ Hormat kami,
           </CardContent>
         </Card>
 
-        <div className="mt-4" id="report-preview-container">
+        <div className="mt-4 overflow-x-auto" id="report-preview-container">
             {selectedEvent ? (
                 <ReportEditorTemplate event={selectedEvent} reportContent={reportContent} onContentChange={setReportContent} />
             ) : (
-                <Card className="text-center text-muted-foreground py-16">
+                <Card className="text-center text-muted-foreground py-16 print:hidden">
                     <p>Pilih tanggal dan kegiatan di atas untuk memulai membuat laporan.</p>
                 </Card>
             )}

@@ -260,7 +260,7 @@ export function UploadAttachmentForm({ event, onSuccess }: UploadAttachmentFormP
             <Label className="font-semibold">Upload File Lampiran</Label>
             {driveError && <p className="text-red-500 text-sm">{driveError}</p>}
             
-            <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+            <div className="grid grid-cols-1 gap-4">
                 <div className="grid gap-2">
                     <Label htmlFor="undangan-upload">Upload Undangan/Surat Tugas</Label>
                     <FileUploadButton 
@@ -272,7 +272,7 @@ export function UploadAttachmentForm({ event, onSuccess }: UploadAttachmentFormP
                         onButtonClick={() => handleAuthorizeAndPick(undanganInputRef)}
                     />
                     <p className="text-xs text-muted-foreground">Bisa unggah lebih dari satu file (PDF/DOCX).</p>
-                    <div className="overflow-hidden">
+                    <div className="max-h-32 overflow-y-auto no-scrollbar">
                     <FileList files={undanganFiles} onRemove={(index) => setUndanganFiles(files => files.filter((_, i) => i !== index))} isUploading={isUploading}/>
                     </div>
                 </div>
@@ -287,7 +287,7 @@ export function UploadAttachmentForm({ event, onSuccess }: UploadAttachmentFormP
                         onButtonClick={() => handleAuthorizeAndPick(fotoInputRef)}
                     />
                     <p className="text-xs text-muted-foreground">Bisa unggah lebih dari satu file gambar.</p>
-                    <div className="overflow-hidden">
+                     <div className="max-h-32 overflow-y-auto no-scrollbar">
                     <FileList files={fotoFiles} onRemove={(index) => setFotoFiles(files => files.filter((_, i) => i !== index))} isUploading={isUploading}/>
                     </div>
                 </div>
@@ -304,7 +304,7 @@ export function UploadAttachmentForm({ event, onSuccess }: UploadAttachmentFormP
                         onButtonClick={() => handleAuthorizeAndPick(notulenInputRef)}
                     />
                     <p className="text-xs text-muted-foreground">Hanya satu file (PDF/DOCX).</p>
-                    <div className="overflow-hidden">
+                    <div className="max-h-32 overflow-y-auto no-scrollbar">
                     {notulenFile && <FileList files={[notulenFile]} onRemove={() => setNotulenFile(null)} isUploading={isUploading} />}
                     </div>
                 </div>
@@ -320,7 +320,7 @@ export function UploadAttachmentForm({ event, onSuccess }: UploadAttachmentFormP
                         onButtonClick={() => handleAuthorizeAndPick(materiInputRef)}
                     />
                     <p className="text-xs text-muted-foreground">Bisa unggah file jenis apa pun.</p>
-                    <div className="overflow-hidden">
+                    <div className="max-h-32 overflow-y-auto no-scrollbar">
                     <FileList files={materiFiles} onRemove={(index) => setMateriFiles(files => files.filter((_, i) => i !== index))} isUploading={isUploading}/>
                     </div>
                 </div>
