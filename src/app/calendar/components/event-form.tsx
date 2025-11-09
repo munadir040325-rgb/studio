@@ -31,7 +31,7 @@ import { Popover, PopoverContent, PopoverTrigger } from '@/components/ui/popover
 import { Calendar } from '@/components/ui/calendar';
 import { CalendarIcon, Loader2, Trash2 } from 'lucide-react';
 import { cn } from '@/lib/utils';
-import { format, parseISO } from 'date-fns';
+import { format, parseISO, formatISO, parse } from 'date-fns';
 import { id } from 'date-fns/locale';
 import { createCalendarEvent, updateCalendarEvent, deleteCalendarEvent, CalendarEvent } from '@/ai/flows/calendar-flow';
 import { writeEventToSheet, deleteSheetEntry, findBagianByEventId } from '@/ai/flows/sheets-flow';
@@ -41,6 +41,7 @@ import { useState, useEffect } from 'react';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import useSWR from 'swr';
 import { extractDisposisi } from '../page';
+import { useIsMobile } from '@/hooks/use-mobile';
 
 
 const fetcher = (url: string) => fetch(url).then(res => {
@@ -82,6 +83,7 @@ export function EventForm({ onSuccess, eventToEdit }: EventFormProps) {
   const [isDeleting, setIsDeleting] = useState(false);
   const [isFindingBagian, setIsFindingBagian] = useState(false);
   const [originalBagian, setOriginalBagian] = useState<string | null>(null);
+  const isMobile = useIsMobile();
 
   const { data: bagianData, error: bagianError } = useSWR('/api/sheets', fetcher);
   
@@ -264,6 +266,15 @@ export function EventForm({ onSuccess, eventToEdit }: EventFormProps) {
     );
     field.onChange(newDate);
   };
+
+  const handleNativeDateTimeChange = (field: any, e: React.ChangeEvent<HTMLInputElement>) => {
+    if (e.target.value) {
+      // The value from datetime-local is a string like "YYYY-MM-DDTHH:mm"
+      // We need to parse it into a Date object for our form state.
+      const date = parse(e.target.value, "yyyy-MM-dd'T'HH:mm", new Date());
+      field.onChange(date);
+    }
+  };
   
   const getButtonText = () => {
     if (isSubmitting) return "Menyimpan...";
@@ -332,96 +343,116 @@ export function EventForm({ onSuccess, eventToEdit }: EventFormProps) {
                   )}
                   />
               <FormField
-              control={form.control}
-              name="startDateTime"
-              render={({ field }) => (
-                  <FormItem className="flex flex-col">
-                  <FormLabel>Waktu Mulai (Wajib)</FormLabel>
-                  <Popover>
-                      <PopoverTrigger asChild>
+                control={form.control}
+                name="startDateTime"
+                render={({ field }) => (
+                    <FormItem className="flex flex-col">
+                    <FormLabel>Waktu Mulai (Wajib)</FormLabel>
+                    {isMobile ? (
                       <FormControl>
-                          <Button
-                          variant={'outline'}
-                          className={cn(
-                              'pl-3 text-left font-normal',
-                              !field.value && 'text-muted-foreground'
-                          )}
-                          >
-                          {field.value ? (
-                              format(field.value, 'PPP HH:mm', { locale: id })
-                          ) : (
-                              <span>Pilih tanggal dan waktu</span>
-                          )}
-                          <CalendarIcon className="ml-auto h-4 w-4 opacity-50" />
-                          </Button>
+                        <Input
+                          type="datetime-local"
+                          value={field.value ? format(field.value, "yyyy-MM-dd'T'HH:mm") : ''}
+                          onChange={(e) => handleNativeDateTimeChange(field, e)}
+                        />
                       </FormControl>
-                      </PopoverTrigger>
-                      <PopoverContent className="w-auto p-0" align="start">
-                      <Calendar
-                          mode="single"
-                          selected={field.value}
-                          onSelect={(date) => handleDateChange(field, date)}
-                          locale={id}
-                          initialFocus
-                      />
-                      <div className="p-2 border-t">
-                          <Input 
-                              type="time" 
-                              value={field.value ? format(field.value, 'HH:mm') : ''}
-                              onChange={(e) => handleTimeChange(field, e.target.value)}
+                    ) : (
+                      <Popover>
+                        <PopoverTrigger asChild>
+                          <FormControl>
+                              <Button
+                              variant={'outline'}
+                              className={cn(
+                                  'pl-3 text-left font-normal',
+                                  !field.value && 'text-muted-foreground'
+                              )}
+                              >
+                              {field.value ? (
+                                  format(field.value, 'PPP HH:mm', { locale: id })
+                              ) : (
+                                  <span>Pilih tanggal dan waktu</span>
+                              )}
+                              <CalendarIcon className="ml-auto h-4 w-4 opacity-50" />
+                              </Button>
+                          </FormControl>
+                        </PopoverTrigger>
+                        <PopoverContent className="w-auto p-0" align="start">
+                          <Calendar
+                              mode="single"
+                              selected={field.value}
+                              onSelect={(date) => handleDateChange(field, date)}
+                              locale={id}
+                              initialFocus
                           />
-                      </div>
-                      </PopoverContent>
-                  </Popover>
-                  <FormMessage />
-                  </FormItem>
-              )}
+                          <div className="p-2 border-t">
+                              <Input 
+                                  type="time" 
+                                  value={field.value ? format(field.value, 'HH:mm') : ''}
+                                  onChange={(e) => handleTimeChange(field, e.target.value)}
+                              />
+                          </div>
+                        </PopoverContent>
+                      </Popover>
+                    )}
+                    <FormMessage />
+                    </FormItem>
+                )}
               />
               <FormField
-              control={form.control}
-              name="endDateTime"
-              render={({ field }) => (
-                  <FormItem className="flex flex-col">
-                  <FormLabel>Waktu Selesai (Wajib)</FormLabel>
-                  <Popover>
-                      <PopoverTrigger asChild>
+                control={form.control}
+                name="endDateTime"
+                render={({ field }) => (
+                    <FormItem className="flex flex-col">
+                    <FormLabel>Waktu Selesai (Wajib)</FormLabel>
+                    {isMobile ? (
                       <FormControl>
-                          <Button
-                          variant={'outline'}
-                          className={cn(
-                              'pl-3 text-left font-normal',
-                              !field.value && 'text-muted-foreground'
-                          )}
-                          >
-                          {field.value ? (
-                              format(field.value, 'PPP HH:mm', { locale: id })
-                          ) : (
-                              <span>Pilih tanggal dan waktu</span>
-                          )}
-                          <CalendarIcon className="ml-auto h-4 w-4 opacity-50" />
-                          </Button>
-                      </FormControl>
-                      </PopoverTrigger>
-                      <PopoverContent className="w-auto p-0" align="start">
-                      <Calendar
-                          mode="single"
-                          selected={field.value}
-                          onSelect={(date) => handleDateChange(field, date)}
-                          locale={id}
-                          initialFocus
-                      />
-                      <div className="p-2 border-t">
-                          <Input 
-                              type="time" 
-                              value={field.value ? format(field.value, 'HH:mm') : ''}
-                              onChange={(e) => handleTimeChange(field, e.target.value)}
+                          <Input
+                            type="datetime-local"
+                            value={field.value ? format(field.value, "yyyy-MM-dd'T'HH:mm") : ''}
+                            onChange={(e) => handleNativeDateTimeChange(field, e)}
                           />
-                      </div>
-                      </PopoverContent>
-                  </Popover>
-                  <FormMessage />
-                  </FormItem>
-              )}
+                      </FormControl>
+                    ) : (
+                      <Popover>
+                        <PopoverTrigger asChild>
+                            <FormControl>
+                                <Button
+                                variant={'outline'}
+                                className={cn(
+                                    'pl-3 text-left font-normal',
+                                    !field.value && 'text-muted-foreground'
+                                )}
+                                >
+                                {field.value ? (
+                                    format(field.value, 'PPP HH:mm', { locale: id })
+                                ) : (
+                                    <span>Pilih tanggal dan waktu</span>
+                                )}
+                                <CalendarIcon className="ml-auto h-4 w-4 opacity-50" />
+                                </Button>
+                            </FormControl>
+                        </PopoverTrigger>
+                        <PopoverContent className="w-auto p-0" align="start">
+                        <Calendar
+                            mode="single"
+                            selected={field.value}
+                            onSelect={(date) => handleDateChange(field, date)}
+                            locale={id}
+                            initialFocus
+                        />
+                        <div className="p-2 border-t">
+                            <Input 
+                                type="time" 
+                                value={field.value ? format(field.value, 'HH:mm') : ''}
+                                onChange={(e) => handleTimeChange(field, e.target.value)}
+                            />
+                        </div>
+                        </PopoverContent>
+                      </Popover>
+                    )}
+                    <FormMessage />
+                    </FormItem>
+                )}
               />
           </div>
            <FormField
@@ -484,4 +515,6 @@ export function EventForm({ onSuccess, eventToEdit }: EventFormProps) {
 }
 
     
+    
+
     
