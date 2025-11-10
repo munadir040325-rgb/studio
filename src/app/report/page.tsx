@@ -483,8 +483,12 @@ Hormat kami,
                 #row-tembusan:has(#report-tembusan:empty),
                 #row-pimpinan:has(#report-pimpinan:empty),
                 #row-narasumber:has(#report-narasumber:empty),
-                #row-peserta:has(#report-peserta:empty),
-                #report-meta-table:has(#report-hal:empty) {
+                #row-peserta:has(#report-peserta:empty) {
+                    display: none;
+                }
+                
+                #report-meta-table:has(#report-hal:empty),
+                #report-meta-table:has(#report-hal:empty) + hr {
                     display: none;
                 }
             }
