@@ -80,7 +80,7 @@ const formatReportDateRange = (startStr: string, endStr?: string): string => {
         } else {
             const startDayAndMonth = format(startDate, 'dd MMMM');
             const endDayAndMonth = format(endDate, 'dd MMMM yyyy', { locale: localeId });
-            return `${daysRange}, ${startDayAndMonth} s.d. ${endDayAndMonth}`;
+            return `${daysRange}, ${daysRange}, ${startDayAndMonth} s.d. ${endDayAndMonth}`;
         }
     } catch (e) {
         console.error("Error formatting date range:", e);
@@ -94,8 +94,8 @@ const ReportEditorTemplate = ({ event, reportContent, onContentChange }: { event
     
     return (
         <Card id="print-area" className="bg-white text-black p-8 md:p-12 shadow-lg rounded-sm print:shadow-none print:p-4 print:border-none">
-            <h3 className="text-center font-bold text-lg">NOTA DINAS</h3>
-            <div className="flex justify-center">
+            <h3 className="text-center font-bold text-lg border-b-2 border-black pb-2">NOTA DINAS</h3>
+            <div className="flex justify-center mt-4" id="report-meta-block">
                 <table className="w-full" id="report-meta-table">
                     <tbody>
                         <tr>
@@ -113,7 +113,7 @@ const ReportEditorTemplate = ({ event, reportContent, onContentChange }: { event
                             <td className="w-2 align-top">:</td>
                             <td><EditableField id="report-dari" placeholder="Isi pengirim" /></td>
                         </tr>
-                        <tr>
+                        <tr id="row-hal">
                             <td className='align-top w-32'>HAL</td>
                             <td className='align-top w-2'>:</td>
                             <td><EditableField id="report-hal" placeholder="Isi perihal" defaultValue="LAPORAN HASIL KEGIATAN" /></td>
@@ -121,6 +121,8 @@ const ReportEditorTemplate = ({ event, reportContent, onContentChange }: { event
                     </tbody>
                 </table>
             </div>
+
+            <hr id="meta-divider" className="my-4 border-t-2 border-black" />
 
             <table className="w-full mt-4 border-separate" style={{borderSpacing: '0 8px'}}>
                 <tbody>
@@ -478,15 +480,16 @@ Hormat kami,
                     display: block !important;
                 }
                 
-                #report-meta-table:has(#report-hal:empty) {
+                #report-meta-block:has(#report-hal:empty) {
                     display: none;
                 }
-                #report-meta-table {
-                   border-bottom: 2px solid black;
-                   padding-bottom: 1rem;
-                   margin-bottom: 1rem;
+                #meta-divider:has(+ * #report-meta-block:has(#report-hal:empty)) {
+                   display: none;
                 }
-
+                #report-meta-block:has(#report-hal:empty) + #meta-divider {
+                  display: none;
+                }
+                
                 #row-dasar-kegiatan-content:has(#report-dasar:empty),
                 #row-tembusan:has(#report-tembusan:empty),
                 #row-pimpinan:has(#report-pimpinan:empty),
