@@ -93,19 +93,18 @@ const ReportEditorTemplate = ({ event, reportContent, onContentChange }: { event
     return (
         <Card id="print-area" className="bg-white text-black p-8 md:p-12 shadow-lg rounded-sm print:shadow-none print:p-4 print:border-none">
             <h3 className="text-center font-bold text-lg">NOTA DINAS</h3>
-            <hr className="border-t-2 border-black mt-1 mb-4" />
             <div className="flex justify-center">
                 <table className="w-full" id="report-meta-table">
                     <tbody>
                         <tr>
                             <td className="w-32 align-top">KEPADA YTH.</td>
                             <td className="w-2 align-top">:</td>
-                            <td><EditableField id="report-kepada" placeholder="Isi tujuan surat" defaultValue="Camat Lengkong"/></td>
+                            <td><EditableField id="report-kepada" placeholder="Isi tujuan surat" defaultValue="CAMAT GANDRUNGMANGU"/></td>
                         </tr>
                         <tr id="row-tembusan">
                             <td className="w-32 align-top">TEMBUSAN</td>
                             <td className="w-2 align-top">:</td>
-                            <td className="align-top"><EditableField id="report-tembusan" placeholder="Isi tembusan" defaultValue="- Arsip"/></td>
+                            <td className="align-top"><EditableField id="report-tembusan" placeholder="Isi tembusan" defaultValue="SEKRETARIS KECAMATAN GANDRUNGMANGU"/></td>
                         </tr>
                         <tr>
                             <td className="w-32 align-top">DARI</td>
@@ -115,7 +114,7 @@ const ReportEditorTemplate = ({ event, reportContent, onContentChange }: { event
                         <tr>
                             <td className='align-top w-32'>HAL</td>
                             <td className='align-top w-2'>:</td>
-                            <td><EditableField id="report-hal" placeholder="Isi perihal" defaultValue="Laporan Hasil Kegiatan" /></td>
+                            <td><EditableField id="report-hal" placeholder="Isi perihal" defaultValue="LAPORAN HASIL KEGIATAN" /></td>
                         </tr>
                     </tbody>
                 </table>
@@ -476,20 +475,17 @@ Hormat kami,
                 .report-content-preview {
                     display: block !important;
                 }
-
+                
+                #report-meta-table:has(#report-hal:empty) {
+                    display: none;
+                }
                 #report-meta-table {
                    border-bottom: 2px solid black;
                    padding-bottom: 1rem;
                    margin-bottom: 1rem;
                 }
-                
-                #report-meta-table:has(#report-hal:empty) {
-                    display: none;
-                }
 
-                #row-dasar-kegiatan-content:has(#report-dasar:empty) {
-                    display: none;
-                }
+                #row-dasar-kegiatan-content:has(#report-dasar:empty),
                 #row-tembusan:has(#report-tembusan:empty),
                 #row-pimpinan:has(#report-pimpinan:empty),
                 #row-narasumber:has(#report-narasumber:empty),
