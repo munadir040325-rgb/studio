@@ -95,10 +95,10 @@ const ReportEditorTemplate = ({ event, reportContent, onContentChange }: { event
     return (
         <Card id="print-area" className="bg-white text-black p-8 md:p-12 shadow-lg rounded-sm print:shadow-none print:p-4 print:border-none">
             <h3 className="text-center font-bold text-lg border-b-2 border-black pb-2">NOTA DINAS</h3>
-            <div className="flex justify-center mt-4" id="report-meta-block">
+            <div className="flex justify-center mt-4">
                 <table className="w-full" id="report-meta-table">
                     <tbody>
-                        <tr>
+                        <tr id="row-kepada">
                             <td className="w-32 align-top">KEPADA YTH.</td>
                             <td className="w-2 align-top">:</td>
                             <td><EditableField id="report-kepada" placeholder="Isi tujuan surat" defaultValue="CAMAT GANDRUNGMANGU"/></td>
@@ -108,7 +108,7 @@ const ReportEditorTemplate = ({ event, reportContent, onContentChange }: { event
                             <td className="w-2 align-top">:</td>
                             <td className="align-top"><EditableField id="report-tembusan" placeholder="Isi tembusan" defaultValue="SEKRETARIS KECAMATAN GANDRUNGMANGU"/></td>
                         </tr>
-                        <tr>
+                        <tr id="row-dari">
                             <td className="w-32 align-top">DARI</td>
                             <td className="w-2 align-top">:</td>
                             <td><EditableField id="report-dari" placeholder="Isi pengirim" /></td>
@@ -138,7 +138,7 @@ const ReportEditorTemplate = ({ event, reportContent, onContentChange }: { event
                     </tr>
 
                     <tr>
-                        <td className="w-[1.8rem] align-top font-semibold">II.</td>
+                        <td className="w-[1  .8rem] align-top font-semibold">II.</td>
                         <td colSpan={3} className='font-semibold'>Kegiatan</td>
                     </tr>
                     <tr>
@@ -480,21 +480,23 @@ Hormat kami,
                     display: block !important;
                 }
                 
-                #report-meta-block:has(#report-hal:empty) {
-                    display: none;
-                }
-                #meta-divider:has(+ * #report-meta-block:has(#report-hal:empty)) {
-                   display: none;
-                }
-                #report-meta-block:has(#report-hal:empty) + #meta-divider {
-                  display: none;
-                }
-                
-                #row-dasar-kegiatan-content:has(#report-dasar:empty),
+                #row-kepada:has(#report-kepada:empty),
                 #row-tembusan:has(#report-tembusan:empty),
+                #row-dari:has(#report-dari:empty),
+                #row-hal:has(#report-hal:empty),
+                #row-dasar-kegiatan:has(+ #row-dasar-kegiatan-content #report-dasar:empty),
+                #row-dasar-kegiatan-content:has(#report-dasar:empty),
                 #row-pimpinan:has(#report-pimpinan:empty),
                 #row-narasumber:has(#report-narasumber:empty),
                 #row-peserta:has(#report-peserta:empty) {
+                    display: none;
+                }
+                
+                #meta-divider:has(~ #report-meta-table #report-hal:empty) {
+                   display: none;
+                }
+                
+                #report-meta-table:has(#report-hal:empty) {
                     display: none;
                 }
             }
