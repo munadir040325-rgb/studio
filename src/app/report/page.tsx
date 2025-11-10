@@ -95,7 +95,8 @@ const ReportEditorTemplate = ({ event, reportContent, onContentChange }: { event
     return (
         <Card id="print-area" className="bg-white text-black p-8 md:p-12 shadow-lg rounded-sm print:shadow-none print:p-4 print:border-none">
             <h3 className="text-center font-bold text-lg border-b-2 border-black pb-2">NOTA DINAS</h3>
-            <div className="flex justify-center mt-4">
+            
+            <div id="metadata-block" className="my-4 border-b-2 border-black pb-4">
                 <table className="w-full" id="report-meta-table">
                     <tbody>
                         <tr id="row-kepada">
@@ -122,7 +123,6 @@ const ReportEditorTemplate = ({ event, reportContent, onContentChange }: { event
                 </table>
             </div>
 
-            <hr id="meta-divider" className="my-4 border-t-2 border-black" />
 
             <table className="w-full mt-4 border-separate" style={{borderSpacing: '0 8px'}}>
                 <tbody>
@@ -478,26 +478,15 @@ Hormat kami,
                 .report-content-preview {
                     display: block !important;
                 }
+
+                #metadata-block:has(#report-hal:empty) {
+                    display: none;
+                }
                 
                 #row-kepada:has(#report-kepada:empty),
                 #row-tembusan:has(#report-tembusan:empty),
                 #row-dari:has(#report-dari:empty),
-                #row-hal:has(#report-hal:empty) {
-                    display: none;
-                }
-
-                #meta-divider:has(~ #report-meta-table #report-hal:empty) {
-                   display: none;
-                }
-
-                #report-meta-table:has(#row-hal #report-hal:empty) #row-kepada,
-                #report-meta-table:has(#row-hal #report-hal:empty) #row-tembusan,
-                #report-meta-table:has(#row-hal #report-hal:empty) #row-dari,
-                #report-meta-table:has(#row-hal #report-hal:empty) #row-hal,
-                #report-meta-table:has(#row-hal #report-hal:empty) + #meta-divider {
-                  display: none;
-                }
-
+                #row-hal:has(#report-hal:empty),
                 #row-dasar-kegiatan-content:has(#report-dasar:empty),
                 #row-pimpinan:has(#report-pimpinan:empty),
                 #row-narasumber:has(#report-narasumber:empty),
