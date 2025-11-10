@@ -121,8 +121,6 @@ const ReportEditorTemplate = ({ event, reportContent, onContentChange }: { event
                 </table>
             </div>
 
-            <hr className="border-t-2 border-black my-4" />
-            
             <table className="w-full mt-4 border-separate" style={{borderSpacing: '0 8px'}}>
                 <tbody>
                     <tr id="row-dasar-kegiatan">
@@ -478,17 +476,24 @@ Hormat kami,
                 .report-content-preview {
                     display: block !important;
                 }
+
+                #report-meta-table {
+                   border-bottom: 2px solid black;
+                   padding-bottom: 1rem;
+                   margin-bottom: 1rem;
+                }
                 
-                #row-dasar-kegiatan-content:has(#report-dasar:empty),
+                #report-meta-table:has(#report-hal:empty) {
+                    display: none;
+                }
+
+                #row-dasar-kegiatan-content:has(#report-dasar:empty) {
+                    display: none;
+                }
                 #row-tembusan:has(#report-tembusan:empty),
                 #row-pimpinan:has(#report-pimpinan:empty),
                 #row-narasumber:has(#report-narasumber:empty),
                 #row-peserta:has(#report-peserta:empty) {
-                    display: none;
-                }
-                
-                #report-meta-table:has(#report-hal:empty),
-                #report-meta-table:has(#report-hal:empty) + hr {
                     display: none;
                 }
             }
