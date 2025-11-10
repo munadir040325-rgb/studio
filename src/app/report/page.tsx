@@ -453,7 +453,6 @@ Hormat kami,
                 }
                 #print-area, #print-area * {
                     visibility: visible;
-                    color: black !important;
                 }
                 #print-area {
                     position: absolute;
@@ -483,20 +482,26 @@ Hormat kami,
                 #row-kepada:has(#report-kepada:empty),
                 #row-tembusan:has(#report-tembusan:empty),
                 #row-dari:has(#report-dari:empty),
-                #row-hal:has(#report-hal:empty),
-                #row-dasar-kegiatan:has(+ #row-dasar-kegiatan-content #report-dasar:empty),
+                #row-hal:has(#report-hal:empty) {
+                    display: none;
+                }
+
+                #meta-divider:has(~ #report-meta-table #report-hal:empty) {
+                   display: none;
+                }
+
+                #report-meta-table:has(#row-hal #report-hal:empty) #row-kepada,
+                #report-meta-table:has(#row-hal #report-hal:empty) #row-tembusan,
+                #report-meta-table:has(#row-hal #report-hal:empty) #row-dari,
+                #report-meta-table:has(#row-hal #report-hal:empty) #row-hal,
+                #report-meta-table:has(#row-hal #report-hal:empty) + #meta-divider {
+                  display: none;
+                }
+
                 #row-dasar-kegiatan-content:has(#report-dasar:empty),
                 #row-pimpinan:has(#report-pimpinan:empty),
                 #row-narasumber:has(#report-narasumber:empty),
                 #row-peserta:has(#report-peserta:empty) {
-                    display: none;
-                }
-                
-                #meta-divider:has(~ #report-meta-table #report-hal:empty) {
-                   display: none;
-                }
-                
-                #report-meta-table:has(#report-hal:empty) {
                     display: none;
                 }
             }
