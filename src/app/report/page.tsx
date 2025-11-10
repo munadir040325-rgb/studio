@@ -90,6 +90,8 @@ const formatReportDateRange = (startStr: string, endStr?: string): string => {
 
 
 const ReportEditorTemplate = ({ event, reportContent, onContentChange }: { event: CalendarEvent, reportContent: string, onContentChange: (content: string) => void }) => {
+    const defaultLokasiTanggal = `Gandrungmangu, ${format(parseISO(event.start), 'dd MMMM yyyy', { locale: localeId })}`;
+    
     return (
         <Card id="print-area" className="bg-white text-black p-8 md:p-12 shadow-lg rounded-sm print:shadow-none print:p-4 print:border-none">
             <h3 className="text-center font-bold text-lg">NOTA DINAS</h3>
@@ -210,7 +212,7 @@ const ReportEditorTemplate = ({ event, reportContent, onContentChange }: { event
             
             <div className="flex justify-end mt-8">
                 <div className="text-center w-72">
-                    <EditableField id="report-lokasi-tanggal" placeholder="Tempat, Tanggal Melaporkan" />
+                    <EditableField id="report-lokasi-tanggal" placeholder="Tempat, Tanggal Melaporkan" defaultValue={defaultLokasiTanggal}/>
                     <p>Yang melaksanakan kegiatan,</p>
                     <br /><br /><br />
                     <p className="font-semibold underline">
