@@ -95,7 +95,7 @@ const ReportEditorTemplate = ({ event, reportContent, onContentChange }: { event
             <h3 className="text-center font-bold text-lg">NOTA DINAS</h3>
             <hr className="border-t-2 border-black mt-1 mb-4" />
             <div className="flex justify-center">
-                <table className="w-full">
+                <table className="w-full" id="report-meta-table">
                     <tbody>
                         <tr>
                             <td className="w-32 align-top">KEPADA YTH.</td>
@@ -325,7 +325,7 @@ Hormat kami,
                 <Trash className="mr-2 h-4 w-4"/>
                 Reset
             </Button>
-            <Button onClick={handleCopyToWhatsApp} variant="outline" disabled={true}>
+            <Button onClick={handleCopyToWhatsApp} variant="outline" disabled={!selectedEvent}>
                 <WhatsAppIcon />
                 Salin untuk WA
             </Button>
@@ -472,7 +472,7 @@ Hormat kami,
                    border: none !important;
                    box-shadow: none !important;
                 }
-                 span[contentEditable="true"]:empty::before {
+                span[contentEditable="true"]:empty::before {
                     content: '';
                 }
                 .report-content-preview {
@@ -483,7 +483,8 @@ Hormat kami,
                 #row-tembusan:has(#report-tembusan:empty),
                 #row-pimpinan:has(#report-pimpinan:empty),
                 #row-narasumber:has(#report-narasumber:empty),
-                #row-peserta:has(#report-peserta:empty) {
+                #row-peserta:has(#report-peserta:empty),
+                #report-meta-table:has(#report-hal:empty) {
                     display: none;
                 }
             }
