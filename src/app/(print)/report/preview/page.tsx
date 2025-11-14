@@ -108,15 +108,33 @@ const ReportHeader = ({ letterheadData, logoUrl }: { letterheadData: any, logoUr
 
 const parsePelaksana = (html: string): PelaksanaData[] => {
     if (!html || typeof document === 'undefined') return [];
-
+    
     const tempDiv = document.createElement('div');
     tempDiv.innerHTML = html;
-
+    
     const results: PelaksanaData[] = [];
-    const paragraphs = Array.from(tempDiv.querySelectorAll('p'));
+    const listItems = Array.from(tempDiv.querySelectorAll('li'));
+    
+    if (listItems.length === 0) {
+        // Fallback for non-list content, like simple <p> tags
+        const paragraphs = Array.from(tempDiv.querySelectorAll('p'));
+        for (const p of paragraphs) {
+            const lines = p.innerHTML.split('<br>')
+                .map(line => line.replace(/<[^>]*>/g, '').trim())
+                .filter(line => line.length > 0);
+            
+            if (lines.length > 0) {
+                results.push({
+                    nama: lines[0] || '',
+                    jabatan: lines[1] || '',
+                });
+            }
+        }
+        return results;
+    }
 
-    for (const p of paragraphs) {
-        const lines = p.innerHTML.split('<br>')
+    for (const li of listItems) {
+        const lines = li.innerHTML.split('<br>')
             .map(line => line.replace(/<[^>]*>/g, '').trim())
             .filter(line => line.length > 0);
 
@@ -127,6 +145,7 @@ const parsePelaksana = (html: string): PelaksanaData[] => {
             });
         }
     }
+    
     return results;
 };
 
@@ -154,10 +173,12 @@ export default function ReportPreviewPage() {
     }, []);
 
     useEffect(() => {
+        // Trigger print only after reportData is successfully set
         if (reportData && !isLoading) {
              const timeoutId = setTimeout(() => {
                 window.print();
-            }, 100); 
+            }, 100); // Small delay to ensure render is complete
+            // return () => clearTimeout(timeoutId); // Cleanup timeout
         }
     }, [reportData, isLoading]);
 
@@ -241,13 +262,13 @@ export default function ReportPreviewPage() {
                 
                 <div className="flex justify-between mt-8">
                     <div></div>
-                    <div className="text-center w-72">
+                    <div className="text-center w-80">
                         <p>{lokasiTanggal}</p>
                         <p>Yang melaksanakan kegiatan,</p>
                         <br />
                         
                         {parsedPelaksana.length > 0 ? (
-                            <table className="w-full text-left" style={{ borderSpacing: '0 2rem' }}>
+                            <table className="w-full text-left" style={{ borderSpacing: '0 2.5rem' }}>
                                 <tbody>
                                     {parsedPelaksana.map((item, index) => (
                                         <tr key={index}>
@@ -264,8 +285,7 @@ export default function ReportPreviewPage() {
                                 </tbody>
                             </table>
                         ) : (
-                             <div>
-                                <br/><br/><br/>
+                            <div className="pt-20">
                                 <p className="font-semibold underline">.....................................</p>
                             </div>
                         )}
@@ -294,3 +314,5 @@ export default function ReportPreviewPage() {
         </div>
     );
 }
+
+    
