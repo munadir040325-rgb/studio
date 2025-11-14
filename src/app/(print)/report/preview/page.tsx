@@ -165,7 +165,7 @@ export default function ReportPreviewPage() {
     const logoUrl = process.env.NEXT_PUBLIC_KOP_LOGO || "https://i.ibb.co/5xcxSzd/logo-cilacap.png";
 
     return (
-        <>
+        <main className="p-4 md:p-6">
             <div className="fixed top-4 right-4 print:hidden">
                 <Button onClick={() => window.print()}>
                     <Printer className="mr-2 h-4 w-4" />
@@ -246,6 +246,6 @@ export default function ReportPreviewPage() {
                     </div>
                 )}
             </div>
-        </>
+        </main>
     );
 }
