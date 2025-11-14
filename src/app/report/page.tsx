@@ -113,10 +113,10 @@ const ReportHeader = ({ letterheadData, logoUrl }: { letterheadData: any, logoUr
     <div className="mb-4">
         <div className="flex items-start gap-4 pb-2">
             <Image src={logoUrl} alt="Logo Instansi" width={80} height={80} className="print:w-20 print:h-20" />
-            <div className="text-center flex-grow">
+            <div className="text-center flex-grow" style={{ lineHeight: 1.2 }}>
                 <p className="font-semibold" style={{ fontSize: '14pt' }}>{letterheadData.instansi.toUpperCase()}</p>
                 <p className="font-bold" style={{ fontSize: '22pt' }}>{letterheadData.skpd.toUpperCase()}</p>
-                <div style={{ fontSize: '10pt', lineHeight: '1.2' }}>
+                <div style={{ fontSize: '10pt' }}>
                     <p>{letterheadData.alamat}</p>
                     <p>
                         <span>Telepon: {letterheadData.telepon}</span>
@@ -142,39 +142,12 @@ const ReportEditorTemplate = ({ event, reportContent, onContentChange, letterhea
     const photoAttachments = useMemo(() => event.attachments?.filter(att => att.mimeType?.startsWith('image/')) || [], [event.attachments]);
     
     return (
-        <div id="print-area" className="bg-white text-black print:shadow-none print:p-4 print:border-none">
+        <div id="print-area" className="bg-white text-black print:shadow-none print:p-4 print:border-none" style={{ lineHeight: 1.2 }}>
             {/* Halaman 1: Laporan */}
             <div className="report-page p-8 md:p-12">
                 <ReportHeader letterheadData={letterheadData} logoUrl={logoUrl} />
-                <h3 className="text-center font-bold text-lg border-b-2 border-black pb-2">NOTA DINAS</h3>
+                <h3 className="text-center font-bold text-lg my-6">LAPORAN KEGIATAN/PERJALANAN DINAS</h3>
                 
-                <div id="metadata-block" className="my-4 border-b-2 border-black pb-4">
-                    <table className="w-full" id="report-meta-table">
-                        <tbody>
-                            <tr id="row-kepada">
-                                <td className="w-32 align-top">KEPADA YTH.</td>
-                                <td className="w-2 align-top">:</td>
-                                <td><EditableField id="report-kepada" placeholder="Isi tujuan surat" defaultValue="CAMAT GANDRUNGMANGU"/></td>
-                            </tr>
-                            <tr id="row-tembusan">
-                                <td className="w-32 align-top">TEMBUSAN</td>
-                                <td className="w-2 align-top">:</td>
-                                <td className="align-top"><EditableField id="report-tembusan" placeholder="Isi tembusan" defaultValue="SEKRETARIS KECAMATAN GANDRUNGMANGU"/></td>
-                            </tr>
-                            <tr id="row-dari">
-                                <td className="w-32 align-top">DARI</td>
-                                <td className="w-2 align-top">:</td>
-                                <td><EditableField id="report-dari" placeholder="Isi pengirim" /></td>
-                            </tr>
-                            <tr id="row-hal">
-                                <td className='align-top w-32'>HAL</td>
-                                <td className='align-top w-2'>:</td>
-                                <td><EditableField id="report-hal" placeholder="Isi perihal" defaultValue="LAPORAN HASIL KEGIATAN" /></td>
-                            </tr>
-                        </tbody>
-                    </table>
-                </div>
-
                 <table className="w-full mt-4 border-separate" style={{borderSpacing: '0 8px'}}>
                     <tbody>
                         <tr id="row-dasar-kegiatan">
@@ -305,8 +278,6 @@ export default function ReportPage() {
   const [selectedDate, setSelectedDate] = useState<Date | undefined>();
   const [selectedEvent, setSelectedEvent] = useState<CalendarEvent | null>(null);
   const [reportContent, setReportContent] = useState('');
-  const [isWhatsAppModalOpen, setIsWhatsAppModalOpen] = useState(false);
-  const [whatsAppMessage, setWhatsAppMessage] = useState('');
 
   const { data: eventsData, error: eventsError, isLoading: isLoadingEvents } = useSWR('/api/events', fetcher);
     
@@ -345,63 +316,6 @@ export default function ReportPage() {
     toast({ description: 'Pilihan telah dikosongkan.' });
   }
 
-  const handleCopyToWhatsApp = () => {
-    if (!selectedEvent) return;
-
-    // Helper to get text from contentEditable fields
-    const getEditableText = (id: string) => {
-        const element = document.getElementById(id);
-        return element?.innerText?.trim() || '';
-    };
-
-    // Helper to convert HTML from Rich Text Editor to plain text
-    const htmlToPlainText = (html: string) => {
-        const tempDiv = document.createElement('div');
-        tempDiv.innerHTML = html;
-        // Replace list items with a more WA-friendly format
-        tempDiv.querySelectorAll('li').forEach(li => {
-            li.innerHTML = `• ${li.innerHTML.replace(/<br>/g, '\n  ')}\n`;
-        });
-        // Handle paragraphs for better spacing
-        tempDiv.querySelectorAll('p').forEach(p => {
-             p.innerHTML = `${p.innerHTML}<br>`;
-        });
-        return tempDiv.innerText.trim() || '';
-    };
-
-    const kepada = getEditableText('report-kepada');
-    const tembusan = getEditableText('report-tembusan');
-    const peserta = getEditableText('report-peserta');
-    const pelapor = getEditableText('report-pelapor');
-    const hasilPlainText = htmlToPlainText(reportContent);
-
-    const message = `*Laporan Kegiatan*
-Kepada Yth: ${kepada || '(Kepada Yth.)'}
-Tembusan: ${tembusan || '(Tembusan)'}
-
-Mohon ijin melaporkan hasil kegiatan dari *${selectedEvent.summary}* sebagai berikut:
-
-*I. Pelaksanaan*
-  • *Hari, tanggal*: ${formatReportDateRange(selectedEvent.start, selectedEvent.end)}
-  • *Waktu*: Pukul ${format(parseISO(selectedEvent.start), 'HH:mm', { locale: localeId })} WIB s.d. Selesai
-  • *Tempat*: ${selectedEvent.location || getEditableText('report-tempat')}
-
-*II. Peserta dan Pihak Terkait*:
-${peserta || '(Tidak ada peserta spesifik)'}
-
-*III. Hasil Kegiatan*:
-${hasilPlainText || '(Belum ada hasil kegiatan yang diisi)'}
-
-Demikian laporan ini disampaikan, terima kasih.
-
-Hormat kami,
-*${pelapor || '(Nama Pelapor)'}*
-`;
-
-    setWhatsAppMessage(message);
-    setIsWhatsAppModalOpen(true);
-  };
-
   const photoAttachments = useMemo(() => selectedEvent?.attachments?.filter(att => att.mimeType?.startsWith('image/')) || [], [selectedEvent]);
 
   // Get letterhead data from environment variables
@@ -435,10 +349,6 @@ Hormat kami,
             <Button variant="outline" onClick={handleReset}>
                 <Trash className="mr-2 h-4 w-4"/>
                 Reset
-            </Button>
-            <Button onClick={handleCopyToWhatsApp} variant="outline" disabled={!selectedEvent}>
-                <WhatsAppIcon />
-                Salin untuk WA
             </Button>
             <Button onClick={handlePrint} disabled={!selectedEvent}>
                 <Printer className="mr-2 h-4 w-4" />
@@ -546,33 +456,6 @@ Hormat kami,
                 </Card>
             )}
         </div>
-
-        {/* WhatsApp Modal */}
-        <Dialog open={isWhatsAppModalOpen} onOpenChange={setIsWhatsAppModalOpen}>
-            <DialogContent>
-                <DialogHeader>
-                    <DialogTitle>Format Laporan untuk WhatsApp</DialogTitle>
-                    <DialogDescription>
-                        Salin teks di bawah ini dan tempelkan di WhatsApp.
-                    </DialogDescription>
-                </DialogHeader>
-                <Textarea
-                    readOnly
-                    value={whatsAppMessage}
-                    className="h-72 text-sm bg-muted/50 whitespace-pre-wrap"
-                />
-                <DialogFooter>
-                    <Button onClick={() => {
-                        navigator.clipboard.writeText(whatsAppMessage);
-                        toast({ title: "Teks disalin!", description: "Anda sekarang dapat menempelkan laporan di WhatsApp." });
-                    }}>
-                        <Copy className="mr-2 h-4 w-4" />
-                        Salin Teks
-                    </Button>
-                </DialogFooter>
-            </DialogContent>
-        </Dialog>
-
 
         <style jsx global>{`
             @import "@blocknote/core/style.css";
