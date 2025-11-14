@@ -49,10 +49,20 @@ const formatReportDateRange = (startStr: string, endStr?: string): string => {
         if (isSameDay(startDate, endDate)) {
             return format(startDate, 'EEEE, dd MMMM yyyy', { locale: localeId });
         }
+        
+        const startDayName = format(startDate, 'EEEE', { locale: localeId });
+        const endDayName = format(endDate, 'EEEE', { locale: localeId });
+        const daysRange = `${startDayName} s.d. ${endDayName}`;
+
         if (isSameMonth(startDate, endDate)) {
-            return `${format(startDate, 'EEEE, dd', { locale: localeId })} s.d. ${format(endDate, 'EEEE, dd MMMM yyyy', { locale: localeId })}`;
+            const startDay = format(startDate, 'dd');
+            const endDayAndMonth = format(endDate, 'dd MMMM yyyy', { locale: localeId });
+            return `${daysRange}, ${startDay} s.d. ${endDayAndMonth}`;
+        } else {
+            const startDayAndMonth = format(startDate, 'dd MMMM');
+            const endDayAndMonth = format(endDate, 'dd MMMM yyyy', { locale: localeId });
+            return `${daysRange}, ${startDayAndMonth} s.d. ${endDayAndMonth}`;
         }
-        return `${format(startDate, 'EEEE, dd MMMM yyyy', { locale: localeId })} s.d. ${format(endDate, 'EEEE, dd MMMM yyyy', { locale: localeId })}`;
     } catch (e) {
         return "Tanggal tidak valid";
     }
@@ -107,14 +117,16 @@ export default function ReportPreviewPage() {
         }
 
         // Memicu print dialog setelah data dimuat
-        setTimeout(() => {
-            window.print();
+        const timer = setTimeout(() => {
+            if(window) window.print();
         }, 500); // Delay untuk memastikan konten dirender
+        
+        return () => clearTimeout(timer);
     }, []);
 
     if (!reportData) {
         return (
-            <div className="flex items-center justify-center min-h-screen text-muted-foreground">
+            <div className="flex items-center justify-center min-h-screen text-muted-foreground bg-gray-100">
                 <Loader2 className="mr-2 h-4 w-4 animate-spin" />
                 Memuat pratinjau laporan...
             </div>
@@ -173,9 +185,9 @@ export default function ReportPreviewPage() {
                                             <tr><td className='w-32 align-top'>Hari/Tanggal</td><td className='w-4 align-top'>:</td><td>{formatReportDateRange(event.start, event.end)}</td></tr>
                                             <tr><td className='w-32 align-top'>Waktu</td><td className='w-4 align-top'>:</td><td>{isManualEvent ? event.waktu : `Pukul ${format(parseISO(event.start), 'HH:mm', { locale: localeId })} WIB s.d. Selesai`}</td></tr>
                                             <tr><td className='w-32 align-top'>Tempat</td><td className='w-4 align-top'>:</td><td>{event.location}</td></tr>
-                                            <tr><td className='w-32 align-top' dangerouslySetInnerHTML={{ __html: labelPimpinan }}></td><td className='w-4 align-top'>:</td><td dangerouslySetInnerHTML={{ __html: pimpinan }}></td></tr>
-                                            <tr><td className="w-32 align-top" dangerouslySetInnerHTML={{ __html: labelNarasumber }}></td><td className='w-4 align-top'>:</td><td dangerouslySetInnerHTML={{ __html: narasumber }}></td></tr>
-                                            <tr><td className='w-32 align-top' dangerouslySetInnerHTML={{ __html: labelPeserta }}></td><td className='w-4 align-top'>:</td><td dangerouslySetInnerHTML={{ __html: peserta }}></td></tr>
+                                            <tr><td className='w-32 align-top'>{labelPimpinan}</td><td className='w-4 align-top'>:</td><td dangerouslySetInnerHTML={{ __html: pimpinan }}></td></tr>
+                                            <tr><td className="w-32 align-top">{labelNarasumber}</td><td className='w-4 align-top'>:</td><td dangerouslySetInnerHTML={{ __html: narasumber }}></td></tr>
+                                            <tr><td className='w-32 align-top'>{labelPeserta}</td><td className='w-4 align-top'>:</td><td dangerouslySetInnerHTML={{ __html: peserta }}></td></tr>
                                         </tbody>
                                     </table>
                                 </td>
