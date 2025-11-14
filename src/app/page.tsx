@@ -1,11 +1,12 @@
 
+
 'use client';
 
 import { useState, useEffect, useCallback, useMemo, Fragment } from 'react';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardFooter, CardHeader, CardTitle } from '@/components/ui/card';
 import { Popover, PopoverContent, PopoverTrigger } from '@/components/ui/popover';
-import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter, DialogDescription } from '@/components/ui/dialog';
+import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter, DialogDescription, DialogTrigger } from '@/components/ui/dialog';
 import { Calendar as CalendarIcon, ExternalLink, PlusCircle, RefreshCw, MapPin, Clock, ChevronLeft, ChevronRight, Pin, Copy, Info, Link as LinkIcon, FolderOpen, Paperclip, Folder, PenSquare, Trash2, Search, Building, FileUp } from 'lucide-react';
 import { Calendar } from '@/components/ui/calendar';
 import { Badge } from '@/components/ui/badge';
