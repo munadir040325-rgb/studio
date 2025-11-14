@@ -288,24 +288,6 @@ export default function ReportPage() {
                         <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
                             <div className="space-y-4">
                                <ReportEditorField label="I. Dasar Kegiatan" value={dasar} onEditorChange={setDasar} placeholder="1. Peraturan Daerah..." />
-                               <div className="grid gap-2">
-                                  <Label>II. Rincian Kegiatan</Label>
-                                   <div className="p-4 border rounded-md bg-muted/50 space-y-2 text-sm">
-                                      {isManualMode ? (
-                                        <>
-                                            <p><strong className="w-24 inline-block">Acara</strong>: {manualSummary || '-'}</p>
-                                            <p><strong className="w-24 inline-block">Waktu</strong>: {manualWaktu || '-'}</p>
-                                            <p><strong className="w-24 inline-block">Tempat</strong>: {manualTempat || '-'}</p>
-                                        </>
-                                      ) : selectedEvent && (
-                                        <>
-                                            <p><strong className="w-24 inline-block">Acara</strong>: {selectedEvent.summary}</p>
-                                            <p><strong className="w-24 inline-block">Waktu</strong>: {format(parseISO(selectedEvent.start), "EEEE, dd MMMM yyyy 'pukul' HH:mm", { locale: localeId })}</p>
-                                            <p><strong className="w-24 inline-block">Tempat</strong>: {selectedEvent.location}</p>
-                                        </>
-                                      )}
-                                  </div>
-                               </div>
                                 <ReportEditorField label="Pelaksana" value={pelaksana} onEditorChange={setPelaksana} placeholder="Contoh: Camat Gandrungmangu" />
                                 <ReportEditorField label="Narasumber/Verifikator" value={narasumber} onEditorChange={setNarasumber} placeholder="Contoh: 1. Inspektorat Daerah..." />
                                 <ReportEditorField label="Pejabat/Peserta" value={peserta} onEditorChange={setPeserta} placeholder="Contoh: 1. Kasubbag Perencanaan..." />
@@ -336,5 +318,3 @@ export default function ReportPage() {
         </div>
     );
 }
-
-    
