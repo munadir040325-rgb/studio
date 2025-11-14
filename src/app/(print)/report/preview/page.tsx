@@ -1,5 +1,4 @@
 
-
 'use client';
 
 import { useEffect, useState } from 'react';
@@ -107,54 +106,66 @@ const ReportHeader = ({ letterheadData, logoUrl }: { letterheadData: any, logoUr
 );
 
 const parsePelaksana = (html: string): PelaksanaData[] => {
-    if (!html || typeof document === 'undefined') return [];
-    
+    if (typeof document === 'undefined') return [];
+
+    // Hapus tag p kosong dan <br> di awal/akhir
+    const cleanedHtml = html.trim().replace(/^<p><br><\/p>$/, '').replace(/^(<br\s*\/?>)+|(<br\s*\/?>)+$/g, '');
+    if (!cleanedHtml) return [];
+
     const tempDiv = document.createElement('div');
-    tempDiv.innerHTML = html;
-    
+    tempDiv.innerHTML = cleanedHtml;
+
     const results: PelaksanaData[] = [];
     const listItems = Array.from(tempDiv.querySelectorAll('li'));
-    
-    if (listItems.length === 0) {
-        // Fallback for non-list content, like simple <p> tags with <br>
-        const paragraphs = tempDiv.innerHTML.split(/<p>.*?<\/p>/).filter(p => p.trim());
-        const singleP = tempDiv.querySelector('p');
-        
-        const lines = (singleP ? singleP.innerHTML : tempDiv.innerHTML)
-                .split('<br>')
+
+    if (listItems.length > 0) {
+        // Handle list items (ul, ol)
+        for (const li of listItems) {
+            const lines = li.innerHTML.split('<br>')
                 .map(line => line.replace(/<[^>]*>/g, '').trim())
-                .filter(line => line.length > 0);
-
-        if (lines.length > 0) {
-            results.push({
-                nama: lines[0] || '',
-                jabatan: lines[1] || '',
-            });
+                .filter(line => line);
+            if (lines.length > 0) {
+                results.push({
+                    nama: lines[0] || '',
+                    jabatan: lines[1] || '',
+                });
+            }
         }
-        return results;
+    } else {
+        // Handle plain text with <br> or multiple <p>
+        const blocks = Array.from(tempDiv.children).length > 0 ? Array.from(tempDiv.children) : [tempDiv];
+        for (const block of blocks) {
+            const lines = block.innerHTML.split('<br>')
+                .map(line => line.replace(/<[^>]*>/g, '').trim())
+                .filter(line => line);
+             if (lines.length > 0) {
+                results.push({
+                    nama: lines[0] || '',
+                    jabatan: lines[1] || '',
+                });
+            }
+        }
     }
 
-    for (const li of listItems) {
-        const lines = li.innerHTML.split('<br>')
-            .map(line => line.replace(/<[^>]*>/g, '').trim())
-            .filter(line => line.length > 0);
-
-        if (lines.length > 0) {
-            results.push({
-                nama: lines[0] || '',
-                jabatan: lines[1] || '',
-            });
-        }
-    }
-    
     return results;
 };
 
-const HtmlContent = ({ html }: { html: string }) => {
-    if (!html || html.replace(/<[^>]*>/g, '').trim() === '') {
+const HtmlContent = ({ html, asList = false }: { html: string, asList?: boolean }) => {
+    const cleanedHtml = html.replace(/<p>&nbsp;<\/p>/g, '').replace(/<p><br><\/p>/g, '').trim();
+    if (!cleanedHtml || cleanedHtml === '<br>') {
         return null;
     }
-    return <div dangerouslySetInnerHTML={{ __html: html }} />;
+
+    if (asList) {
+        // Cek jika sudah ada <ul> atau <ol>
+        if (cleanedHtml.startsWith('<ul>') || cleanedHtml.startsWith('<ol>')) {
+             return <div dangerouslySetInnerHTML={{ __html: cleanedHtml }} />;
+        }
+        // Jika tidak, bungkus dengan <ol>
+        return <ol className="list-decimal list-inside" dangerouslySetInnerHTML={{ __html: cleanedHtml.replace(/<p>/g, '<li>').replace(/<\/p>/g, '</li>') }} />;
+    }
+
+    return <div dangerouslySetInnerHTML={{ __html: cleanedHtml }} />;
 };
 
 
@@ -239,12 +250,9 @@ export default function ReportPreviewPage() {
                             <td colSpan={4} className='font-semibold'>Dasar Kegiatan</td>
                         </tr>
                         <tr>
-                            <td colSpan={4} className='pb-2'><HtmlContent html={dasar} /></td>
+                            <td colSpan={4} className='pb-2'><HtmlContent html={dasar} asList={true} /></td>
                         </tr>
 
-                        <tr>
-                            <td colSpan={4} className='font-semibold'>Rincian Kegiatan</td>
-                        </tr>
                         <tr>
                             <td colSpan={4}>
                                 <table className="w-full">
@@ -253,9 +261,9 @@ export default function ReportPreviewPage() {
                                         <tr><td className='w-32 align-top'>Hari/Tanggal</td><td className='w-4 align-top'>:</td><td>{formatReportDateRange(event.start, event.end)}</td></tr>
                                         <tr><td className='w-32 align-top'>Waktu</td><td className='w-4 align-top'>:</td><td>{isManualEvent ? event.waktu : `Pukul ${format(parseISO(event.start), 'HH:mm', { locale: localeId })} WIB s.d. Selesai`}</td></tr>
                                         <tr><td className='w-32 align-top'>Tempat</td><td className='w-4 align-top'>:</td><td>{event.location}</td></tr>
-                                        <tr><td className='w-32 align-top'>Pelaksana</td><td className='w-4 align-top'>:</td><td><HtmlContent html={pelaksana} /></td></tr>
-                                        <tr><td className="w-32 align-top">Narasumber/Verifikator</td><td className='w-4 align-top'>:</td><td><HtmlContent html={narasumber} /></td></tr>
-                                        <tr><td className='w-32 align-top'>Pejabat/Peserta</td><td className='w-4 align-top'>:</td><td><HtmlContent html={peserta} /></td></tr>
+                                        <tr><td className='w-32 align-top'>Pelaksana</td><td className='w-4 align-top'>:</td><td><HtmlContent html={pelaksana} asList={true} /></td></tr>
+                                        <tr><td className="w-32 align-top">Narasumber/Verifikator</td><td className='w-4 align-top'>:</td><td><HtmlContent html={narasumber} asList={true} /></td></tr>
+                                        <tr><td className='w-32 align-top'>Pejabat/Peserta</td><td className='w-4 align-top'>:</td><td><HtmlContent html={peserta} asList={true} /></td></tr>
                                     </tbody>
                                 </table>
                             </td>
@@ -274,8 +282,8 @@ export default function ReportPreviewPage() {
                         <p>Yang melaksanakan kegiatan,</p>
                         <br />
                         
-                        {parsedPelaksana.length > 0 ? (
-                            <table className="w-full text-left" style={{ borderSpacing: '0 2.5rem' }}>
+                        {parsedPelaksana.length > 0 && (
+                            <table className="w-full text-left" style={{ borderSpacing: '0 2rem' }}>
                                 <tbody>
                                     {parsedPelaksana.map((item, index) => (
                                         <tr key={index}>
@@ -291,30 +299,28 @@ export default function ReportPreviewPage() {
                                     ))}
                                 </tbody>
                             </table>
-                        ) : (
-                            <div className="pt-20">
-                                <p className="font-semibold underline">.....................................</p>
-                            </div>
                         )}
                     </div>
                 </div>
             </div>
 
             {photoAttachments.length > 0 && (
-                <div style={{ breakBefore: 'page' }} className="p-8 md:p-12">
-                    <h3 className="text-center font-bold text-lg mb-4 uppercase">Lampiran Foto Kegiatan</h3>
-                    <h4 className="text-center font-semibold text-base mb-8">{event.summary}</h4>
-                    <div className="grid grid-cols-2 gap-4">
-                        {photoAttachments.map((att, index) => (
-                        <div key={index} className="flex flex-col items-center">
-                            <img 
-                                src={getGoogleDriveThumbnailUrl(att.fileId!)} 
-                                alt={att.title || `Lampiran ${index + 1}`}
-                                className="w-full h-auto object-cover border"
-                            />
-                            <p className="text-sm mt-2 text-center">{att.title}</p>
+                <div className="page-break">
+                    <div className="p-8 md:p-12">
+                        <h3 className="text-center font-bold text-lg mb-4 uppercase">Lampiran Foto Kegiatan</h3>
+                        <h4 className="text-center font-semibold text-base mb-8">{event.summary}</h4>
+                        <div className="grid grid-cols-2 gap-4">
+                            {photoAttachments.map((att, index) => (
+                            <div key={index} className="flex flex-col items-center">
+                                <img 
+                                    src={getGoogleDriveThumbnailUrl(att.fileId!)} 
+                                    alt={att.title || `Lampiran ${index + 1}`}
+                                    className="w-full h-auto object-cover border"
+                                />
+                                <p className="text-sm mt-2 text-center">{att.title}</p>
+                            </div>
+                            ))}
                         </div>
-                        ))}
                     </div>
                 </div>
             )}

@@ -97,4 +97,50 @@ body {
   }
 }
 
-    
+/* =============================
+   FIX HALAMAN KOSONG SAAT PRINT
+   ============================= */
+@media print {
+
+  /* Hapus tinggi layar yang memicu halaman kosong */
+  html, body {
+    height: auto !important;
+    min-height: 0 !important;
+    overflow: visible !important;
+    print-color-adjust: exact;
+    -webkit-print-color-adjust: exact;
+  }
+
+  /* Hapus min-h-screen dari Tailwind */
+  [class*="min-h-screen"],
+  [class*="min-h-full"],
+  [class*="h-screen"],
+  [class*="h-full"] {
+    min-height: auto !important;
+    height: auto !important;
+  }
+
+  /* Semua container jangan pakai scroll */
+  * {
+    overflow: visible !important;
+  }
+
+  /* Grid sering memaksa halaman tambahan */
+  .grid {
+    display: block !important;
+  }
+
+  /* Bagian lampiran – reset padding agar tidak muncul buffer */
+  .page-break {
+    break-before: page;
+    padding-top: 0 !important;
+    margin-top: 0 !important;
+  }
+
+  /* Supaya tidak ada halaman ekstra */
+  #print-area {
+    height: auto !important;
+    min-height: auto !important;
+    overflow: visible !important;
+  }
+}
