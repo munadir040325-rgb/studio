@@ -1,7 +1,7 @@
 
 'use client';
 
-import { useState, useMemo, useRef } from 'react';
+import { useState, useMemo, useRef, useEffect } from 'react';
 import { PageHeader } from '@/components/page-header';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardDescription, CardFooter, CardHeader, CardTitle } from '@/components/ui/card';
@@ -20,6 +20,7 @@ import { Alert, AlertDescription, AlertTitle } from '@/components/ui/alert';
 import DOMPurify from 'isomorphic-dompurify';
 import { RichTextEditor } from '@/components/editor';
 import { Textarea } from '@/components/ui/textarea';
+import Image from 'next/image';
 
 
 const WhatsAppIcon = () => (
@@ -28,6 +29,13 @@ const WhatsAppIcon = () => (
     </svg>
 );
 
+type CalendarAttachment = {
+    fileUrl: string | null | undefined;
+    title: string | null | undefined;
+    fileId: string | null | undefined;
+    mimeType?: string | null | undefined;
+}
+
 type CalendarEvent = {
   id: string;
   summary: string;
@@ -35,6 +43,7 @@ type CalendarEvent = {
   end?: string;
   location?: string | null;
   description?: string | null;
+  attachments?: CalendarAttachment[];
 };
 
 const fetcher = (url: string) => fetch(url).then(res => {
@@ -88,141 +97,174 @@ const formatReportDateRange = (startStr: string, endStr?: string): string => {
     }
 };
 
+const getGoogleDriveThumbnailUrl = (fileIdOrUrl: string): string => {
+    if (!fileIdOrUrl) return '';
+    let fileId = fileIdOrUrl;
+    // Extract fileId from URL if it's a URL
+    const match = fileIdOrUrl.match(/(?:\/d\/|id=)([a-zA-Z0-9_-]{25,})/);
+    if (match && match[1]) {
+        fileId = match[1];
+    }
+    return `/api/drive/cache-image/${fileId}`;
+};
 
 const ReportEditorTemplate = ({ event, reportContent, onContentChange }: { event: CalendarEvent, reportContent: string, onContentChange: (content: string) => void }) => {
     const defaultLokasiTanggal = `Gandrungmangu, ${format(parseISO(event.start), 'dd MMMM yyyy', { locale: localeId })}`;
+    const photoAttachments = useMemo(() => event.attachments?.filter(att => att.mimeType?.startsWith('image/')) || [], [event.attachments]);
     
     return (
-        <Card id="print-area" className="bg-white text-black p-8 md:p-12 shadow-lg rounded-sm print:shadow-none print:p-4 print:border-none">
-            <h3 className="text-center font-bold text-lg border-b-2 border-black pb-2">NOTA DINAS</h3>
-            
-            <div id="metadata-block" className="my-4 border-b-2 border-black pb-4">
-                <table className="w-full" id="report-meta-table">
+        <div id="print-area" className="bg-white text-black print:shadow-none print:p-4 print:border-none">
+            {/* Halaman 1: Laporan */}
+            <div className="report-page p-8 md:p-12">
+                <h3 className="text-center font-bold text-lg border-b-2 border-black pb-2">NOTA DINAS</h3>
+                
+                <div id="metadata-block" className="my-4 border-b-2 border-black pb-4">
+                    <table className="w-full" id="report-meta-table">
+                        <tbody>
+                            <tr id="row-kepada">
+                                <td className="w-32 align-top">KEPADA YTH.</td>
+                                <td className="w-2 align-top">:</td>
+                                <td><EditableField id="report-kepada" placeholder="Isi tujuan surat" defaultValue="CAMAT GANDRUNGMANGU"/></td>
+                            </tr>
+                            <tr id="row-tembusan">
+                                <td className="w-32 align-top">TEMBUSAN</td>
+                                <td className="w-2 align-top">:</td>
+                                <td className="align-top"><EditableField id="report-tembusan" placeholder="Isi tembusan" defaultValue="SEKRETARIS KECAMATAN GANDRUNGMANGU"/></td>
+                            </tr>
+                            <tr id="row-dari">
+                                <td className="w-32 align-top">DARI</td>
+                                <td className="w-2 align-top">:</td>
+                                <td><EditableField id="report-dari" placeholder="Isi pengirim" /></td>
+                            </tr>
+                            <tr id="row-hal">
+                                <td className='align-top w-32'>HAL</td>
+                                <td className='align-top w-2'>:</td>
+                                <td><EditableField id="report-hal" placeholder="Isi perihal" defaultValue="LAPORAN HASIL KEGIATAN" /></td>
+                            </tr>
+                        </tbody>
+                    </table>
+                </div>
+
+                <table className="w-full mt-4 border-separate" style={{borderSpacing: '0 8px'}}>
                     <tbody>
-                        <tr id="row-kepada">
-                            <td className="w-32 align-top">KEPADA YTH.</td>
-                            <td className="w-2 align-top">:</td>
-                            <td><EditableField id="report-kepada" placeholder="Isi tujuan surat" defaultValue="CAMAT GANDRUNGMANGU"/></td>
+                        <tr id="row-dasar-kegiatan">
+                            <td className="w-[1.8rem] align-top font-semibold">I.</td>
+                            <td colSpan={3} className='font-semibold'>Dasar Kegiatan</td>
                         </tr>
-                        <tr id="row-tembusan">
-                            <td className="w-32 align-top">TEMBUSAN</td>
-                            <td className="w-2 align-top">:</td>
-                            <td className="align-top"><EditableField id="report-tembusan" placeholder="Isi tembusan" defaultValue="SEKRETARIS KECAMATAN GANDRUNGMANGU"/></td>
+                        <tr id="row-dasar-kegiatan-content">
+                            <td></td>
+                            <td colSpan={3} className='pb-2'>
+                               <EditableField id="report-dasar" placeholder="Isi dasar kegiatan (contoh: Perintah Lisan Camat)" className="w-full" />
+                            </td>
                         </tr>
-                        <tr id="row-dari">
-                            <td className="w-32 align-top">DARI</td>
-                            <td className="w-2 align-top">:</td>
-                            <td><EditableField id="report-dari" placeholder="Isi pengirim" /></td>
+
+                        <tr>
+                            <td className="w-[1.8rem] align-top font-semibold">II.</td>
+                            <td colSpan={3} className='font-semibold'>Kegiatan</td>
                         </tr>
-                        <tr id="row-hal">
-                            <td className='align-top w-32'>HAL</td>
-                            <td className='align-top w-2'>:</td>
-                            <td><EditableField id="report-hal" placeholder="Isi perihal" defaultValue="LAPORAN HASIL KEGIATAN" /></td>
+                        <tr>
+                            <td></td>
+                            <td colSpan={3}>
+                                 <table className="w-full">
+                                    <tbody>
+                                        <tr>
+                                            <td className="w-32 align-top">Acara</td>
+                                            <td className="w-4 align-top">:</td>
+                                            <td>{event.summary}</td>
+                                        </tr>
+                                        <tr>
+                                            <td className='w-32 align-top'>Hari/Tanggal</td>
+                                            <td className='w-4 align-top'>:</td>
+                                            <td>{formatReportDateRange(event.start, event.end)}</td>
+                                        </tr>
+                                        <tr>
+                                            <td className='w-32 align-top'>Waktu</td>
+                                            <td className='w-4 align-top'>:</td>
+                                            <td>Pukul {format(parseISO(event.start), 'HH:mm', { locale: localeId })} WIB s.d. Selesai</td>
+                                        </tr>
+                                        <tr>
+                                            <td className='w-32 align-top'>Tempat</td>
+                                            <td className='w-4 align-top'>:</td>
+                                            <td>{event.location || <EditableField id="report-tempat" placeholder="Tempat Kegiatan" />}</td>
+                                        </tr>
+                                        <tr id="row-pimpinan">
+                                            <td className='w-32 align-top'><EditableField id="label-pimpinan" placeholder="Label" defaultValue="Pimpinan Rapat"/></td>
+                                            <td className='w-4 align-top'>:</td>
+                                            <td><EditableField id="report-pimpinan" placeholder="Isi Pimpinan Rapat" /></td>
+                                        </tr>
+                                        <tr id="row-narasumber">
+                                            <td className="w-32 align-top"><EditableField id="label-narasumber" placeholder="Label" defaultValue="Narasumber"/></td>
+                                            <td className='w-4 align-top'>:</td>
+                                            <td><EditableField id="report-narasumber" placeholder="Isi Narasumber" /></td>
+                                        </tr>
+                                        <tr id="row-peserta">
+                                            <td className='w-32 align-top'><EditableField id="label-peserta" placeholder="Label" defaultValue="Peserta"/></td>
+                                            <td className='w-4 align-top'>:</td>
+                                            <td><EditableField id="report-peserta" placeholder="Sebutkan peserta/perwakilan yang hadir" /></td>
+                                        </tr>
+                                    </tbody>
+                                </table>
+                            </td>
+                        </tr>
+                        
+                         <tr>
+                            <td className="w-[1.8rem] align-top font-semibold pt-2">III.</td>
+                            <td colSpan={3} className='font-semibold pt-2'>Hasil dan Tindak Lanjut</td>
+                        </tr>
+                         <tr>
+                            <td></td>
+                            <td colSpan={3} className="w-full">
+                                 <div className='print:hidden'>
+                                    <RichTextEditor
+                                        onChange={onContentChange}
+                                        placeholder="Ketik hasil laporan di sini..."
+                                    />
+                                 </div>
+                                 <div 
+                                    className="report-content-preview hidden print:block"
+                                    dangerouslySetInnerHTML={{ __html: DOMPurify.sanitize(reportContent) }}
+                                />
+                            </td>
+                        </tr>
+                        <tr className='text-justify'>
+                           <td></td>
+                           <td colSpan={3} className="pt-4">Demikian untuk menjadikan periksa dan terima kasih.</td>
                         </tr>
                     </tbody>
                 </table>
-            </div>
-
-
-            <table className="w-full mt-4 border-separate" style={{borderSpacing: '0 8px'}}>
-                <tbody>
-                    <tr id="row-dasar-kegiatan">
-                        <td className="w-[1.8rem] align-top font-semibold">I.</td>
-                        <td colSpan={3} className='font-semibold'>Dasar Kegiatan</td>
-                    </tr>
-                    <tr id="row-dasar-kegiatan-content">
-                        <td></td>
-                        <td colSpan={3} className='pb-2'>
-                           <EditableField id="report-dasar" placeholder="Isi dasar kegiatan (contoh: Perintah Lisan Camat)" className="w-full" />
-                        </td>
-                    </tr>
-
-                    <tr>
-                        <td className="w-[1  .8rem] align-top font-semibold">II.</td>
-                        <td colSpan={3} className='font-semibold'>Kegiatan</td>
-                    </tr>
-                    <tr>
-                        <td></td>
-                        <td colSpan={3}>
-                             <table className="w-full">
-                                <tbody>
-                                    <tr>
-                                        <td className="w-32 align-top">Acara</td>
-                                        <td className="w-4 align-top">:</td>
-                                        <td>{event.summary}</td>
-                                    </tr>
-                                    <tr>
-                                        <td className='w-32 align-top'>Hari/Tanggal</td>
-                                        <td className='w-4 align-top'>:</td>
-                                        <td>{formatReportDateRange(event.start, event.end)}</td>
-                                    </tr>
-                                    <tr>
-                                        <td className='w-32 align-top'>Waktu</td>
-                                        <td className='w-4 align-top'>:</td>
-                                        <td>Pukul {format(parseISO(event.start), 'HH:mm', { locale: localeId })} WIB s.d. Selesai</td>
-                                    </tr>
-                                    <tr>
-                                        <td className='w-32 align-top'>Tempat</td>
-                                        <td className='w-4 align-top'>:</td>
-                                        <td>{event.location || <EditableField id="report-tempat" placeholder="Tempat Kegiatan" />}</td>
-                                    </tr>
-                                    <tr id="row-pimpinan">
-                                        <td className='w-32 align-top'><EditableField id="label-pimpinan" placeholder="Label" defaultValue="Pimpinan Rapat"/></td>
-                                        <td className='w-4 align-top'>:</td>
-                                        <td><EditableField id="report-pimpinan" placeholder="Isi Pimpinan Rapat" /></td>
-                                    </tr>
-                                    <tr id="row-narasumber">
-                                        <td className="w-32 align-top"><EditableField id="label-narasumber" placeholder="Label" defaultValue="Narasumber"/></td>
-                                        <td className='w-4 align-top'>:</td>
-                                        <td><EditableField id="report-narasumber" placeholder="Isi Narasumber" /></td>
-                                    </tr>
-                                    <tr id="row-peserta">
-                                        <td className='w-32 align-top'><EditableField id="label-peserta" placeholder="Label" defaultValue="Peserta"/></td>
-                                        <td className='w-4 align-top'>:</td>
-                                        <td><EditableField id="report-peserta" placeholder="Sebutkan peserta/perwakilan yang hadir" /></td>
-                                    </tr>
-                                </tbody>
-                            </table>
-                        </td>
-                    </tr>
-                    
-                     <tr>
-                        <td className="w-[1.8rem] align-top font-semibold pt-2">III.</td>
-                        <td colSpan={3} className='font-semibold pt-2'>Hasil dan Tindak Lanjut</td>
-                    </tr>
-                     <tr>
-                        <td></td>
-                        <td colSpan={3} className="w-full">
-                             <div className='print:hidden'>
-                                <RichTextEditor
-                                    onChange={onContentChange}
-                                    placeholder="Ketik hasil laporan di sini..."
-                                />
-                             </div>
-                             <div 
-                                className="report-content-preview hidden print:block"
-                                dangerouslySetInnerHTML={{ __html: DOMPurify.sanitize(reportContent) }}
-                            />
-                        </td>
-                    </tr>
-                    <tr className='text-justify'>
-                       <td></td>
-                       <td colSpan={3} className="pt-4">Demikian untuk menjadikan periksa dan terima kasih.</td>
-                    </tr>
-                </tbody>
-            </table>
-            
-            <div className="flex justify-end mt-8">
-                <div className="text-center w-72">
-                    <EditableField id="report-lokasi-tanggal" placeholder="Tempat, Tanggal Melaporkan" defaultValue={defaultLokasiTanggal}/>
-                    <p>Yang melaksanakan kegiatan,</p>
-                    <br /><br /><br />
-                    <p className="font-semibold underline">
-                        <EditableField id="report-pelapor" placeholder="Nama Pelapor" />
-                    </p>
+                
+                <div className="flex justify-end mt-8" id="signature-block">
+                    <div className="text-center w-72">
+                        <EditableField id="report-lokasi-tanggal" placeholder="Tempat, Tanggal Melaporkan" defaultValue={defaultLokasiTanggal}/>
+                        <p>Yang melaksanakan kegiatan,</p>
+                        <br /><br /><br />
+                        <p className="font-semibold underline">
+                            <EditableField id="report-pelapor" placeholder="Nama Pelapor" />
+                        </p>
+                    </div>
                 </div>
             </div>
-        </Card>
+
+            {/* Halaman 2: Lampiran Foto (hanya saat cetak) */}
+            {photoAttachments.length > 0 && (
+                <div className="attachment-page hidden print:block p-8 md:p-12">
+                     <h3 className="text-center font-bold text-lg mb-4">LAMPIRAN FOTO KEGIATAN</h3>
+                     <h4 className="text-center font-semibold text-base mb-8">{event.summary}</h4>
+                     <div className="grid grid-cols-2 gap-4">
+                        {photoAttachments.map((att, index) => (
+                           <div key={index} className="flex flex-col items-center">
+                             <img 
+                                src={getGoogleDriveThumbnailUrl(att.fileId!)} 
+                                alt={att.title || `Lampiran ${index + 1}`}
+                                className="w-full h-auto object-cover border"
+                             />
+                             <p className="text-sm mt-2 text-center">{att.title}</p>
+                           </div>
+                        ))}
+                     </div>
+                </div>
+            )}
+        </div>
     );
 };
 
@@ -238,7 +280,24 @@ export default function ReportPage() {
 
   const { data: eventsData, error: eventsError, isLoading: isLoadingEvents } = useSWR('/api/events', fetcher);
     
-  const events: CalendarEvent[] = eventsData?.items.sort((a: CalendarEvent, b: CalendarEvent) => parseISO(b.start).getTime() - parseISO(a.start).getTime()) || [];
+  const events: CalendarEvent[] = useMemo(() => {
+    if (!eventsData?.items) return [];
+    return (eventsData.items as any[]).map(item => ({
+        id: item.id,
+        summary: item.summary,
+        start: item.start,
+        end: item.end,
+        location: item.location,
+        description: item.description,
+        attachments: (item.attachments || []).map((att: any) => ({
+            fileUrl: att.fileUrl,
+            title: att.title,
+            fileId: att.fileId,
+            mimeType: att.mimeType,
+        }))
+    })).sort((a: CalendarEvent, b: CalendarEvent) => parseISO(b.start).getTime() - parseISO(a.start).getTime());
+  }, [eventsData]);
+
   
   const filteredEvents = useMemo(() => {
     if (!selectedDate) return [];
@@ -312,6 +371,13 @@ Hormat kami,
     setWhatsAppMessage(message);
     setIsWhatsAppModalOpen(true);
   };
+
+  const photoAttachments = useMemo(() => selectedEvent?.attachments?.filter(att => att.mimeType?.startsWith('image/')) || [], [selectedEvent]);
+
+  useEffect(() => {
+    // Reset report content when a new event is selected
+    setReportContent('');
+  }, [selectedEvent]);
 
 
   return (
@@ -402,6 +468,22 @@ Hormat kami,
                   )}
                 </div>
             </div>
+            {/* Mini Photo Gallery */}
+            {photoAttachments.length > 0 && (
+                <div className="mt-6">
+                    <Label className="font-semibold">Pratinjau Lampiran Foto</Label>
+                    <div className="grid grid-cols-3 sm:grid-cols-4 md:grid-cols-6 gap-2 mt-2">
+                        {photoAttachments.map((att, index) => (
+                             <img
+                                key={index}
+                                src={getGoogleDriveThumbnailUrl(att.fileId!)}
+                                alt={att.title || `Lampiran ${index + 1}`}
+                                className="w-full h-24 object-cover rounded-md border"
+                            />
+                        ))}
+                    </div>
+                </div>
+            )}
           </CardContent>
         </Card>
 
@@ -444,57 +526,8 @@ Hormat kami,
 
         <style jsx global>{`
             @import "@blocknote/core/style.css";
-            @media print {
-                body, html {
-                    visibility: hidden;
-                    margin: 0 !important;
-                    padding: 0 !important;
-                    background: white;
-                }
-                #print-area, #print-area * {
-                    visibility: visible;
-                }
-                #print-area {
-                    position: absolute;
-                    left: 0;
-                    top: 0;
-                    width: 100%;
-                    height: auto;
-                    margin: 0;
-                    padding: 0;
-                }
-                main.p-4, main.p-6 {
-                    padding: 0 !important;
-                    margin: 0 !important;
-                }
-                span[contentEditable="true"] {
-                   background-color: transparent !important;
-                   border: none !important;
-                   box-shadow: none !important;
-                }
-                span[contentEditable="true"]:empty::before {
-                    content: '';
-                }
-                .report-content-preview {
-                    display: block !important;
-                }
 
-                #metadata-block:has(#report-hal:empty) {
-                    display: none;
-                }
-                
-                #row-kepada:has(#report-kepada:empty),
-                #row-tembusan:has(#report-tembusan:empty),
-                #row-dari:has(#report-dari:empty),
-                #row-hal:has(#report-hal:empty),
-                #row-dasar-kegiatan-content:has(#report-dasar:empty),
-                #row-pimpinan:has(#report-pimpinan:empty),
-                #row-narasumber:has(#report-narasumber:empty),
-                #row-peserta:has(#report-peserta:empty) {
-                    display: none;
-                }
-            }
-             span[contenteditable="true"]:empty::before {
+            span[contenteditable="true"]:empty::before {
                 content: attr(data-placeholder);
                 color: #666;
                 font-style: italic;
@@ -511,26 +544,58 @@ Hormat kami,
               size: A4;
               margin: 2.1cm;
           }
+          
+          .attachment-page {
+             page-break-before: always;
+          }
+
           @media print {
-              body {
+              body, html {
+                  background: white !important;
                   -webkit-print-color-adjust: exact;
                   print-color-adjust: exact;
               }
-              #print-area, #print-area * {
+              .print-hidden {
+                  display: none !important;
+              }
+              #print-area {
+                  display: block !important;
+              }
+              .report-page, .attachment-page {
+                  background: white !important;
+              }
+               body > *, body > div:not(#print-area), body > main > div:not(#report-preview-container) {
+                  display: none;
+               }
+               #report-preview-container, #print-area {
+                   display: block !important;
+                   margin: 0 !important;
+                   padding: 0 !important;
+               }
+               main.p-4, main.p-6 {
+                  padding: 0 !important;
+                  margin: 0 !important;
+               }
+               #print-area, #print-area * {
+                  visibility: visible;
                   font-family: Arial, sans-serif !important;
                   font-size: 12pt !important;
                   line-height: 1.2 !important;
-                  visibility: visible;
                   color: black !important;
-              }
-              .report-content-preview p,
-              .report-content-preview div,
-              .report-content-preview li {
+               }
+               span[contentEditable="true"] {
+                   background-color: transparent !important;
+                   border: none !important;
+                   box-shadow: none !important;
+               }
+                .report-content-preview {
+                    display: block !important;
+                }
+                .report-content-preview p,
+                .report-content-preview div,
+                .report-content-preview li {
                   text-align: justify;
-              }
-              span[contenteditable]:empty::before {
-                content: '';
-              }
+                }
           }
         `}</style>
     </div>

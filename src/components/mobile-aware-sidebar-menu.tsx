@@ -1,3 +1,4 @@
+
 'use client';
 
 import Link from 'next/link';
@@ -20,7 +21,7 @@ export function MobileAwareSidebarMenu() {
     <SidebarMenu>
       <SidebarMenuItem onClick={handleMenuClick}>
         <SidebarMenuButton asChild size="lg">
-          <Link href="/calendar">
+          <Link href="/">
             <CalendarDays />
             Kalender
           </Link>
