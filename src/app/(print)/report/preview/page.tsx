@@ -35,6 +35,12 @@ type ReportData = {
     photoAttachments: any[];
 };
 
+type PelaksanaData = {
+    nama: string;
+    jabatan: string;
+};
+
+
 const formatReportDateRange = (startStr: string, endStr?: string): string => {
     try {
         const startDate = parseISO(startStr);
@@ -99,22 +105,31 @@ const ReportHeader = ({ letterheadData, logoUrl }: { letterheadData: any, logoUr
     </div>
 );
 
-// Function to strip HTML tags and get clean text, especially for single-line fields
-const cleanHtmlForPlainText = (html: string | undefined): string => {
-    if (!html) return '';
-    // Create a temporary div to parse the HTML
+
+const parsePelaksana = (html: string): PelaksanaData[] => {
+    if (!html || typeof document === 'undefined') return [];
+
     const tempDiv = document.createElement('div');
     tempDiv.innerHTML = html;
-    
-    // Check if the only content is <br> tags inside <p> tags, which indicates an empty editor.
-    const isEmptyEditor = tempDiv.innerHTML.trim().match(/^<p>(<br>)*<\/p>$/i);
-    if (isEmptyEditor) {
-        return '';
-    }
 
-    // Get the text content, which strips all tags
-    return tempDiv.textContent || '';
+    const results: PelaksanaData[] = [];
+    const paragraphs = Array.from(tempDiv.querySelectorAll('p'));
+
+    for (const p of paragraphs) {
+        const lines = p.innerHTML.split('<br>')
+            .map(line => line.replace(/<[^>]*>/g, '').trim())
+            .filter(line => line.length > 0);
+
+        if (lines.length > 0) {
+            results.push({
+                nama: lines[0] || '',
+                jabatan: lines[1] || '',
+            });
+        }
+    }
+    return results;
 };
+
 
 export default function ReportPreviewPage() {
     const [reportData, setReportData] = useState<ReportData | null>(null);
@@ -125,7 +140,8 @@ export default function ReportPreviewPage() {
         try {
             const data = localStorage.getItem('reportDataForPrint');
             if (data) {
-                setReportData(JSON.parse(data));
+                const parsedData = JSON.parse(data);
+                setReportData(parsedData);
             } else {
                 setError("Data laporan tidak ditemukan. Silakan kembali dan coba lagi.");
             }
@@ -139,10 +155,9 @@ export default function ReportPreviewPage() {
 
     useEffect(() => {
         if (reportData && !isLoading) {
-            const timeoutId = setTimeout(() => {
+             const timeoutId = setTimeout(() => {
                 window.print();
-            }, 500); // Small delay to ensure images/fonts are rendered
-            return () => clearTimeout(timeoutId);
+            }, 100); 
         }
     }, [reportData, isLoading]);
 
@@ -168,7 +183,7 @@ export default function ReportPreviewPage() {
     const { event, dasar, pelaksana, narasumber, peserta, reportContent, photoAttachments } = reportData;
     const isManualEvent = 'waktu' in event && !!event.waktu;
     
-    const plainTextPelaksana = cleanHtmlForPlainText(pelaksana);
+    const parsedPelaksana = parsePelaksana(pelaksana);
 
     const letterheadData = {
         instansi: process.env.NEXT_PUBLIC_KOP_INSTANSI || 'PEMERINTAH KABUPATEN CILACAP',
@@ -186,7 +201,6 @@ export default function ReportPreviewPage() {
 
     return (
         <div id="print-area" className="bg-white text-black p-8 max-w-4xl mx-auto" style={{ lineHeight: 1.2 }}>
-            {/* Halaman 1: Laporan */}
             <div className="report-page">
                 <ReportHeader letterheadData={letterheadData} logoUrl={logoUrl} />
                 <h3 className="text-center font-bold text-lg my-6 uppercase">Laporan Kegiatan/Perjalanan Dinas</h3>
@@ -225,17 +239,40 @@ export default function ReportPreviewPage() {
                     </tbody>
                 </table>
                 
-                <div className="flex justify-end mt-8">
+                <div className="flex justify-between mt-8">
+                    <div></div>
                     <div className="text-center w-72">
                         <p>{lokasiTanggal}</p>
                         <p>Yang melaksanakan kegiatan,</p>
-                        <br /><br /><br />
-                        <p className="font-semibold underline">{plainTextPelaksana || '.....................................'}</p>
+                        <br />
+                        
+                        {parsedPelaksana.length > 0 ? (
+                            <table className="w-full text-left" style={{ borderSpacing: '0 2rem' }}>
+                                <tbody>
+                                    {parsedPelaksana.map((item, index) => (
+                                        <tr key={index}>
+                                            <td className="align-top pr-2">{index + 1}.</td>
+                                            <td>
+                                                <div className="flex flex-col">
+                                                    <span>(.....................................)</span>
+                                                    <span className="font-semibold underline">{item.nama}</span>
+                                                    <span>{item.jabatan}</span>
+                                                </div>
+                                            </td>
+                                        </tr>
+                                    ))}
+                                </tbody>
+                            </table>
+                        ) : (
+                             <div>
+                                <br/><br/><br/>
+                                <p className="font-semibold underline">.....................................</p>
+                            </div>
+                        )}
                     </div>
                 </div>
             </div>
 
-            {/* Halaman 2: Lampiran Foto (jika ada) */}
             {photoAttachments.length > 0 && (
                 <div className="attachment-page p-8 md:p-12" style={{ breakBefore: 'page' }}>
                     <h3 className="text-center font-bold text-lg mb-4 uppercase">Lampiran Foto Kegiatan</h3>
@@ -257,4 +294,3 @@ export default function ReportPreviewPage() {
         </div>
     );
 }
-
