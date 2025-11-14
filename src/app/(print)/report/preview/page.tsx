@@ -1,4 +1,5 @@
 
+
 'use client';
 
 import { useEffect, useState } from 'react';
@@ -105,7 +106,6 @@ const ReportHeader = ({ letterheadData, logoUrl }: { letterheadData: any, logoUr
     </div>
 );
 
-
 const parsePelaksana = (html: string): PelaksanaData[] => {
     if (!html || typeof document === 'undefined') return [];
     
@@ -116,19 +116,20 @@ const parsePelaksana = (html: string): PelaksanaData[] => {
     const listItems = Array.from(tempDiv.querySelectorAll('li'));
     
     if (listItems.length === 0) {
-        // Fallback for non-list content, like simple <p> tags
-        const paragraphs = Array.from(tempDiv.querySelectorAll('p'));
-        for (const p of paragraphs) {
-            const lines = p.innerHTML.split('<br>')
+        // Fallback for non-list content, like simple <p> tags with <br>
+        const paragraphs = tempDiv.innerHTML.split(/<p>.*?<\/p>/).filter(p => p.trim());
+        const singleP = tempDiv.querySelector('p');
+        
+        const lines = (singleP ? singleP.innerHTML : tempDiv.innerHTML)
+                .split('<br>')
                 .map(line => line.replace(/<[^>]*>/g, '').trim())
                 .filter(line => line.length > 0);
-            
-            if (lines.length > 0) {
-                results.push({
-                    nama: lines[0] || '',
-                    jabatan: lines[1] || '',
-                });
-            }
+
+        if (lines.length > 0) {
+            results.push({
+                nama: lines[0] || '',
+                jabatan: lines[1] || '',
+            });
         }
         return results;
     }
@@ -147,6 +148,13 @@ const parsePelaksana = (html: string): PelaksanaData[] => {
     }
     
     return results;
+};
+
+const HtmlContent = ({ html }: { html: string }) => {
+    if (!html || html.replace(/<[^>]*>/g, '').trim() === '') {
+        return null;
+    }
+    return <div dangerouslySetInnerHTML={{ __html: html }} />;
 };
 
 
@@ -173,12 +181,11 @@ export default function ReportPreviewPage() {
     }, []);
 
     useEffect(() => {
-        // Trigger print only after reportData is successfully set
         if (reportData && !isLoading) {
              const timeoutId = setTimeout(() => {
                 window.print();
-            }, 100); // Small delay to ensure render is complete
-            // return () => clearTimeout(timeoutId); // Cleanup timeout
+            }, 500); 
+            return () => clearTimeout(timeoutId);
         }
     }, [reportData, isLoading]);
 
@@ -222,7 +229,7 @@ export default function ReportPreviewPage() {
 
     return (
         <div id="print-area" className="bg-white text-black p-8 max-w-4xl mx-auto" style={{ lineHeight: 1.2 }}>
-            <div className="report-page">
+            <div>
                 <ReportHeader letterheadData={letterheadData} logoUrl={logoUrl} />
                 <h3 className="text-center font-bold text-lg my-6 uppercase">Laporan Kegiatan/Perjalanan Dinas</h3>
                 
@@ -232,11 +239,11 @@ export default function ReportPreviewPage() {
                             <td colSpan={4} className='font-semibold'>Dasar Kegiatan</td>
                         </tr>
                         <tr>
-                            <td colSpan={4} className='pb-2' dangerouslySetInnerHTML={{ __html: dasar }}></td>
+                            <td colSpan={4} className='pb-2'><HtmlContent html={dasar} /></td>
                         </tr>
 
                         <tr>
-                            <td colSpan={4} className='font-semibold'>II. Rincian Kegiatan</td>
+                            <td colSpan={4} className='font-semibold'>Rincian Kegiatan</td>
                         </tr>
                         <tr>
                             <td colSpan={4}>
@@ -246,16 +253,16 @@ export default function ReportPreviewPage() {
                                         <tr><td className='w-32 align-top'>Hari/Tanggal</td><td className='w-4 align-top'>:</td><td>{formatReportDateRange(event.start, event.end)}</td></tr>
                                         <tr><td className='w-32 align-top'>Waktu</td><td className='w-4 align-top'>:</td><td>{isManualEvent ? event.waktu : `Pukul ${format(parseISO(event.start), 'HH:mm', { locale: localeId })} WIB s.d. Selesai`}</td></tr>
                                         <tr><td className='w-32 align-top'>Tempat</td><td className='w-4 align-top'>:</td><td>{event.location}</td></tr>
-                                        <tr><td className='w-32 align-top'>Pelaksana</td><td className='w-4 align-top'>:</td><td dangerouslySetInnerHTML={{ __html: pelaksana }}></td></tr>
-                                        <tr><td className="w-32 align-top">Narasumber/Verifikator</td><td className='w-4 align-top'>:</td><td dangerouslySetInnerHTML={{ __html: narasumber }}></td></tr>
-                                        <tr><td className='w-32 align-top'>Pejabat/Peserta</td><td className='w-4 align-top'>:</td><td dangerouslySetInnerHTML={{ __html: peserta }}></td></tr>
+                                        <tr><td className='w-32 align-top'>Pelaksana</td><td className='w-4 align-top'>:</td><td><HtmlContent html={pelaksana} /></td></tr>
+                                        <tr><td className="w-32 align-top">Narasumber/Verifikator</td><td className='w-4 align-top'>:</td><td><HtmlContent html={narasumber} /></td></tr>
+                                        <tr><td className='w-32 align-top'>Pejabat/Peserta</td><td className='w-4 align-top'>:</td><td><HtmlContent html={peserta} /></td></tr>
                                     </tbody>
                                 </table>
                             </td>
                         </tr>
                         
                         <tr><td colSpan={4} className='font-semibold pt-2'>Hasil dan Tindak Lanjut</td></tr>
-                        <tr><td colSpan={4} className="w-full" dangerouslySetInnerHTML={{ __html: reportContent }}></td></tr>
+                        <tr><td colSpan={4} className="w-full"><HtmlContent html={reportContent} /></td></tr>
                         <tr className='text-justify'><td colSpan={4} className="pt-4">Demikian untuk menjadikan periksa dan terima kasih.</td></tr>
                     </tbody>
                 </table>
@@ -275,7 +282,7 @@ export default function ReportPreviewPage() {
                                             <td className="align-top pr-2">{index + 1}.</td>
                                             <td>
                                                 <div className="flex flex-col">
-                                                    <span>(.....................................)</span>
+                                                    <span className="h-12">(.....................................)</span>
                                                     <span className="font-semibold underline">{item.nama}</span>
                                                     <span>{item.jabatan}</span>
                                                 </div>
@@ -294,7 +301,7 @@ export default function ReportPreviewPage() {
             </div>
 
             {photoAttachments.length > 0 && (
-                <div className="attachment-page p-8 md:p-12" style={{ breakBefore: 'page' }}>
+                <div style={{ breakBefore: 'page' }} className="p-8 md:p-12">
                     <h3 className="text-center font-bold text-lg mb-4 uppercase">Lampiran Foto Kegiatan</h3>
                     <h4 className="text-center font-semibold text-base mb-8">{event.summary}</h4>
                     <div className="grid grid-cols-2 gap-4">
@@ -314,5 +321,7 @@ export default function ReportPreviewPage() {
         </div>
     );
 }
+
+    
 
     
