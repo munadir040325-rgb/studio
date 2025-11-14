@@ -110,30 +110,29 @@ const getGoogleDriveThumbnailUrl = (fileIdOrUrl: string): string => {
 };
 
 const ReportHeader = ({ letterheadData, logoUrl }: { letterheadData: any, logoUrl: string }) => (
-    <div className="flex items-start gap-4 border-b-[3px] border-black pb-4 mb-4">
-        <Image src={logoUrl} alt="Logo Instansi" width={80} height={80} className="print:w-20 print:h-20" />
-        <div className="text-center flex-grow">
-            <p className="font-semibold" style={{ fontSize: '14pt' }}>{letterheadData.instansi}</p>
-            <p className="font-bold" style={{ fontSize: '22pt' }}>{letterheadData.skpd}</p>
-            <div style={{ fontSize: '10pt', lineHeight: '1.2' }}>
-                <p>{letterheadData.alamat}</p>
-                <p>
-                    <span>Telepon: {letterheadData.telepon}</span>
-                    <span className="mx-2">,</span>
-                    <span>Faksimile: {letterheadData.fax}</span>
-                </p>
-                <p className="print:hidden">
-                        <a href={`http://${letterheadData.website}`} target="_blank" rel="noopener noreferrer" className="text-blue-600 hover:underline">{letterheadData.website}</a>
+    <div className="mb-4">
+        <div className="flex items-start gap-4 pb-2">
+            <Image src={logoUrl} alt="Logo Instansi" width={80} height={80} className="print:w-20 print:h-20" />
+            <div className="text-center flex-grow">
+                <p className="font-semibold" style={{ fontSize: '14pt' }}>{letterheadData.instansi.toUpperCase()}</p>
+                <p className="font-bold" style={{ fontSize: '22pt' }}>{letterheadData.skpd.toUpperCase()}</p>
+                <div style={{ fontSize: '10pt', lineHeight: '1.2' }}>
+                    <p>{letterheadData.alamat}</p>
+                    <p>
+                        <span>Telepon: {letterheadData.telepon}</span>
                         <span className="mx-2">,</span>
-                        <a href={`mailto:${letterheadData.email}`} className="text-blue-600 hover:underline">{letterheadData.email}</a>
-                </p>
-                <p className="hidden print:inline">
-                    <span>Laman: {letterheadData.website}</span>
-                    <span className="mx-2">,</span>
-                    <span>Pos-el: {letterheadData.email}</span>
-                </p>
+                        <span>Faksimile: {letterheadData.fax}</span>
+                    </p>
+                    <p>
+                        <span>Laman: {letterheadData.website}</span>
+                        <span className="mx-2">,</span>
+                        <span>Pos-el: {letterheadData.email}</span>
+                    </p>
+                </div>
             </div>
         </div>
+        <div className="border-t-[3px] border-black"></div>
+        <div className="border-t-[1px] border-black mt-1"></div>
     </div>
 );
 
@@ -416,7 +415,7 @@ Hormat kami,
     email: process.env.NEXT_PUBLIC_KOP_EMAIL || 'email@website.go.id'
   };
 
-  const logoUrl = process.env.NEXT_PUBLIC_KOP_LOGO || "https://picsum.photos/seed/logo/100/100";
+  const logoUrl = process.env.NEXT_PUBLIC_KOP_LOGO || "https://i.ibb.co/5xcxSzd/logo-cilacap.png";
 
 
   useEffect(() => {
