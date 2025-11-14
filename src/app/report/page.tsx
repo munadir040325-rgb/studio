@@ -206,7 +206,7 @@ export default function ReportPage() {
             
             {isManualMode ? (
                 <div className='mt-6 space-y-6 animate-in fade-in-0'>
-                    <h3 className='font-semibold'>2. Input Detail Kegiatan</h3>
+                    <h3 className='font-semibold'>Input Detail Kegiatan</h3>
                     <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
                         <div className="space-y-2 md:col-span-2">
                             <Label htmlFor='manual-summary'>Nama Kegiatan</Label>
@@ -259,7 +259,7 @@ export default function ReportPage() {
             ) : (
                 <div className='space-y-6 animate-in fade-in-0'>
                     {eventsError && <Alert variant="destructive"><AlertTitle>Error</AlertTitle><AlertDescription>{eventsError.message}</AlertDescription></Alert>}
-                    <h3 className='font-semibold'>1. Pilih Kegiatan dari Kalender</h3>
+                    <h3 className='font-semibold'>Pilih Kegiatan dari Kalender</h3>
                     <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
                         <div className="space-y-2">
                         <Label htmlFor="tanggal-kegiatan" className="font-semibold">Pilih Tanggal Kegiatan</Label>
