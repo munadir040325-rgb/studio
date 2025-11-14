@@ -4,7 +4,7 @@
 import { useState, useEffect, useCallback, useMemo } from 'react';
 import { Button } from '@/components/ui/button';
 import { Card, CardHeader, CardTitle, CardContent, CardFooter } from '@/components/ui/card';
-import { Calendar as CalendarIcon, Loader2, Printer, Edit, Image as ImageIcon, FileText as FileTextIcon } from 'lucide-react';
+import { Calendar as CalendarIcon, Loader2, Printer, Edit, Image as ImageIcon, FileText as FileTextIcon, SwitchIcon } from 'lucide-react';
 import { Popover, PopoverContent, PopoverTrigger } from '@/components/ui/popover';
 import { Calendar } from '@/components/ui/calendar';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
@@ -15,7 +15,8 @@ import { format, parseISO } from 'date-fns';
 import { id as localeId } from 'date-fns/locale';
 import { useToast } from '@/hooks/use-toast';
 import { PageHeader } from '@/components/page-header';
-import DOMPurify from 'isomorphic-dompurify';
+import { Switch } from '@/components/ui/switch';
+
 
 type CalendarAttachment = {
     fileUrl: string | null | undefined;
@@ -25,10 +26,10 @@ type CalendarAttachment = {
 };
 
 type EventData = {
-    id: string;
+    id?: string;
     summary: string;
     start: string;
-    end: string;
+    end?: string;
     location?: string | null;
     waktu?: string;
     description?: string | null;
@@ -67,7 +68,13 @@ export default function ReportPage() {
     const [selectedEventId, setSelectedEventId] = useState<string>('');
     const [isLoading, setIsLoading] = useState(false);
     const [isPrinting, setIsPrinting] = useState(false);
+    const [isManualMode, setIsManualMode] = useState(false);
     const { toast } = useToast();
+
+    // Manual input state
+    const [manualSummary, setManualSummary] = useState('');
+    const [manualWaktu, setManualWaktu] = useState('');
+    const [manualTempat, setManualTempat] = useState('');
 
     // Report form state
     const [dasar, setDasar] = useState('');
@@ -107,61 +114,83 @@ export default function ReportPage() {
     }, [toast]);
 
     useEffect(() => {
-        if (selectedDate) {
+        if (selectedDate && !isManualMode) {
             fetchEvents(selectedDate);
         }
-    }, [selectedDate, fetchEvents]);
+    }, [selectedDate, fetchEvents, isManualMode]);
 
     const selectedEvent = useMemo(() => {
+        if (isManualMode) return null;
         return events.find(e => e.id === selectedEventId);
-    }, [events, selectedEventId]);
+    }, [events, selectedEventId, isManualMode]);
 
     useEffect(() => {
-        if (selectedEvent) {
+        const eventToUse = selectedEvent;
+        if (eventToUse) {
              const defaultLokasi = process.env.NEXT_PUBLIC_KOP_KECAMATAN || "Gandrungmangu";
-             const defaultTanggal = format(parseISO(selectedEvent.start), 'dd MMMM yyyy', { locale: localeId });
+             const defaultTanggal = format(parseISO(eventToUse.start), 'dd MMMM yyyy', { locale: localeId });
              setLokasiTanggal(`${defaultLokasi}, ${defaultTanggal}`);
 
-             const imageAttachments = selectedEvent.attachments?.filter(att => 
+             const imageAttachments = eventToUse.attachments?.filter(att => 
                 att.mimeType?.startsWith('image/')
              ) || [];
              setPhotoAttachments(imageAttachments);
+        } else {
+             const defaultLokasi = process.env.NEXT_PUBLIC_KOP_KECAMATAN || "Gandrungmangu";
+             const defaultTanggal = format(new Date(), 'dd MMMM yyyy', { locale: localeId });
+             setLokasiTanggal(`${defaultLokasi}, ${defaultTanggal}`);
+             setPhotoAttachments([]);
         }
     }, [selectedEvent]);
 
-    const handlePrint = () => {
-        if (!selectedEvent) {
-            toast({ variant: 'destructive', title: 'Belum Lengkap', description: 'Silakan pilih kegiatan terlebih dahulu.' });
+    const handleIframePrint = () => {
+        const eventData = isManualMode
+            ? { summary: manualSummary, start: new Date().toISOString(), waktu: manualWaktu, location: manualTempat }
+            : selectedEvent;
+            
+        if (!eventData) {
+            toast({ variant: 'destructive', title: 'Belum Lengkap', description: 'Silakan pilih kegiatan atau isi data manual terlebih dahulu.' });
             return;
         }
 
         setIsPrinting(true);
-        
         const reportData = {
-            event: selectedEvent,
+            event: eventData,
             dasar, pimpinan, labelPimpinan, narasumber, labelNarasumber, peserta, labelPeserta, reportContent, lokasiTanggal, pelapor, photoAttachments
         };
 
         localStorage.setItem('reportDataForPrint', JSON.stringify(reportData));
         
-        const printWindow = window.open('/report/preview', '_blank');
-        if (printWindow) {
-            printWindow.onload = () => {
-                 setTimeout(() => setIsPrinting(false), 500);
-            };
-        } else {
-            toast({ variant: 'destructive', title: 'Gagal Membuka Pratinjau', description: 'Pastikan browser Anda tidak memblokir pop-up.'});
+        const iframe = document.createElement('iframe');
+        iframe.style.display = 'none';
+        iframe.src = '/report/preview';
+        document.body.appendChild(iframe);
+
+        iframe.onload = () => {
+            if (iframe.contentWindow) {
+                iframe.contentWindow.print();
+            }
+            // Cleanup after a delay to ensure print dialog is handled
+            setTimeout(() => {
+                document.body.removeChild(iframe);
+                setIsPrinting(false);
+            }, 1000);
+        };
+        
+        iframe.onerror = () => {
+            toast({ variant: 'destructive', title: 'Gagal Memuat Pratinjau', description: 'Tidak dapat memuat halaman pratinjau.' });
+            document.body.removeChild(iframe);
             setIsPrinting(false);
-        }
+        };
     };
 
     return (
         <div className="flex flex-col gap-6">
             <PageHeader
                 title="Buat Laporan Kegiatan"
-                description="Pilih kegiatan yang sudah ada untuk membuat draf laporan atau nota dinas."
+                description="Pilih kegiatan yang sudah ada atau input manual untuk membuat draf laporan."
             >
-                 <Button onClick={handlePrint} disabled={isPrinting || !selectedEvent}>
+                 <Button onClick={handleIframePrint} disabled={isPrinting || (!selectedEvent && !isManualMode)}>
                     {isPrinting ? <Loader2 className="mr-2 h-4 w-4 animate-spin" /> : <Printer className="mr-2 h-4 w-4" />}
                     Cetak Laporan
                 </Button>
@@ -169,42 +198,56 @@ export default function ReportPage() {
 
             <Card>
                 <CardHeader>
-                    <CardTitle>Pilih Kegiatan</CardTitle>
+                    <div className="flex justify-between items-center">
+                        <CardTitle>Pilih Kegiatan</CardTitle>
+                        <div className="flex items-center space-x-2">
+                            <Switch id="manual-mode" checked={isManualMode} onCheckedChange={setIsManualMode} />
+                            <Label htmlFor="manual-mode">Input Manual</Label>
+                        </div>
+                    </div>
                 </CardHeader>
                 <CardContent className="grid md:grid-cols-2 gap-6">
-                    <div className="grid gap-2">
-                        <Label>1. Pilih Tanggal Kegiatan</Label>
-                        <Popover>
-                            <PopoverTrigger asChild>
-                                <Button variant={'outline'} className="w-full justify-start text-left font-normal">
-                                    <CalendarIcon className="mr-2 h-4 w-4" />
-                                    {selectedDate ? format(selectedDate, 'PPP', { locale: localeId }) : <span>Pilih tanggal</span>}
-                                </Button>
-                            </PopoverTrigger>
-                            <PopoverContent className="w-auto p-0">
-                                <Calendar mode="single" selected={selectedDate} onSelect={setSelectedDate} initialFocus locale={localeId} />
-                            </PopoverContent>
-                        </Popover>
-                    </div>
-                    <div className="grid gap-2">
-                        <Label>2. Pilih Kegiatan</Label>
-                        <Select value={selectedEventId} onValueChange={setSelectedEventId} disabled={isLoading || events.length === 0}>
-                            <SelectTrigger>
-                                <SelectValue placeholder={isLoading ? 'Memuat...' : (events.length > 0 ? 'Pilih dari daftar...' : 'Tidak ada kegiatan di tanggal ini')} />
-                            </SelectTrigger>
-                            <SelectContent>
-                                {events.map(event => (
-                                    <SelectItem key={event.id} value={event.id}>
-                                        {event.summary}
-                                    </SelectItem>
-                                ))}
-                            </SelectContent>
-                        </Select>
-                    </div>
+                    {isManualMode ? (
+                        <>
+                            <ReportField label="Judul Kegiatan" id="manual-summary" value={manualSummary} onChange={(e) => setManualSummary(e.target.value)} placeholder="Misal: Rapat Koordinasi..." />
+                            <ReportField label="Waktu Pelaksanaan" id="manual-waktu" value={manualWaktu} onChange={(e) => setManualWaktu(e.target.value)} placeholder="Misal: Pukul 09.00 WIB s.d. Selesai" />
+                            <ReportField label="Tempat Pelaksanaan" id="manual-tempat" value={manualTempat} onChange={(e) => setManualTempat(e.target.value)} placeholder="Misal: Aula Kecamatan" />
+                        </>
+                    ) : (
+                        <>
+                            <div className="grid gap-2">
+                                <Label>1. Pilih Tanggal Kegiatan</Label>
+                                <Popover>
+                                    <PopoverTrigger asChild>
+                                        <Button variant={'outline'} className="w-full justify-start text-left font-normal">
+                                            <CalendarIcon className="mr-2 h-4 w-4" />
+                                            {selectedDate ? format(selectedDate, 'PPP', { locale: localeId }) : <span>Pilih tanggal</span>}
+                                        </Button>
+                                    </PopoverTrigger>
+                                    <PopoverContent className="w-auto p-0">
+                                        <Calendar mode="single" selected={selectedDate} onSelect={setSelectedDate} initialFocus locale={localeId} />
+                                    </PopoverContent>
+                                </Popover>
+                            </div>
+                            <div className="grid gap-2">
+                                <Label>2. Pilih Kegiatan</Label>
+                                <Select value={selectedEventId} onValueChange={setSelectedEventId} disabled={isLoading || events.length === 0}>
+                                    <SelectTrigger>
+                                        <SelectValue placeholder={isLoading ? 'Memuat...' : (events.length > 0 ? 'Pilih dari daftar...' : 'Tidak ada kegiatan di tanggal ini')} />
+                                    </SelectTrigger>
+                                    <SelectContent>
+                                        {events.map(event => (
+                                            event.id && <SelectItem key={event.id} value={event.id}>{event.summary}</SelectItem>
+                                        ))}
+                                    </SelectContent>
+                                </Select>
+                            </div>
+                        </>
+                    )}
                 </CardContent>
             </Card>
 
-            {selectedEvent && (
+            {(selectedEvent || isManualMode) && (
                 <Card>
                     <CardHeader>
                         <CardTitle>Isi Detail Laporan</CardTitle>
@@ -215,10 +258,20 @@ export default function ReportPage() {
                                <ReportEditorField label="I. Dasar Kegiatan" value={dasar} onEditorChange={setDasar} placeholder="1. Peraturan Daerah..." />
                                <div className="grid gap-2">
                                   <Label>II. Rincian Kegiatan</Label>
-                                  <div className="p-4 border rounded-md bg-muted/50 space-y-2 text-sm">
-                                      <p><strong className="w-24 inline-block">Acara</strong>: {selectedEvent.summary}</p>
-                                      <p><strong className="w-24 inline-block">Waktu</strong>: {format(parseISO(selectedEvent.start), "EEEE, dd MMMM yyyy 'pukul' HH:mm", { locale: localeId })}</p>
-                                      <p><strong className="w-24 inline-block">Tempat</strong>: {selectedEvent.location}</p>
+                                   <div className="p-4 border rounded-md bg-muted/50 space-y-2 text-sm">
+                                      {isManualMode ? (
+                                        <>
+                                            <p><strong className="w-24 inline-block">Acara</strong>: {manualSummary || '-'}</p>
+                                            <p><strong className="w-24 inline-block">Waktu</strong>: {manualWaktu || '-'}</p>
+                                            <p><strong className="w-24 inline-block">Tempat</strong>: {manualTempat || '-'}</p>
+                                        </>
+                                      ) : selectedEvent && (
+                                        <>
+                                            <p><strong className="w-24 inline-block">Acara</strong>: {selectedEvent.summary}</p>
+                                            <p><strong className="w-24 inline-block">Waktu</strong>: {format(parseISO(selectedEvent.start), "EEEE, dd MMMM yyyy 'pukul' HH:mm", { locale: localeId })}</p>
+                                            <p><strong className="w-24 inline-block">Tempat</strong>: {selectedEvent.location}</p>
+                                        </>
+                                      )}
                                   </div>
                                </div>
                                 <ReportEditorField label="Pimpinan Rapat" value={pimpinan} onEditorChange={setPimpinan} placeholder="Contoh: Camat Gandrungmangu" />
@@ -234,7 +287,7 @@ export default function ReportPage() {
                             </div>
                         </div>
 
-                         {photoAttachments.length > 0 && (
+                         {photoAttachments.length > 0 && !isManualMode && (
                             <div>
                                 <Label>Lampiran Foto</Label>
                                 <div className="mt-2 grid grid-cols-2 md:grid-cols-4 gap-4">
@@ -255,3 +308,5 @@ export default function ReportPage() {
         </div>
     );
 }
+
+    
