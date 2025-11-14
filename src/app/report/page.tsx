@@ -270,7 +270,6 @@ export default function ReportPage() {
   const [selectedDate, setSelectedDate] = useState<Date | undefined>();
   const [selectedEvent, setSelectedEvent] = useState<CalendarEvent | null>(null);
   const [reportContent, setReportContent] = useState('');
-  const reportContainerRef = useRef<HTMLDivElement>(null);
 
   const { data: eventsData, error: eventsError, isLoading: isLoadingEvents } = useSWR('/api/events', fetcher);
     
@@ -299,14 +298,11 @@ export default function ReportPage() {
   }, [events, selectedDate]);
   
   const handlePrint = () => {
-    const printContent = reportContainerRef.current?.innerHTML;
-    if (printContent) {
-        const printWrapper = document.getElementById('print-area-wrapper');
-        if (printWrapper) {
-            printWrapper.innerHTML = printContent;
-            window.print();
-        }
+    const reportContentPreview = document.querySelector('.report-content-preview');
+    if (reportContentPreview) {
+        reportContentPreview.innerHTML = reportContent;
     }
+    window.print();
   };
   
   const handleReset = () => {
@@ -441,7 +437,7 @@ export default function ReportPage() {
           </CardContent>
         </Card>
 
-        <div className="mt-4" ref={reportContainerRef}>
+        <div className="mt-4">
             {selectedEvent ? (
                 <ReportEditorTemplate 
                   event={selectedEvent} 
@@ -451,7 +447,7 @@ export default function ReportPage() {
                   logoUrl={logoUrl}
                 />
             ) : (
-                <Card className="text-center text-muted-foreground py-16">
+                <Card className="text-center text-muted-foreground py-16 print:hidden">
                     <p>Pilih tanggal dan kegiatan di atas untuk memulai membuat laporan.</p>
                 </Card>
             )}

@@ -96,3 +96,24 @@ body {
       scrollbar-width: none;
   }
 }
+
+@media print {
+    body * {
+        visibility: hidden;
+    }
+    #print-area, #print-area * {
+        visibility: visible;
+    }
+    #print-area {
+        position: absolute;
+        left: 0;
+        top: 0;
+        width: 100%;
+    }
+    .report-page, .attachment-page {
+        page-break-after: always;
+    }
+    .attachment-page {
+        page-break-before: always;
+    }
+}
