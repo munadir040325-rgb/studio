@@ -18,7 +18,6 @@ import useSWR from 'swr';
 import { Alert, AlertDescription, AlertTitle } from '@/components/ui/alert';
 import DOMPurify from 'isomorphic-dompurify';
 import { RichTextEditor } from '@/components/editor';
-import Image from 'next/image';
 
 
 type CalendarAttachment = {
@@ -128,7 +127,7 @@ const ReportHeader = ({ letterheadData, logoUrl }: { letterheadData: any, logoUr
 );
 
 
-const ReportEditorTemplate = ({ event, reportContent, onContentChange, letterheadData, logoUrl }: { event: CalendarEvent, reportContent: string, onContentChange: (content: string) => void, letterheadData: any, logoUrl: string }) => {
+const ReportEditorTemplate = ({ event, reportContent, onContentChange, letterheadData, logoUrl, isEditing }: { event: CalendarEvent, reportContent: string, onContentChange: (content: string) => void, letterheadData: any, logoUrl: string, isEditing: boolean }) => {
     const defaultLokasiTanggal = `Gandrungmangu, ${format(parseISO(event.start), 'dd MMMM yyyy', { locale: localeId })}`;
     const photoAttachments = useMemo(() => event.attachments?.filter(att => att.mimeType?.startsWith('image/')) || [], [event.attachments]);
     
@@ -208,14 +207,16 @@ const ReportEditorTemplate = ({ event, reportContent, onContentChange, letterhea
                          <tr>
                             <td></td>
                             <td colSpan={3} className="w-full">
-                                 <div className='print:hidden'>
-                                    <RichTextEditor
-                                        onChange={onContentChange}
-                                        placeholder="Ketik hasil laporan di sini..."
-                                    />
-                                 </div>
+                                 {isEditing ? (
+                                    <div className='print:hidden'>
+                                        <RichTextEditor
+                                            onChange={onContentChange}
+                                            placeholder="Ketik hasil laporan di sini..."
+                                        />
+                                    </div>
+                                 ) : null}
                                  <div 
-                                    className="report-content-preview hidden print:block"
+                                    className="report-content-preview"
                                     dangerouslySetInnerHTML={{ __html: DOMPurify.sanitize(reportContent) }}
                                 />
                             </td>
@@ -444,6 +445,7 @@ export default function ReportPage() {
                   onContentChange={setReportContent}
                   letterheadData={letterheadData}
                   logoUrl={logoUrl}
+                  isEditing={!!selectedEvent}
                 />
             ) : (
                 <Card className="text-center text-muted-foreground py-16 print:hidden">
@@ -470,3 +472,5 @@ export default function ReportPage() {
     </div>
   );
 }
+
+    
