@@ -1,5 +1,4 @@
 
-
 'use client';
 
 import { useState, useMemo, useRef, useEffect } from 'react';
@@ -104,7 +103,7 @@ const getGoogleDriveThumbnailUrl = (fileIdOrUrl: string): string => {
 const ReportHeader = ({ letterheadData, logoUrl }: { letterheadData: any, logoUrl: string }) => (
     <div className="mb-4">
         <div className="flex items-start gap-4 pb-2">
-            <Image src={logoUrl} alt="Logo Instansi" width={80} height={80} className="print:w-20 print:h-20" />
+            <img src={logoUrl} alt="Logo Instansi" width={80} height={80} className="print:w-20 print:h-20" />
             <div className="text-center flex-grow" style={{ lineHeight: 1.1 }}>
                 <p className="font-semibold" style={{ fontSize: '14pt' }}>{letterheadData.instansi.toUpperCase()}</p>
                 <p className="font-bold" style={{ fontSize: '22pt' }}>{letterheadData.skpd.toUpperCase()}</p>
