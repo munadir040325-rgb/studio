@@ -116,10 +116,8 @@ body {
     .attachment-page {
         page-break-before: always;
     }
-    #print-area span[contenteditable="true"] {
+     #print-area span[contenteditable="true"] {
         background-color: transparent !important;
         box-shadow: none !important;
     }
 }
-
-    
