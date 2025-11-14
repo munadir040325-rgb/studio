@@ -107,28 +107,45 @@ const ReportHeader = ({ letterheadData, logoUrl }: { letterheadData: any, logoUr
 
 export default function ReportPreviewPage() {
     const [reportData, setReportData] = useState<ReportData | null>(null);
+    const [isReady, setIsReady] = useState(false);
 
     useEffect(() => {
         const data = localStorage.getItem('reportDataForPrint');
         if (data) {
-            setReportData(JSON.parse(data));
-            // Optional: Hapus data setelah diambil agar tidak tercetak lagi saat refresh
-            // localStorage.removeItem('reportDataForPrint');
+            try {
+                setReportData(JSON.parse(data));
+            } catch (e) {
+                console.error("Failed to parse report data from localStorage", e);
+            }
         }
-
-        // Memicu print dialog setelah data dimuat
-        const timer = setTimeout(() => {
-            if(window) window.print();
-        }, 500); // Delay untuk memastikan konten dirender
-        
-        return () => clearTimeout(timer);
+        setIsReady(true);
     }, []);
+    
+    useEffect(() => {
+        if (isReady && reportData) {
+            const timer = setTimeout(() => {
+                window.print();
+            }, 500); 
+            
+            return () => clearTimeout(timer);
+        }
+    }, [isReady, reportData]);
 
-    if (!reportData) {
+    if (!isReady) {
         return (
             <div className="flex items-center justify-center min-h-screen text-muted-foreground bg-gray-100">
                 <Loader2 className="mr-2 h-4 w-4 animate-spin" />
-                Memuat pratinjau laporan...
+                Mempersiapkan pratinjau...
+            </div>
+        );
+    }
+    
+    if (!reportData) {
+        return (
+            <div className="flex flex-col items-center justify-center min-h-screen text-muted-foreground bg-gray-100 gap-4 p-4">
+                 <h2 className="text-xl font-bold">Data Laporan Tidak Ditemukan</h2>
+                 <p className="text-center">Silakan kembali ke halaman sebelumnya dan pastikan Anda telah mengisi detail laporan sebelum mencetak.</p>
+                 <Button onClick={() => window.close()}>Tutup Tab</Button>
             </div>
         );
     }

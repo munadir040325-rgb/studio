@@ -1,12 +1,12 @@
 import type { Metadata } from 'next';
-import '../../globals.css';
+import '../globals.css';
 
 export const metadata: Metadata = {
   title: 'Pratinjau Laporan',
   description: 'Pratinjau laporan sebelum dicetak.',
 };
 
-export default function ReportPreviewLayout({
+export default function PrintLayout({
   children,
 }: Readonly<{
   children: React.ReactNode;
