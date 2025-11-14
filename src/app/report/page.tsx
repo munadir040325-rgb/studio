@@ -21,10 +21,11 @@ import DOMPurify from 'isomorphic-dompurify';
 import { RichTextEditor } from '@/components/editor';
 import { Textarea } from '@/components/ui/textarea';
 import Image from 'next/image';
+import { PlaceHolderImages } from '@/lib/placeholder-images';
 
 
 const WhatsAppIcon = () => (
-    <svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="currentColor" className="mr-2 h-4 w-4">
+    <svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24" fill="currentColor" className="mr-2 h-4 w-4">
         <path d="M.057 24l1.687-6.163c-1.041-1.804-1.588-3.849-1.587-5.946.003-6.556 5.338-11.891 11.893-11.891 3.181.001 6.167 1.24 8.413 3.488 2.245 2.248 3.487 5.235 3.487 8.413.003 6.557-5.338 11.892-11.893 11.892-1.99-.001-3.951-.5-5.688-1.448l-6.305 1.654zm6.597-3.807c1.676.995 3.276 1.591 5.392 1.592 5.448 0 9.886-4.434 9.889-9.885.002-5.462-4.415-9.89-9.881-9.89-5.451 0-9.887 4.434-9.889 9.884-.002 2.024.63 3.891 1.742 5.634l-.999 3.648 3.742-1.001z"/>
     </svg>
 );
@@ -108,7 +109,38 @@ const getGoogleDriveThumbnailUrl = (fileIdOrUrl: string): string => {
     return `/api/drive/cache-image/${fileId}`;
 };
 
-const ReportEditorTemplate = ({ event, reportContent, onContentChange }: { event: CalendarEvent, reportContent: string, onContentChange: (content: string) => void }) => {
+const ReportHeader = ({ letterheadData, logoUrl }: { letterheadData: any, logoUrl: string }) => (
+    <div className="flex items-start gap-4 border-b-[3px] border-black pb-4 mb-4">
+        <Image src={logoUrl} alt="Logo Instansi" width={80} height={80} className="print:w-20 print:h-20" />
+        <div className="text-center flex-grow">
+            <p className="font-semibold" style={{ fontSize: '14pt' }}>{letterheadData.instansi}</p>
+            <p className="font-bold" style={{ fontSize: '22pt' }}>{letterheadData.skpd}</p>
+            <div style={{ fontSize: '10pt', lineHeight: '1.2' }}>
+                <p>{letterheadData.alamat}</p>
+                <p>
+                    <span>Telepon: {letterheadData.telepon}</span>
+                    <span className="mx-2">|</span>
+                    <span>Fax: {letterheadData.fax}</span>
+                </p>
+                <p>
+                    <span className="print:hidden">
+                        <a href={letterheadData.website} target="_blank" rel="noopener noreferrer" className="text-blue-600 hover:underline">{letterheadData.website}</a>
+                        <span className="mx-2">|</span>
+                        <a href={`mailto:${letterheadData.email}`} className="text-blue-600 hover:underline">{letterheadData.email}</a>
+                    </span>
+                    <span className="hidden print:inline">
+                        Website: {letterheadData.website}
+                        <span className="mx-2">|</span>
+                        Email: {letterheadData.email}
+                    </span>
+                </p>
+            </div>
+        </div>
+    </div>
+);
+
+
+const ReportEditorTemplate = ({ event, reportContent, onContentChange, letterheadData, logoUrl }: { event: CalendarEvent, reportContent: string, onContentChange: (content: string) => void, letterheadData: any, logoUrl: string }) => {
     const defaultLokasiTanggal = `Gandrungmangu, ${format(parseISO(event.start), 'dd MMMM yyyy', { locale: localeId })}`;
     const photoAttachments = useMemo(() => event.attachments?.filter(att => att.mimeType?.startsWith('image/')) || [], [event.attachments]);
     
@@ -116,6 +148,7 @@ const ReportEditorTemplate = ({ event, reportContent, onContentChange }: { event
         <div id="print-area" className="bg-white text-black print:shadow-none print:p-4 print:border-none">
             {/* Halaman 1: Laporan */}
             <div className="report-page p-8 md:p-12">
+                <ReportHeader letterheadData={letterheadData} logoUrl={logoUrl} />
                 <h3 className="text-center font-bold text-lg border-b-2 border-black pb-2">NOTA DINAS</h3>
                 
                 <div id="metadata-block" className="my-4 border-b-2 border-black pb-4">
@@ -374,6 +407,21 @@ Hormat kami,
 
   const photoAttachments = useMemo(() => selectedEvent?.attachments?.filter(att => att.mimeType?.startsWith('image/')) || [], [selectedEvent]);
 
+  // Placeholder data for letterhead
+  const letterheadData = {
+    instansi: 'PEMERINTAH KABUPATEN CILACAP',
+    skpd: 'KECAMATAN GANDRUNGMANGU',
+    alamat: 'Jalan Raya Gandrungmangu No. 123',
+    telepon: '(0282) 123456',
+    fax: '(0282) 654321',
+    website: 'gandrungmangu.cilacapkab.go.id',
+    email: 'gandrungmangu@cilacapkab.go.id'
+  };
+
+  const logo = PlaceHolderImages.find(img => img.id === 'logo');
+  const logoUrl = logo ? logo.imageUrl : "https://picsum.photos/seed/logo/100/100";
+
+
   useEffect(() => {
     // Reset report content when a new event is selected
     setReportContent('');
@@ -489,7 +537,13 @@ Hormat kami,
 
         <div className="mt-4 overflow-x-auto" id="report-preview-container">
             {selectedEvent ? (
-                <ReportEditorTemplate event={selectedEvent} reportContent={reportContent} onContentChange={setReportContent} />
+                <ReportEditorTemplate 
+                  event={selectedEvent} 
+                  reportContent={reportContent} 
+                  onContentChange={setReportContent}
+                  letterheadData={letterheadData}
+                  logoUrl={logoUrl}
+                />
             ) : (
                 <Card className="text-center text-muted-foreground py-16 print:hidden">
                     <p>Pilih tanggal dan kegiatan di atas untuk memulai membuat laporan.</p>
