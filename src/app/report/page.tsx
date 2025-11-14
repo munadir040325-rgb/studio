@@ -4,7 +4,7 @@
 import { useState, useMemo, useEffect } from 'react';
 import { PageHeader } from '@/components/page-header';
 import { Button } from '@/components/ui/button';
-import { Card, CardContent } from '@/components/ui/card';
+import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Label } from '@/components/ui/label';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { Calendar } from '@/components/ui/calendar';
@@ -198,6 +198,9 @@ export default function ReportPage() {
         </div>
       </PageHeader>
         <Card>
+          <CardHeader>
+            <CardTitle>Detail Kegiatan</CardTitle>
+          </CardHeader>
           <CardContent className='p-6'>
             <div className="flex items-center space-x-2 mb-6">
                 <Switch id="manual-mode-switch" checked={isManualMode} onCheckedChange={setIsManualMode} />
@@ -325,6 +328,9 @@ export default function ReportPage() {
 
         {eventForReport?.summary ? (
             <Card>
+                <CardHeader>
+                  <CardTitle>Rincian Laporan</CardTitle>
+                </CardHeader>
                 <CardContent className='p-6 grid grid-cols-1 md:grid-cols-2 gap-6'>
                     <div className="space-y-2 md:col-span-2">
                         <Label htmlFor='report-pelapor'>Pelaksana / Pelapor</Label>
@@ -340,7 +346,7 @@ export default function ReportPage() {
                     </div>
                     <div className="space-y-2">
                         <Label htmlFor='report-dasar'>Dasar Pelaksanaan (Jika Ada)</Label>
-                        <Input id='report-dasar' placeholder="e.g., Undangan No. XXX" value={dasar} onChange={(e) => setDasar(e.target.value)} />
+                        <Textarea id='report-dasar' placeholder="e.g., Undangan No. XXX" value={dasar} onChange={(e) => setDasar(e.target.value)} />
                     </div>
                     <div className="space-y-2 md:col-span-2">
                         <Label>Rincian dan Hasil Pelaksanaan</Label>
@@ -363,5 +369,3 @@ export default function ReportPage() {
     </div>
   );
 }
-
-    
