@@ -341,10 +341,50 @@ export const findBagianByEventIdFlow = ai.defineFlow({
         bagian: z.string().nullable(),
     }),
 }, async (input) => {
+    if (!spreadsheetId) throw new Error("ID Google Sheet (NEXT_PUBLIC_SHEET_ID) belum diatur.");
     if (!input.eventId) return { bagian: null };
-    // This is now just a wrapper for the batch flow for simplicity
-    const result = await findBagianByEventIdsFlow({ eventIds: [input.eventId] });
-    return { bagian: result[input.eventId] || null };
+    
+    const auth = await getGoogleAuth(['https://www.googleapis.com/auth/spreadsheets.readonly']);
+    const sheets = google.sheets({ version: 'v4', auth });
+    
+    const spreadsheetMeta = await sheets.spreadsheets.get({ spreadsheetId });
+    const allSheets = spreadsheetMeta.data.sheets || [];
+
+    for (const sheet of allSheets) {
+        const sheetName = sheet.properties?.title;
+        if (!sheetName || !sheetName.startsWith('Giat_')) continue;
+
+        try {
+            const dataRange = `${sheetName}!E18:AI52`;
+            const response = await sheets.spreadsheets.values.get({ spreadsheetId, range: dataRange });
+            const rows = response.data.values;
+            if (!rows) continue;
+
+            for (let r = 0; r < rows.length; r++) {
+                const row = rows[r];
+                if (!row) continue;
+                for (let c = 0; c < row.length; c++) {
+                    const cellValue = row[c];
+                    if (typeof cellValue === 'string' && cellValue.includes(`eventId:${input.eventId}`)) {
+                        // Found it. Now determine the 'bagian' from the row index.
+                        const currentRowInSheet = 18 + r;
+                        for (const [key, range] of Object.entries(BAGIAN_ROW_MAP)) {
+                            if (currentRowInSheet >= range.start && currentRowInSheet <= range.end) {
+                                return { bagian: key }; // Return the key, e.g., 'setcam'
+                            }
+                        }
+                    }
+                }
+            }
+        } catch (e: any) {
+            // Ignore sheets that don't exist or have invalid ranges, and continue to the next one.
+            if (!e.message.includes('Unable to parse range')) {
+                console.warn(`Could not search in sheet '${sheetName}':`, e.message);
+            }
+        }
+    }
+
+    return { bagian: null }; // Not found in any sheet
 });
 
 
@@ -478,3 +518,4 @@ export async function findBagianByEventIds(input: FindBagianBatchInput): Promise
     
 
     
+

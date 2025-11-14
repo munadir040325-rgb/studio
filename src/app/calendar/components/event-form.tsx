@@ -114,10 +114,10 @@ export function EventForm({ onSuccess, eventToEdit }: EventFormProps) {
         if (!eventToEdit.id) return;
         setIsFindingBagian(true);
         try {
-          const { bagian } = await findBagianByEventId({ eventId: eventToEdit.id });
-          if (bagian) {
-            form.setValue('bagian', bagian);
-            setOriginalBagian(bagian); // Store the original 'bagian'
+          const result = await findBagianByEventId({ eventId: eventToEdit.id });
+          if (result && result.bagian) {
+            form.setValue('bagian', result.bagian);
+            setOriginalBagian(result.bagian); // Store the original 'bagian'
           }
         } catch (e: any) {
           console.error("Failed to find bagian:", e);
