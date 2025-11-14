@@ -106,12 +106,9 @@ export async function updateEventAttachments(args: UpdateAttachmentArgs) {
         }
       }
 
-      // Pastikan bisa diakses publik via link (viewer)
-      await ensureAnyoneViewer(drive, id);
-
       attachments.push({
+        fileUrl: `https://drive.google.com/uc?export=download&id=${id}`,
         fileId: id,
-        fileUrl: `https://drive.google.com/open?id=${id}`,
         title: name,
         mimeType,
         iconLink: iconLinkFor(mimeType),

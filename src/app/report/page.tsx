@@ -148,7 +148,7 @@ export default function ReportPage() {
         reportContent: reportContent,
         lokasiTanggal: defaultLokasiTanggal,
         pelapor: pelapor,
-        photoAttachments: eventForReport.attachments?.filter(att => att.mimeType?.startsWith('image/')) || [],
+        photoAttachments: eventForReport.attachments?.filter(att => att.fileUrl && (att.fileUrl.includes('image') || att.mimeType?.startsWith('image/'))) || [],
     };
     
     localStorage.setItem('reportDataForPrint', JSON.stringify(reportData));
@@ -344,7 +344,11 @@ export default function ReportPage() {
                         <Label htmlFor='report-narasumber'>Narasumber / Verifikator</Label>
                         <Textarea id='report-narasumber' placeholder="Nama narasumber atau verifikator" value={narasumber} onChange={(e) => setNarasumber(e.target.value)} />
                     </div>
-                    <div className="space-y-2">
+                     <div className="space-y-2">
+                        <Label htmlFor='report-pimpinan'>Pimpinan Rapat</Label>
+                        <Textarea id='report-pimpinan' placeholder="Nama pimpinan rapat" value={pimpinan} onChange={(e) => setPimpinan(e.target.value)} />
+                    </div>
+                    <div className="space-y-2 md:col-span-2">
                         <Label htmlFor='report-dasar'>Dasar Pelaksanaan (Jika Ada)</Label>
                         <Textarea id='report-dasar' placeholder="e.g., Undangan No. XXX" value={dasar} onChange={(e) => setDasar(e.target.value)} />
                     </div>

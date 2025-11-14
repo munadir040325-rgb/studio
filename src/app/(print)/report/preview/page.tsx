@@ -154,18 +154,18 @@ export default function ReportPreviewPage() {
     const isManualEvent = 'waktu' in event && !!event.waktu;
     
     const letterheadData = {
-        instansi: process.env.NEXT_PUBLIC_KOP_INSTANSI || 'PEMERINTAH KABUPATEN',
-        skpd: process.env.NEXT_PUBLIC_KOP_SKPD || 'NAMA SKPD',
-        alamat: process.env.NEXT_PUBLIC_KOP_ALAMAT || 'Jalan Alamat No. 123',
-        telepon: process.env.NEXT_PUBLIC_KOP_TELP || '(000) 123456',
-        fax: process.env.NEXT_PUBLIC_KOP_FAX || '(000) 654321',
-        website: process.env.NEXT_PUBLIC_KOP_WEBSITE || 'website.go.id',
-        email: process.env.NEXT_PUBLIC_KOP_EMAIL || 'email@website.go.id'
+        instansi: process.env.NEXT_PUBLIC_KOP_INSTANSI || 'PEMERINTAH KABUPATEN CILACAP',
+        skpd: process.env.NEXT_PUBLIC_KOP_SKPD || 'KECAMATAN GANDRUNGMANGU',
+        alamat: process.env.NEXT_PUBLIC_KOP_ALAMAT || 'Jalan Pertiwi Nomor 1 Gandrungmangu, Gandrungmangu, Cilacap, Jawa Tengah 53254',
+        telepon: process.env.NEXT_PUBLIC_KOP_TELP || '(0280)6260733',
+        fax: process.env.NEXT_PUBLIC_KOP_FAX || '(0280)6260733',
+        website: process.env.NEXT_PUBLIC_KOP_WEBSITE || 'www.gandrungmangu.cilacapkab.go.id',
+        email: process.env.NEXT_PUBLIC_KOP_EMAIL || 'kecamatan.gandrungmangu2020@gmail.com'
     };
     const logoUrl = process.env.NEXT_PUBLIC_KOP_LOGO || "https://i.ibb.co/5xcxSzd/logo-cilacap.png";
 
     return (
-        <main className="p-4 md:p-6">
+        <div className="p-4 md:p-6">
             <div className="fixed top-4 right-4 print:hidden">
                 <Button onClick={() => window.print()}>
                     <Printer className="mr-2 h-4 w-4" />
@@ -246,6 +246,6 @@ export default function ReportPreviewPage() {
                     </div>
                 )}
             </div>
-        </main>
+        </div>
     );
 }
