@@ -160,21 +160,17 @@ export default function ReportPreviewPage() {
                     <table className="w-full mt-4 border-separate" style={{borderSpacing: '0 8px'}}>
                         <tbody>
                             <tr>
-                                <td className="w-[1.8rem] align-top font-semibold">I.</td>
-                                <td colSpan={3} className='font-semibold'>Dasar Kegiatan</td>
+                                <td colSpan={4} className='font-semibold'>Dasar Kegiatan</td>
                             </tr>
                             <tr>
-                                <td></td>
-                                <td colSpan={3} className='pb-2' dangerouslySetInnerHTML={{ __html: dasar }}></td>
+                                <td colSpan={4} className='pb-2' dangerouslySetInnerHTML={{ __html: dasar }}></td>
                             </tr>
 
                             <tr>
-                                <td className="w-[1.8rem] align-top font-semibold">II.</td>
-                                <td colSpan={3} className='font-semibold'>Rincian Kegiatan</td>
+                                <td colSpan={4} className='font-semibold'>Rincian Kegiatan</td>
                             </tr>
                             <tr>
-                                <td></td>
-                                <td colSpan={3}>
+                                <td colSpan={4}>
                                     <table className="w-full">
                                         <tbody>
                                             <tr><td className="w-32 align-top">Acara</td><td className="w-4 align-top">:</td><td>{event.summary}</td></tr>
@@ -189,9 +185,9 @@ export default function ReportPreviewPage() {
                                 </td>
                             </tr>
                             
-                            <tr><td className="w-[1.8rem] align-top font-semibold pt-2">III.</td><td colSpan={3} className='font-semibold pt-2'>Hasil dan Tindak Lanjut</td></tr>
-                            <tr><td></td><td colSpan={3} className="w-full" dangerouslySetInnerHTML={{ __html: reportContent }}></td></tr>
-                            <tr className='text-justify'><td></td><td colSpan={3} className="pt-4">Demikian untuk menjadikan periksa dan terima kasih.</td></tr>
+                            <tr><td colSpan={4} className='font-semibold pt-2'>Hasil dan Tindak Lanjut</td></tr>
+                            <tr><td colSpan={4} className="w-full" dangerouslySetInnerHTML={{ __html: reportContent }}></td></tr>
+                            <tr className='text-justify'><td colSpan={4} className="pt-4">Demikian untuk menjadikan periksa dan terima kasih.</td></tr>
                         </tbody>
                     </table>
                     
@@ -228,5 +224,3 @@ export default function ReportPreviewPage() {
         </>
     );
 }
-
-    

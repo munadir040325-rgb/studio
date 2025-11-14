@@ -52,12 +52,13 @@ const ReportField = ({ label, id, value, onChange, placeholder }: ReportFieldPro
     </div>
 );
 
-const ReportEditorField = ({ label, value, onEditorChange, placeholder }: { label: string, value: string, onEditorChange: (html: string) => void, placeholder: string }) => (
+const ReportEditorField = ({ label, value, onEditorChange, placeholder, heightClass }: { label: string, value: string, onEditorChange: (html: string) => void, placeholder: string, heightClass?: string }) => (
     <div className="grid gap-2">
         <Label>{label}</Label>
         <RichTextEditor
             onChange={onEditorChange}
             placeholder={placeholder}
+            initialHeight={heightClass}
         />
     </div>
 );
@@ -162,26 +163,35 @@ export default function ReportPage() {
 
         localStorage.setItem('reportDataForPrint', JSON.stringify(reportData));
         
-        const iframe = document.createElement('iframe');
-        iframe.style.position = 'fixed';
-        iframe.style.top = '-9999px';
-        iframe.style.left = '-9999px';
-        iframe.src = '/report/preview';
-        document.body.appendChild(iframe);
+        let iframe = document.getElementById('print-iframe') as HTMLIFrameElement;
+        if (!iframe) {
+            iframe = document.createElement('iframe');
+            iframe.id = 'print-iframe';
+            iframe.style.position = 'fixed';
+            iframe.style.top = '-9999px';
+            iframe.style.left = '-9999px';
+            document.body.appendChild(iframe);
+        }
 
-        iframe.onload = () => {
+        iframe.src = '/report/preview';
+
+        const handleLoad = () => {
             if (iframe.contentWindow) {
-                iframe.contentWindow.print();
+                try {
+                    iframe.contentWindow.print();
+                } catch(e) {
+                    console.error("Print failed", e);
+                     toast({ variant: 'destructive', title: 'Gagal Mencetak', description: 'Browser mungkin memblokir dialog cetak.' });
+                }
             }
-            setTimeout(() => {
-                document.body.removeChild(iframe);
-                setIsPrinting(false);
-            }, 1000);
+            setIsPrinting(false);
+            iframe.removeEventListener('load', handleLoad);
         };
+        
+        iframe.addEventListener('load', handleLoad);
         
         iframe.onerror = () => {
             toast({ variant: 'destructive', title: 'Gagal Memuat Pratinjau', description: 'Tidak dapat memuat halaman pratinjau.' });
-            document.body.removeChild(iframe);
             setIsPrinting(false);
         };
     };
@@ -287,13 +297,13 @@ export default function ReportPage() {
                     <CardContent className="space-y-6">
                         <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
                             <div className="space-y-4">
-                               <ReportEditorField label="I. Dasar Kegiatan" value={dasar} onEditorChange={setDasar} placeholder="1. Peraturan Daerah..." />
-                                <ReportEditorField label="Pelaksana" value={pelaksana} onEditorChange={setPelaksana} placeholder="Contoh: Camat Gandrungmangu" />
-                                <ReportEditorField label="Narasumber/Verifikator" value={narasumber} onEditorChange={setNarasumber} placeholder="Contoh: 1. Inspektorat Daerah..." />
-                                <ReportEditorField label="Pejabat/Peserta" value={peserta} onEditorChange={setPeserta} placeholder="Contoh: 1. Kasubbag Perencanaan..." />
+                               <ReportEditorField label="Dasar Kegiatan" value={dasar} onEditorChange={setDasar} placeholder="1. Peraturan Daerah..." heightClass="h-20" />
+                                <ReportEditorField label="Pelaksana" value={pelaksana} onEditorChange={setPelaksana} placeholder="Contoh: Camat Gandrungmangu" heightClass="h-20" />
+                                <ReportEditorField label="Narasumber/Verifikator" value={narasumber} onEditorChange={setNarasumber} placeholder="Contoh: 1. Inspektorat Daerah..." heightClass="h-20" />
+                                <ReportEditorField label="Pejabat/Peserta" value={peserta} onEditorChange={setPeserta} placeholder="Contoh: 1. Kasubbag Perencanaan..." heightClass="h-20" />
                             </div>
                             <div className="space-y-4">
-                                <ReportEditorField label="III. Hasil dan Tindak Lanjut" value={reportContent} onEditorChange={setReportContent} placeholder="Tuliskan hasil pembahasan dan langkah selanjutnya..." />
+                                <ReportEditorField label="Hasil dan Tindak Lanjut" value={reportContent} onEditorChange={setReportContent} placeholder="Tuliskan hasil pembahasan dan langkah selanjutnya..." heightClass="min-h-48" />
                             </div>
                         </div>
 

@@ -10,15 +10,18 @@ import { EditorState, LexicalEditor } from "lexical";
 import { Toolbar } from "./toolbar";
 import { editorConfig } from "./config";
 import { ContentEditable } from "./content-editable";
+import { cn } from "@/lib/utils";
 
 interface RichTextEditorProps {
   onChange: (html: string) => void;
   placeholder?: string;
+  initialHeight?: string;
 }
 
 export function RichTextEditor({
   onChange,
   placeholder,
+  initialHeight = 'min-h-48'
 }: RichTextEditorProps) {
 
   const handleOnChange = (editorState: EditorState, editor: LexicalEditor) => {
@@ -32,7 +35,7 @@ export function RichTextEditor({
     <LexicalComposer initialConfig={editorConfig}>
       <div className="w-full overflow-hidden rounded-lg border mt-2">
         <Toolbar />
-        <div className="relative">
+        <div className={cn("relative", initialHeight)}>
           <RichTextPlugin
             contentEditable={<ContentEditable />}
             ErrorBoundary={LexicalErrorBoundary}
