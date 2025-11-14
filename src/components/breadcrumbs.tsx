@@ -15,6 +15,7 @@ const formatSegment = (segment: string) => {
   const customFormats: { [key: string]: string } = {
     'report': 'Buat Laporan',
     'panduan': 'Panduan',
+    'preview': 'Preview'
   };
 
   if (customFormats[segment]) {
