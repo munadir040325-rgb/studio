@@ -34,14 +34,15 @@ import { CalendarIcon, Loader2, Trash2 } from 'lucide-react';
 import { cn } from '@/lib/utils';
 import { format, parseISO, formatISO, parse } from 'date-fns';
 import { id } from 'date-fns/locale';
-import { createCalendarEvent, updateCalendarEvent, deleteCalendarEvent, CalendarEvent } from '@/ai/flows/calendar-flow';
+import { createCalendarEvent, updateCalendarEvent, deleteCalendarEvent } from '@/ai/flows/calendar-flow';
+import type { CalendarEvent } from '@/app/(main)/calendar/page';
 import { writeEventToSheet, deleteSheetEntry, findBagianByEventId } from '@/ai/flows/sheets-flow';
 import { trashKegiatanFolder } from '@/ai/flows/drive-flow';
 import { useToast } from '@/hooks/use-toast';
 import { useState, useEffect } from 'react';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import useSWR from 'swr';
-import { extractDisposisi } from '@/app/page';
+import { extractDisposisi } from '@/app/(main)/calendar/page';
 import { useIsMobile } from '@/hooks/use-mobile';
 
 
@@ -514,3 +515,8 @@ export function EventForm({ onSuccess, eventToEdit }: EventFormProps) {
     </>
   );
 }
+
+    
+    
+
+    

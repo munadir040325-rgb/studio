@@ -1,19 +1,20 @@
 
 
+
 'use client';
 
 import { useState, useEffect, useCallback, useMemo, Fragment } from 'react';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardFooter, CardHeader, CardTitle } from '@/components/ui/card';
 import { Popover, PopoverContent, PopoverTrigger } from '@/components/ui/popover';
-import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger, DialogFooter, DialogDescription } from '@/components/ui/dialog';
+import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter, DialogDescription, DialogTrigger } from '@/components/ui/dialog';
 import { Calendar as CalendarIcon, ExternalLink, PlusCircle, RefreshCw, MapPin, Clock, ChevronLeft, ChevronRight, Pin, Copy, Info, Link as LinkIcon, FolderOpen, Paperclip, Folder, PenSquare, Trash2, Search, Building, FileUp } from 'lucide-react';
 import { Calendar } from '@/components/ui/calendar';
 import { Badge } from '@/components/ui/badge';
 import { format, parseISO, isSameDay, startOfDay, endOfDay, startOfWeek, endOfWeek, startOfMonth, endOfMonth, isWithinInterval, eachDayOfInterval, getDay, isSameMonth, getDate, addDays, subDays, addWeeks, subMonths, addMonths } from 'date-fns';
 import { id as localeId } from 'date-fns/locale';
 import { cn } from '@/lib/utils';
-import { EventForm } from './components/event-form';
+import { EventForm } from '@/components/calendar/event-form';
 import { Alert, AlertDescription, AlertTitle } from '@/components/ui/alert';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { useToast } from '@/hooks/use-toast';
@@ -23,7 +24,7 @@ import { getFileIcon } from '@/lib/utils';
 import DOMPurify from 'isomorphic-dompurify';
 import { Accordion, AccordionContent, AccordionItem, AccordionTrigger } from '@/components/ui/accordion';
 import { findBagianByEventIds } from '@/ai/flows/sheets-flow';
-import { UploadAttachmentForm } from './components/upload-attachment-form';
+import { UploadAttachmentForm } from '@/components/calendar/upload-attachment-form';
 
 
 type CalendarAttachment = {

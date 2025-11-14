@@ -16,7 +16,7 @@ import { cn, getFileIcon } from '@/lib/utils';
 import useSWR from 'swr';
 import { updateEventAttachments } from '@/lib/google-calendar-attachments';
 import { useGoogleDriveAuth } from '@/hooks/useGoogleDriveAuth';
-import type { CalendarEvent } from '@/app/page';
+import type { CalendarEvent } from '@/app/(main)/calendar/page';
 
 
 const ROOT_FOLDER_ID = process.env.NEXT_PUBLIC_DRIVE_FOLDER_ID_HASIL;

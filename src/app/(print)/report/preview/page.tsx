@@ -1,4 +1,5 @@
 
+
 'use client';
 
 import { useEffect, useState } from 'react';
@@ -78,21 +79,6 @@ const getGoogleDriveThumbnailUrl = (fileIdOrUrl: string): string => {
     return `/api/drive/cache-image/${fileId}`;
 };
 
-function PrintTrigger() {
-  useEffect(() => {
-    // A small delay can help ensure all content (especially images) is loaded
-    // before the print dialog opens.
-    const timer = setTimeout(() => {
-      window.print();
-    }, 500);
-
-    return () => clearTimeout(timer);
-  }, []);
-
-  return null; // This component doesn't render anything
-}
-
-
 const ReportHeader = ({ letterheadData, logoUrl }: { letterheadData: any, logoUrl: string }) => (
     <div className="mb-4">
         <div className="flex items-start gap-4 pb-2">
@@ -150,7 +136,6 @@ export default function ReportPreviewPage() {
             <div className="flex flex-col items-center justify-center min-h-screen text-muted-foreground bg-gray-100 gap-4 p-4">
                  <h2 className="text-xl font-bold">Data Laporan Tidak Ditemukan</h2>
                  <p className="text-center">Silakan kembali ke halaman sebelumnya dan pastikan Anda telah mengisi detail laporan sebelum mencetak.</p>
-                 <Button onClick={() => window.close()}>Tutup Tab</Button>
             </div>
         );
     }
@@ -171,12 +156,6 @@ export default function ReportPreviewPage() {
 
     return (
         <>
-            <div className="fixed top-4 right-4 print:hidden">
-                <Button onClick={() => window.print()}>
-                    <Printer className="mr-2 h-4 w-4" />
-                    Cetak Ulang
-                </Button>
-            </div>
             <div id="print-area" className="bg-white text-black p-8 max-w-4xl mx-auto" style={{ lineHeight: 1.2 }}>
                 {/* Halaman 1: Laporan */}
                 <div className="report-page">
@@ -251,9 +230,6 @@ export default function ReportPreviewPage() {
                     </div>
                 )}
             </div>
-            <PrintTrigger />
         </>
     );
 }
-
-    
