@@ -1,4 +1,5 @@
 
+
 'use client';
 
 import { useState, useMemo, useRef, useEffect } from 'react';
@@ -21,7 +22,6 @@ import DOMPurify from 'isomorphic-dompurify';
 import { RichTextEditor } from '@/components/editor';
 import { Textarea } from '@/components/ui/textarea';
 import Image from 'next/image';
-import { PlaceHolderImages } from '@/lib/placeholder-images';
 
 
 const WhatsAppIcon = () => (
@@ -416,8 +416,7 @@ Hormat kami,
     email: process.env.NEXT_PUBLIC_KOP_EMAIL || 'email@website.go.id'
   };
 
-  const logo = PlaceHolderImages.find(img => img.id === 'logo');
-  const logoUrl = logo ? logo.imageUrl : "https://picsum.photos/seed/logo/100/100";
+  const logoUrl = process.env.NEXT_PUBLIC_KOP_LOGO || "https://picsum.photos/seed/logo/100/100";
 
 
   useEffect(() => {
