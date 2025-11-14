@@ -108,27 +108,11 @@ export default function ReportPreviewPage() {
             try {
                 const parsedData = JSON.parse(data);
                 setReportData(parsedData);
-                // Trigger print after state is set and content is rendered
-                setTimeout(() => {
-                    window.print();
-                }, 500); // Delay to allow images to load
             } catch (e) {
                 console.error("Failed to parse report data from localStorage", e);
             }
         }
         setIsReady(true);
-        
-        const handleAfterPrint = () => {
-          // Notify the parent window that printing is done
-          window.parent.postMessage('print-finished', '*');
-        };
-
-        window.addEventListener('afterprint', handleAfterPrint);
-
-        return () => {
-          window.removeEventListener('afterprint', handleAfterPrint);
-        };
-
     }, []);
 
     if (!isReady) {
@@ -184,7 +168,7 @@ export default function ReportPreviewPage() {
                             </tr>
 
                             <tr>
-                                <td colSpan={4} className='font-semibold'>Rincian Kegiatan</td>
+                                <td colSpan={4} className='font-semibold'>II. Rincian Kegiatan</td>
                             </tr>
                             <tr>
                                 <td colSpan={4}>

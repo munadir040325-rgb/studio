@@ -163,32 +163,36 @@ export default function ReportPage() {
         localStorage.setItem('reportDataForPrint', JSON.stringify(reportData));
         
         let iframe = document.getElementById('print-iframe') as HTMLIFrameElement;
-        if (!iframe) {
-            iframe = document.createElement('iframe');
-            iframe.id = 'print-iframe';
-            iframe.style.position = 'fixed';
-            iframe.style.top = '-9999px';
-            iframe.style.left = '-9999px';
-            document.body.appendChild(iframe);
+        if (iframe) {
+            document.body.removeChild(iframe);
         }
 
-        iframe.src = '/report/preview';
+        iframe = document.createElement('iframe');
+        iframe.id = 'print-iframe';
+        iframe.style.position = 'absolute';
+        iframe.style.width = '0';
+        iframe.style.height = '0';
+        iframe.style.border = 'none';
         
-        // The print command is now triggered from within the preview page's useEffect
-        
-        const handleMessage = (event: MessageEvent) => {
-            if (event.data === 'print-finished') {
+        iframe.onload = () => {
+            try {
+                iframe.contentWindow?.focus(); // Focus on the iframe
+                iframe.contentWindow?.print(); // Trigger print
+            } catch (e: any) {
+                toast({ variant: 'destructive', title: 'Gagal Mencetak', description: `Terjadi kesalahan saat membuka dialog cetak: ${e.message}` });
+            } finally {
                 setIsPrinting(false);
-                document.body.removeChild(iframe);
-                window.removeEventListener('message', handleMessage);
+                // Optionally remove the iframe after a delay
+                setTimeout(() => {
+                    if (document.body.contains(iframe)) {
+                        document.body.removeChild(iframe);
+                    }
+                }, 1000);
             }
         };
-        window.addEventListener('message', handleMessage);
 
-        iframe.onerror = () => {
-            toast({ variant: 'destructive', title: 'Gagal Memuat Pratinjau', description: 'Tidak dapat memuat halaman pratinjau.' });
-            setIsPrinting(false);
-        };
+        iframe.src = '/report/preview';
+        document.body.appendChild(iframe);
     };
 
     return (
@@ -197,7 +201,7 @@ export default function ReportPage() {
                 title="Buat Laporan Kegiatan"
                 description="Pilih kegiatan yang sudah ada atau input manual untuk membuat draf laporan."
             >
-                 <Button onClick={handleIframePrint} disabled={isPrinting || (!selectedEvent && !isManualMode)}>
+                 <Button onClick={handleIframePrint} disabled={isPrinting || (!selectedEventId && !isManualMode)}>
                     {isPrinting ? <Loader2 className="mr-2 h-4 w-4 animate-spin" /> : <Printer className="mr-2 h-4 w-4" />}
                     Cetak Laporan
                 </Button>
