@@ -1,10 +1,10 @@
 
 'use client';
 
-import { useState, useMemo, useRef, useEffect } from 'react';
+import { useState, useMemo, useEffect } from 'react';
 import { PageHeader } from '@/components/page-header';
 import { Button } from '@/components/ui/button';
-import { Card, CardContent, CardDescription, CardFooter, CardHeader, CardTitle } from '@/components/ui/card';
+import { Card, CardContent } from '@/components/ui/card';
 import { Label } from '@/components/ui/label';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { Calendar } from '@/components/ui/calendar';
@@ -12,14 +12,14 @@ import { Popover, PopoverContent, PopoverTrigger } from '@/components/ui/popover
 import { Calendar as CalendarIcon, Loader2, Printer, Trash, Info } from 'lucide-react';
 import { useToast } from '@/hooks/use-toast';
 import { cn } from '@/lib/utils';
-import { parseISO, format, isSameDay, isSameMonth, set } from 'date-fns';
+import { parseISO, format, isSameDay } from 'date-fns';
 import { id as localeId } from 'date-fns/locale';
 import useSWR from 'swr';
 import { Alert, AlertDescription, AlertTitle } from '@/components/ui/alert';
-import DOMPurify from 'isomorphic-dompurify';
 import { RichTextEditor } from '@/components/editor';
 import { Input } from '@/components/ui/input';
-import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
+import { Textarea } from '@/components/ui/textarea';
+import { Switch } from '@/components/ui/switch';
 
 
 type CalendarAttachment = {
@@ -78,7 +78,7 @@ const fetcher = (url: string) => fetch(url).then(res => {
 export default function ReportPage() {
   const { toast } = useToast();
   
-  const [activeTab, setActiveTab] = useState('pilih');
+  const [isManualMode, setIsManualMode] = useState(false);
   
   // State for "Pilih dari Kalender"
   const [selectedDate, setSelectedDate] = useState<Date | undefined>();
@@ -122,7 +122,7 @@ export default function ReportPage() {
     return events.filter(event => isSameDay(parseISO(event.start), selectedDate));
   }, [events, selectedDate]);
   
-  const eventForReport = useMemo(() => activeTab === 'pilih' ? selectedEvent : manualEvent, [activeTab, selectedEvent, manualEvent]);
+  const eventForReport = useMemo(() => !isManualMode ? selectedEvent : manualEvent, [isManualMode, selectedEvent, manualEvent]);
   
   const handlePrint = () => {
     if (!eventForReport?.summary) {
@@ -142,19 +142,16 @@ export default function ReportPage() {
         pimpinan: pimpinan,
         labelPimpinan: 'Pimpinan Rapat',
         narasumber: narasumber,
-        labelNarasumber: 'Narasumber',
+        labelNarasumber: 'Narasumber/Verifikator',
         peserta: peserta,
-        labelPeserta: 'Peserta',
+        labelPeserta: 'Peserta/Pejabat yang Hadir',
         reportContent: reportContent,
         lokasiTanggal: defaultLokasiTanggal,
         pelapor: pelapor,
         photoAttachments: eventForReport.attachments?.filter(att => att.mimeType?.startsWith('image/')) || [],
     };
     
-    // Simpan ke localStorage untuk diambil oleh tab baru
     localStorage.setItem('reportDataForPrint', JSON.stringify(reportData));
-    
-    // Buka tab baru
     window.open('/report/preview', '_blank');
   };
   
@@ -168,6 +165,7 @@ export default function ReportPage() {
     setNarasumber('');
     setPeserta('');
     setPelapor('');
+    setIsManualMode(false);
     toast({ description: 'Semua isian telah dikosongkan.' });
   }
 
@@ -178,15 +176,15 @@ export default function ReportPage() {
     setNarasumber('');
     setPeserta('');
     setPelapor('');
-  }, [selectedEvent, activeTab]);
+  }, [selectedEvent, isManualMode]);
 
-  const isPrintDisabled = activeTab === 'pilih' ? !selectedEvent : !manualEvent.summary;
+  const isPrintDisabled = !eventForReport?.summary;
 
   return (
     <div className="flex flex-col gap-6">
       <PageHeader
         title="Buat Laporan"
-        description="Pilih atau input kegiatan untuk membuat draf laporan."
+        description="Pilih kegiatan dari kalender atau input manual untuk membuat draf laporan."
       >
         <div className='flex items-center gap-2'>
             <Button variant="outline" onClick={handleReset}>
@@ -201,73 +199,14 @@ export default function ReportPage() {
       </PageHeader>
         <Card>
           <CardContent className='p-6'>
-            <Tabs value={activeTab} onValueChange={setActiveTab}>
-                <TabsList className='grid w-full grid-cols-2'>
-                    <TabsTrigger value="pilih">Pilih dari Kalender</TabsTrigger>
-                    <TabsTrigger value="manual">Input Manual</TabsTrigger>
-                </TabsList>
-                <TabsContent value="pilih" className='mt-6'>
-                    {eventsError && <Alert variant="destructive"><AlertTitle>Error</AlertTitle><AlertDescription>{eventsError.message}</AlertDescription></Alert>}
-                    <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-                        <div className="space-y-2">
-                        <Label htmlFor="tanggal-kegiatan" className="font-semibold">1. Pilih Tanggal Kegiatan</Label>
-                        <Popover>
-                            <PopoverTrigger asChild>
-                            <Button
-                                id="tanggal-kegiatan"
-                                variant={"outline"}
-                                className={cn(
-                                "w-full justify-start text-left font-normal",
-                                !selectedDate && "text-muted-foreground"
-                                )}
-                            >
-                                <CalendarIcon className="mr-2 h-4 w-4" />
-                                {selectedDate ? format(selectedDate, "PPP", { locale: localeId }) : <span>Pilih tanggal</span>}
-                            </Button>
-                            </PopoverTrigger>
-                            <PopoverContent className="w-auto p-0">
-                            <Calendar
-                                mode="single"
-                                selected={selectedDate}
-                                onSelect={(date) => {
-                                    setSelectedDate(date);
-                                    setSelectedEvent(null);
-                                }}
-                                initialFocus
-                                locale={localeId}
-                            />
-                            </PopoverContent>
-                        </Popover>
-                        </div>
-                        <div className="space-y-2">
-                        <Label htmlFor="kegiatan" className="font-semibold">2. Pilih Kegiatan</Label>
-                        {isLoadingEvents && selectedDate ? (
-                            <div className="flex items-center text-sm text-muted-foreground h-10">
-                            <Loader2 className="mr-2 h-4 w-4 animate-spin" />
-                            Memuat kegiatan...
-                            </div>
-                        ) : filteredEvents.length > 0 ? (
-                            <Select onValueChange={(eventId) => setSelectedEvent(events.find(e => e.id === eventId) || null)} value={selectedEvent?.id ?? ''}>
-                            <SelectTrigger id="kegiatan" className="w-full">
-                                <SelectValue placeholder="Pilih kegiatan..." />
-                            </SelectTrigger>
-                            <SelectContent style={{ width: 'var(--radix-select-trigger-width)' }}>
-                                {filteredEvents.map(event => (
-                                <SelectItem key={event.id} value={event.id}>
-                                    {event.summary} ({format(parseISO(event.start), 'HH:mm')})
-                                </SelectItem>
-                                ))}
-                            </SelectContent>
-                            </Select>
-                        ) : (
-                            <div className={cn("flex items-center text-sm h-10 px-3 rounded-md border border-input", selectedDate ? "text-muted-foreground" : "text-muted-foreground/50 bg-muted")}>
-                            {selectedDate ? "Tidak ada kegiatan untuk tanggal ini." : "Pilih tanggal terlebih dahulu."}
-                            </div>
-                        )}
-                        </div>
-                    </div>
-                </TabsContent>
-                <TabsContent value="manual" className='mt-6'>
+            <div className="flex items-center space-x-2 mb-6">
+                <Switch id="manual-mode-switch" checked={isManualMode} onCheckedChange={setIsManualMode} />
+                <Label htmlFor="manual-mode-switch">Aktifkan Mode Input Manual</Label>
+            </div>
+            
+            {isManualMode ? (
+                <div className='mt-6 space-y-6 animate-in fade-in-0'>
+                    <h3 className='font-semibold'>2. Input Detail Kegiatan</h3>
                     <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
                         <div className="space-y-2 md:col-span-2">
                             <Label htmlFor='manual-summary'>Nama Kegiatan</Label>
@@ -316,39 +255,95 @@ export default function ReportPage() {
                             </Popover>
                         </div>
                     </div>
-                </TabsContent>
-            </Tabs>
+                </div>
+            ) : (
+                <div className='space-y-6 animate-in fade-in-0'>
+                    {eventsError && <Alert variant="destructive"><AlertTitle>Error</AlertTitle><AlertDescription>{eventsError.message}</AlertDescription></Alert>}
+                    <h3 className='font-semibold'>1. Pilih Kegiatan dari Kalender</h3>
+                    <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+                        <div className="space-y-2">
+                        <Label htmlFor="tanggal-kegiatan" className="font-semibold">Pilih Tanggal Kegiatan</Label>
+                        <Popover>
+                            <PopoverTrigger asChild>
+                            <Button
+                                id="tanggal-kegiatan"
+                                variant={"outline"}
+                                className={cn(
+                                "w-full justify-start text-left font-normal",
+                                !selectedDate && "text-muted-foreground"
+                                )}
+                            >
+                                <CalendarIcon className="mr-2 h-4 w-4" />
+                                {selectedDate ? format(selectedDate, "PPP", { locale: localeId }) : <span>Pilih tanggal</span>}
+                            </Button>
+                            </PopoverTrigger>
+                            <PopoverContent className="w-auto p-0">
+                            <Calendar
+                                mode="single"
+                                selected={selectedDate}
+                                onSelect={(date) => {
+                                    setSelectedDate(date);
+                                    setSelectedEvent(null);
+                                }}
+                                initialFocus
+                                locale={localeId}
+                            />
+                            </PopoverContent>
+                        </Popover>
+                        </div>
+                        <div className="space-y-2">
+                        <Label htmlFor="kegiatan" className="font-semibold">Pilih Kegiatan</Label>
+                        {isLoadingEvents && selectedDate ? (
+                            <div className="flex items-center text-sm text-muted-foreground h-10">
+                            <Loader2 className="mr-2 h-4 w-4 animate-spin" />
+                            Memuat kegiatan...
+                            </div>
+                        ) : filteredEvents.length > 0 ? (
+                            <Select onValueChange={(eventId) => setSelectedEvent(events.find(e => e.id === eventId) || null)} value={selectedEvent?.id ?? ''}>
+                            <SelectTrigger id="kegiatan" className="w-full">
+                                <SelectValue placeholder="Pilih kegiatan..." />
+                            </SelectTrigger>
+                            <SelectContent style={{ width: 'var(--radix-select-trigger-width)' }}>
+                                {filteredEvents.map(event => (
+                                <SelectItem key={event.id} value={event.id}>
+                                    {event.summary} ({format(parseISO(event.start), 'HH:mm')})
+                                </SelectItem>
+                                ))}
+                            </SelectContent>
+                            </Select>
+                        ) : (
+                            <div className={cn("flex items-center text-sm h-10 px-3 rounded-md border border-input", selectedDate ? "text-muted-foreground" : "text-muted-foreground/50 bg-muted")}>
+                            {selectedDate ? "Tidak ada kegiatan untuk tanggal ini." : "Pilih tanggal terlebih dahulu."}
+                            </div>
+                        )}
+                        </div>
+                    </div>
+                </div>
+            )}
           </CardContent>
         </Card>
 
         {eventForReport?.summary ? (
             <Card>
-                <CardHeader>
-                    <CardTitle>3. Isi Detail Laporan</CardTitle>
-                </CardHeader>
-                <CardContent className='grid grid-cols-1 md:grid-cols-2 gap-6'>
-                     <div className="space-y-2">
+                <CardContent className='p-6 grid grid-cols-1 md:grid-cols-2 gap-6'>
+                    <div className="space-y-2 md:col-span-2">
                         <Label htmlFor='report-pelapor'>Pelaksana / Pelapor</Label>
-                        <Input id='report-pelapor' placeholder="Nama yang membuat laporan" value={pelapor} onChange={(e) => setPelapor(e.target.value)} />
+                        <Textarea id='report-pelapor' placeholder="Nama yang membuat laporan" value={pelapor} onChange={(e) => setPelapor(e.target.value)} />
+                    </div>
+                    <div className="space-y-2 md:col-span-2">
+                        <Label htmlFor='report-peserta'>Peserta/Pejabat yang Hadir</Label>
+                        <Textarea id='report-peserta' placeholder="Sebutkan peserta atau pejabat yang hadir" value={peserta} onChange={(e) => setPeserta(e.target.value)} />
+                    </div>
+                    <div className="space-y-2">
+                        <Label htmlFor='report-narasumber'>Narasumber / Verifikator</Label>
+                        <Textarea id='report-narasumber' placeholder="Nama narasumber atau verifikator" value={narasumber} onChange={(e) => setNarasumber(e.target.value)} />
                     </div>
                     <div className="space-y-2">
                         <Label htmlFor='report-dasar'>Dasar Pelaksanaan (Jika Ada)</Label>
                         <Input id='report-dasar' placeholder="e.g., Undangan No. XXX" value={dasar} onChange={(e) => setDasar(e.target.value)} />
                     </div>
-                    <div className="space-y-2">
-                        <Label htmlFor='report-narasumber'>Narasumber / Verifikator</Label>
-                        <Input id='report-narasumber' placeholder="Nama narasumber atau verifikator" value={narasumber} onChange={(e) => setNarasumber(e.target.value)} />
-                    </div>
-                     <div className="space-y-2">
-                        <Label htmlFor='report-pimpinan'>Pimpinan Rapat</Label>
-                        <Input id='report-pimpinan' placeholder="Nama pimpinan rapat" value={pimpinan} onChange={(e) => setPimpinan(e.target.value)} />
-                    </div>
                     <div className="space-y-2 md:col-span-2">
-                        <Label htmlFor='report-peserta'>Peserta Kegiatan</Label>
-                        <Input id='report-peserta' placeholder="Sebutkan peserta yang hadir" value={peserta} onChange={(e) => setPeserta(e.target.value)} />
-                    </div>
-                    <div className="space-y-2 md:col-span-2">
-                        <Label>4. Rincian dan Hasil Pelaksanaan</Label>
+                        <Label>Rincian dan Hasil Pelaksanaan</Label>
                         <RichTextEditor
                             onChange={setReportContent}
                             placeholder="Ketik hasil laporan di sini..."
@@ -368,3 +363,5 @@ export default function ReportPage() {
     </div>
   );
 }
+
+    
