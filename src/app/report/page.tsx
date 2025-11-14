@@ -151,8 +151,34 @@ export default function ReportPage() {
         photoAttachments: eventForReport.attachments?.filter(att => att.fileUrl && (att.fileUrl.includes('image') || att.mimeType?.startsWith('image/'))) || [],
     };
     
+    // Save data to localStorage so the preview page can access it
     localStorage.setItem('reportDataForPrint', JSON.stringify(reportData));
-    window.open('/report/preview', '_blank');
+    
+    // Create a hidden iframe
+    const iframe = document.createElement('iframe');
+    iframe.style.display = 'none';
+    iframe.src = '/report/preview'; // The URL of the clean preview page
+    document.body.appendChild(iframe);
+
+    // Wait for the iframe to load, then trigger its print function
+    iframe.onload = function() {
+        if (iframe.contentWindow) {
+            iframe.contentWindow.focus(); // Focus on the iframe
+            iframe.contentWindow.print(); // Trigger the print dialog
+        }
+    };
+    
+    // Clean up the iframe after printing is done or cancelled
+    iframe.onafterprint = function() {
+        document.body.removeChild(iframe);
+    };
+
+    // Fallback for browsers that don't support onafterprint
+    setTimeout(() => {
+        if (document.body.contains(iframe)) {
+            document.body.removeChild(iframe);
+        }
+    }, 3000);
   };
   
   const handleReset = () => {
@@ -261,8 +287,8 @@ export default function ReportPage() {
                     </div>
                 ) : (
                     <div className='space-y-4 animate-in fade-in-0'>
-                        {eventsError && <Alert variant="destructive"><AlertTitle>Error</AlertTitle><AlertDescription>{eventsError.message}</AlertDescription></Alert>}
                         <h3 className='font-semibold'>Pilih Kegiatan dari Kalender</h3>
+                        {eventsError && <Alert variant="destructive"><AlertTitle>Error</AlertTitle><AlertDescription>{eventsError.message}</AlertDescription></Alert>}
                         <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                             <div className="space-y-2">
                             <Label htmlFor="tanggal-kegiatan">Pilih Tanggal Kegiatan</Label>
@@ -373,3 +399,5 @@ export default function ReportPage() {
     </div>
   );
 }
+
+    
