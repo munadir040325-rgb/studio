@@ -99,12 +99,19 @@ const ReportHeader = ({ letterheadData, logoUrl }: { letterheadData: any, logoUr
     </div>
 );
 
-// Function to strip HTML tags, especially empty ones from the editor
+// Function to strip HTML tags and get clean text, especially for single-line fields
 const cleanHtmlForPlainText = (html: string | undefined): string => {
     if (!html) return '';
     // Create a temporary div to parse the HTML
     const tempDiv = document.createElement('div');
     tempDiv.innerHTML = html;
+    
+    // Check if the only content is <br> tags inside <p> tags, which indicates an empty editor.
+    const isEmptyEditor = tempDiv.innerHTML.trim().match(/^<p>(<br>)*<\/p>$/i);
+    if (isEmptyEditor) {
+        return '';
+    }
+
     // Get the text content, which strips all tags
     return tempDiv.textContent || '';
 };
@@ -120,7 +127,7 @@ export default function ReportPreviewPage() {
             if (data) {
                 setReportData(JSON.parse(data));
             } else {
-                setError("Data laporan tidak ditemukan di localStorage.");
+                setError("Data laporan tidak ditemukan. Silakan kembali dan coba lagi.");
             }
         } catch (e) {
             setError("Gagal mem-parsing data laporan.");
@@ -132,7 +139,10 @@ export default function ReportPreviewPage() {
 
     useEffect(() => {
         if (reportData && !isLoading) {
-            window.print();
+            const timeoutId = setTimeout(() => {
+                window.print();
+            }, 500); // Small delay to ensure images/fonts are rendered
+            return () => clearTimeout(timeoutId);
         }
     }, [reportData, isLoading]);
 
@@ -149,7 +159,7 @@ export default function ReportPreviewPage() {
         return (
             <div className="flex flex-col items-center justify-center min-h-screen text-muted-foreground bg-gray-100 gap-4 p-4">
                  <h2 className="text-xl font-bold">Data Laporan Tidak Ditemukan</h2>
-                 <p className="text-center">{error || "Silakan kembali ke halaman sebelumnya dan coba lagi."}</p>
+                 <p className="text-center">{error}</p>
                  <Button onClick={() => window.close()}>Tutup Tab</Button>
             </div>
         );
@@ -220,7 +230,7 @@ export default function ReportPreviewPage() {
                         <p>{lokasiTanggal}</p>
                         <p>Yang melaksanakan kegiatan,</p>
                         <br /><br /><br />
-                        <p className="font-semibold underline">{plainTextPelaksana}</p>
+                        <p className="font-semibold underline">{plainTextPelaksana || '.....................................'}</p>
                     </div>
                 </div>
             </div>
@@ -247,3 +257,4 @@ export default function ReportPreviewPage() {
         </div>
     );
 }
+
