@@ -2,6 +2,7 @@
 'use client';
 
 import { useEffect, useState } from 'react';
+import { Button } from '@/components/ui/button';
 import { Loader2 } from 'lucide-react';
 import { parseISO, format, isSameDay, isSameMonth } from 'date-fns';
 import { id as localeId } from 'date-fns/locale';
@@ -98,6 +99,16 @@ const ReportHeader = ({ letterheadData, logoUrl }: { letterheadData: any, logoUr
     </div>
 );
 
+// Function to strip HTML tags, especially empty ones from the editor
+const cleanHtmlForPlainText = (html: string | undefined): string => {
+    if (!html) return '';
+    // Create a temporary div to parse the HTML
+    const tempDiv = document.createElement('div');
+    tempDiv.innerHTML = html;
+    // Get the text content, which strips all tags
+    return tempDiv.textContent || '';
+};
+
 export default function ReportPreviewPage() {
     const [reportData, setReportData] = useState<ReportData | null>(null);
     const [isLoading, setIsLoading] = useState(true);
@@ -120,7 +131,6 @@ export default function ReportPreviewPage() {
     }, []);
 
     useEffect(() => {
-        // Panggil print HANYA setelah data berhasil dimuat dan state diupdate
         if (reportData && !isLoading) {
             window.print();
         }
@@ -140,13 +150,15 @@ export default function ReportPreviewPage() {
             <div className="flex flex-col items-center justify-center min-h-screen text-muted-foreground bg-gray-100 gap-4 p-4">
                  <h2 className="text-xl font-bold">Data Laporan Tidak Ditemukan</h2>
                  <p className="text-center">{error || "Silakan kembali ke halaman sebelumnya dan coba lagi."}</p>
-                 <button onClick={() => window.close()} className="mt-4 px-4 py-2 bg-blue-500 text-white rounded">Tutup Tab</button>
+                 <Button onClick={() => window.close()}>Tutup Tab</Button>
             </div>
         );
     }
     
     const { event, dasar, pelaksana, narasumber, peserta, reportContent, photoAttachments } = reportData;
     const isManualEvent = 'waktu' in event && !!event.waktu;
+    
+    const plainTextPelaksana = cleanHtmlForPlainText(pelaksana);
 
     const letterheadData = {
         instansi: process.env.NEXT_PUBLIC_KOP_INSTANSI || 'PEMERINTAH KABUPATEN CILACAP',
@@ -208,7 +220,7 @@ export default function ReportPreviewPage() {
                         <p>{lokasiTanggal}</p>
                         <p>Yang melaksanakan kegiatan,</p>
                         <br /><br /><br />
-                        <p className="font-semibold underline" dangerouslySetInnerHTML={{ __html: pelaksana }}></p>
+                        <p className="font-semibold underline">{plainTextPelaksana}</p>
                     </div>
                 </div>
             </div>
