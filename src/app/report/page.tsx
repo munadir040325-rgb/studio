@@ -154,31 +154,8 @@ export default function ReportPage() {
     // Save data to localStorage so the preview page can access it
     localStorage.setItem('reportDataForPrint', JSON.stringify(reportData));
     
-    // Create a hidden iframe
-    const iframe = document.createElement('iframe');
-    iframe.style.display = 'none';
-    iframe.src = '/report/preview'; // The URL of the clean preview page
-    document.body.appendChild(iframe);
-
-    // Wait for the iframe to load, then trigger its print function
-    iframe.onload = function() {
-        if (iframe.contentWindow) {
-            iframe.contentWindow.focus(); // Focus on the iframe
-            iframe.contentWindow.print(); // Trigger the print dialog
-        }
-    };
-    
-    // Clean up the iframe after printing is done or cancelled
-    iframe.onafterprint = function() {
-        document.body.removeChild(iframe);
-    };
-
-    // Fallback for browsers that don't support onafterprint
-    setTimeout(() => {
-        if (document.body.contains(iframe)) {
-            document.body.removeChild(iframe);
-        }
-    }, 3000);
+    // Open the clean preview page in a new tab
+    window.open('/report/preview', '_blank');
   };
   
   const handleReset = () => {
@@ -235,7 +212,6 @@ export default function ReportPage() {
                 
                 {isManualMode ? (
                     <div className='mt-4 space-y-4 animate-in fade-in-0'>
-                        <h3 className='font-semibold'>Input Detail Kegiatan</h3>
                         <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                             <div className="space-y-2 md:col-span-2">
                                 <Label htmlFor='manual-summary'>Nama Kegiatan</Label>
@@ -287,7 +263,6 @@ export default function ReportPage() {
                     </div>
                 ) : (
                     <div className='space-y-4 animate-in fade-in-0'>
-                        <h3 className='font-semibold'>Pilih Kegiatan dari Kalender</h3>
                         {eventsError && <Alert variant="destructive"><AlertTitle>Error</AlertTitle><AlertDescription>{eventsError.message}</AlertDescription></Alert>}
                         <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                             <div className="space-y-2">
