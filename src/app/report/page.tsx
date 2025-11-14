@@ -10,8 +10,7 @@ import { Label } from '@/components/ui/label';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { Calendar } from '@/components/ui/calendar';
 import { Popover, PopoverContent, PopoverTrigger } from '@/components/ui/popover';
-import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter, DialogDescription } from '@/components/ui/dialog';
-import { Calendar as CalendarIcon, Loader2, Printer, Trash, Copy, MessageCircle } from 'lucide-react';
+import { Calendar as CalendarIcon, Loader2, Printer, Trash } from 'lucide-react';
 import { useToast } from '@/hooks/use-toast';
 import { cn } from '@/lib/utils';
 import { parseISO, format, isSameDay, isSameMonth } from 'date-fns';
@@ -20,7 +19,6 @@ import useSWR from 'swr';
 import { Alert, AlertDescription, AlertTitle } from '@/components/ui/alert';
 import DOMPurify from 'isomorphic-dompurify';
 import { RichTextEditor } from '@/components/editor';
-import { Textarea } from '@/components/ui/textarea';
 import Image from 'next/image';
 
 
@@ -136,9 +134,9 @@ const ReportEditorTemplate = ({ event, reportContent, onContentChange, letterhea
     const photoAttachments = useMemo(() => event.attachments?.filter(att => att.mimeType?.startsWith('image/')) || [], [event.attachments]);
     
     return (
-        <div id="print-area" className="bg-white text-black print:shadow-none print:p-4 print:border-none" style={{ lineHeight: 1.2 }}>
+        <div id="print-area" className="bg-white text-black p-8" style={{ lineHeight: 1.2 }}>
             {/* Halaman 1: Laporan */}
-            <div className="report-page p-8 md:p-12">
+            <div className="report-page">
                 <ReportHeader letterheadData={letterheadData} logoUrl={logoUrl} />
                 <h3 className="text-center font-bold text-lg my-6">LAPORAN KEGIATAN/PERJALANAN DINAS</h3>
                 
@@ -272,6 +270,7 @@ export default function ReportPage() {
   const [selectedDate, setSelectedDate] = useState<Date | undefined>();
   const [selectedEvent, setSelectedEvent] = useState<CalendarEvent | null>(null);
   const [reportContent, setReportContent] = useState('');
+  const reportContainerRef = useRef<HTMLDivElement>(null);
 
   const { data: eventsData, error: eventsError, isLoading: isLoadingEvents } = useSWR('/api/events', fetcher);
     
@@ -300,7 +299,14 @@ export default function ReportPage() {
   }, [events, selectedDate]);
   
   const handlePrint = () => {
-    window.print();
+    const printContent = reportContainerRef.current?.innerHTML;
+    if (printContent) {
+        const printWrapper = document.getElementById('print-area-wrapper');
+        if (printWrapper) {
+            printWrapper.innerHTML = printContent;
+            window.print();
+        }
+    }
   };
   
   const handleReset = () => {
@@ -333,7 +339,7 @@ export default function ReportPage() {
 
 
   return (
-    <div className="flex flex-col gap-6 print:gap-0">
+    <div className="flex flex-col gap-6">
       <PageHeader
         title="Buat Laporan/Notulen"
         description="Pilih kegiatan untuk membuat draf laporan yang siap cetak."
@@ -435,7 +441,7 @@ export default function ReportPage() {
           </CardContent>
         </Card>
 
-        <div className="mt-4 overflow-x-auto" id="report-preview-container">
+        <div className="mt-4" ref={reportContainerRef}>
             {selectedEvent ? (
                 <ReportEditorTemplate 
                   event={selectedEvent} 
@@ -445,7 +451,7 @@ export default function ReportPage() {
                   logoUrl={logoUrl}
                 />
             ) : (
-                <Card className="text-center text-muted-foreground py-16 print:hidden">
+                <Card className="text-center text-muted-foreground py-16">
                     <p>Pilih tanggal dan kegiatan di atas untuk memulai membuat laporan.</p>
                 </Card>
             )}
@@ -465,61 +471,6 @@ export default function ReportPage() {
                 color: #666;
                 font-style: italic;
              }
-        `}</style>
-        <style jsx global>{`
-          @page {
-              size: A4;
-              margin: 2.1cm;
-          }
-          
-          .attachment-page {
-             page-break-before: always;
-          }
-
-          @media print {
-              body, html {
-                  background: white !important;
-                  -webkit-print-color-adjust: exact;
-                  print-color-adjust: exact;
-              }
-
-              body > :not(#report-preview-container) {
-                  display: none;
-              }
-
-              #report-preview-container, #print-area {
-                  display: block !important;
-                  visibility: visible !important;
-                  position: absolute;
-                  left: 0;
-                  top: 0;
-                  margin: 0 !important;
-                  padding: 0 !important;
-                  width: 100%;
-              }
-
-               #print-area * {
-                  visibility: visible;
-                  font-family: Arial, sans-serif !important;
-                  font-size: 12pt !important;
-                  line-height: 1.2 !important;
-                  color: black !important;
-               }
-
-               span[contentEditable="true"] {
-                   background-color: transparent !important;
-                   border: none !important;
-                   box-shadow: none !important;
-               }
-                .report-content-preview {
-                    display: block !important;
-                }
-                .report-content-preview p,
-                .report-content-preview div,
-                .report-content-preview li {
-                  text-align: justify;
-                }
-          }
         `}</style>
     </div>
   );

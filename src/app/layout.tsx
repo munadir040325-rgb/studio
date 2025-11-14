@@ -32,6 +32,27 @@ export default function RootLayout({
         <link rel="preconnect" href="https://fonts.googleapis.com" />
         <link rel="preconnect" href="https://fonts.gstatic.com" crossOrigin="anonymous" />
         <link href="https://fonts.googleapis.com/css2?family=PT+Sans:ital,wght@0,400;0,700;1,400;1,700&display=swap" rel="stylesheet" />
+        <style>{`
+          @media print {
+            body > *:not(#print-area-wrapper) {
+              display: none !important;
+            }
+            #print-area-wrapper {
+              display: block !important;
+              position: absolute;
+              top: 0;
+              left: 0;
+              width: 100%;
+            }
+            
+            .report-page, .attachment-page {
+                page-break-after: always;
+            }
+            .attachment-page {
+                page-break-before: always;
+            }
+          }
+        `}</style>
       </head>
       <body className="font-body antialiased">
           <SidebarProvider>
@@ -55,6 +76,7 @@ export default function RootLayout({
               <main className="p-4 md:p-6">{children}</main>
             </SidebarInset>
           </SidebarProvider>
+        <div id="print-area-wrapper" className="hidden"></div>
         <Toaster />
       </body>
     </html>
