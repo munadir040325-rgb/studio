@@ -1,4 +1,5 @@
 
+
 'use client';
 
 import { usePathname } from 'next/navigation';
@@ -45,7 +46,7 @@ export function Breadcrumbs() {
             </Link>
         </li>
         {/* If we are on the homepage, show "Kalender" */}
-        {segments.length === 0 && (
+        {path === '/' && (
              <li className="flex items-center">
                 <ChevronRight className="h-4 w-4 shrink-0" />
                 <span className="ml-1 truncate font-medium text-foreground" aria-current="page">
@@ -57,6 +58,10 @@ export function Breadcrumbs() {
             const isLast = index === segments.length - 1;
             const href = `/${segments.slice(0, index + 1).join('/')}`;
             let displayText = formatSegment(segment);
+
+            // Don't show breadcrumb for the root path if it's the only segment
+            if (path !== '/' && href === '/') return null;
+
 
             return (
                 <Fragment key={href}>
