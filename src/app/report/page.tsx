@@ -198,132 +198,132 @@ export default function ReportPage() {
         </div>
       </PageHeader>
         <Card>
-          <CardHeader>
-            <CardTitle>Detail Kegiatan</CardTitle>
-          </CardHeader>
-          <CardContent className='p-6'>
-            <div className="flex items-center space-x-2 mb-6">
-                <Switch id="manual-mode-switch" checked={isManualMode} onCheckedChange={setIsManualMode} />
-                <Label htmlFor="manual-mode-switch">Aktifkan Mode Input Manual</Label>
-            </div>
-            
-            {isManualMode ? (
-                <div className='mt-6 space-y-6 animate-in fade-in-0'>
-                    <h3 className='font-semibold'>Input Detail Kegiatan</h3>
-                    <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-                        <div className="space-y-2 md:col-span-2">
-                            <Label htmlFor='manual-summary'>Nama Kegiatan</Label>
-                            <Input id='manual-summary' value={manualEvent.summary} onChange={(e) => setManualEvent(s => ({...s, summary: e.target.value}))} />
+            <CardHeader>
+                <CardTitle>Detail Kegiatan</CardTitle>
+            </CardHeader>
+            <CardContent className='p-4'>
+                <div className="flex items-center space-x-2 mb-4">
+                    <Switch id="manual-mode-switch" checked={isManualMode} onCheckedChange={setIsManualMode} />
+                    <Label htmlFor="manual-mode-switch">Aktifkan Mode Input Manual</Label>
+                </div>
+                
+                {isManualMode ? (
+                    <div className='mt-4 space-y-4 animate-in fade-in-0'>
+                        <h3 className='font-semibold'>Input Detail Kegiatan</h3>
+                        <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                            <div className="space-y-2 md:col-span-2">
+                                <Label htmlFor='manual-summary'>Nama Kegiatan</Label>
+                                <Input id='manual-summary' value={manualEvent.summary} onChange={(e) => setManualEvent(s => ({...s, summary: e.target.value}))} />
+                            </div>
+                            <div className="space-y-2">
+                                <Label htmlFor='manual-location'>Tempat</Label>
+                                <Input id='manual-location' value={manualEvent.location} onChange={(e) => setManualEvent(s => ({...s, location: e.target.value}))} />
+                            </div>
+                            <div className="space-y-2">
+                                <Label htmlFor='manual-waktu'>Waktu</Label>
+                                <Input id='manual-waktu' placeholder='e.g., 09:00 WIB s.d. Selesai' value={manualEvent.waktu} onChange={(e) => setManualEvent(s => ({...s, waktu: e.target.value}))} />
+                            </div>
+                            <div className="space-y-2">
+                                <Label htmlFor="manual-start-date">Tanggal Mulai</Label>
+                                <Popover>
+                                    <PopoverTrigger asChild>
+                                    <Button
+                                        variant={"outline"}
+                                        className={cn("w-full justify-start text-left font-normal", !manualEvent.start && "text-muted-foreground")}
+                                    >
+                                        <CalendarIcon className="mr-2 h-4 w-4" />
+                                        {manualEvent.start ? format(parseISO(manualEvent.start), "PPP", { locale: localeId }) : <span>Pilih tanggal</span>}
+                                    </Button>
+                                    </PopoverTrigger>
+                                    <PopoverContent className="w-auto p-0">
+                                    <Calendar mode="single" selected={parseISO(manualEvent.start)} onSelect={(date) => setManualEvent(s => ({...s, start: date?.toISOString() || ''}))} initialFocus locale={localeId} />
+                                    </PopoverContent>
+                                </Popover>
+                            </div>
+                            <div className="space-y-2">
+                                <Label htmlFor="manual-end-date">Tanggal Selesai</Label>
+                                <Popover>
+                                    <PopoverTrigger asChild>
+                                    <Button
+                                        variant={"outline"}
+                                        className={cn("w-full justify-start text-left font-normal", !manualEvent.end && "text-muted-foreground")}
+                                    >
+                                        <CalendarIcon className="mr-2 h-4 w-4" />
+                                        {manualEvent.end ? format(parseISO(manualEvent.end), "PPP", { locale: localeId }) : <span>Pilih tanggal</span>}
+                                    </Button>
+                                    </PopoverTrigger>
+                                    <PopoverContent className="w-auto p-0">
+                                    <Calendar mode="single" selected={parseISO(manualEvent.end || manualEvent.start)} onSelect={(date) => setManualEvent(s => ({...s, end: date?.toISOString() || ''}))} initialFocus locale={localeId} />
+                                    </PopoverContent>
+                                </Popover>
+                            </div>
                         </div>
-                         <div className="space-y-2">
-                            <Label htmlFor='manual-location'>Tempat</Label>
-                            <Input id='manual-location' value={manualEvent.location} onChange={(e) => setManualEvent(s => ({...s, location: e.target.value}))} />
-                        </div>
-                         <div className="space-y-2">
-                            <Label htmlFor='manual-waktu'>Waktu</Label>
-                            <Input id='manual-waktu' placeholder='e.g., 09:00 WIB s.d. Selesai' value={manualEvent.waktu} onChange={(e) => setManualEvent(s => ({...s, waktu: e.target.value}))} />
-                        </div>
-                         <div className="space-y-2">
-                            <Label htmlFor="manual-start-date">Tanggal Mulai</Label>
+                    </div>
+                ) : (
+                    <div className='space-y-4 animate-in fade-in-0'>
+                        {eventsError && <Alert variant="destructive"><AlertTitle>Error</AlertTitle><AlertDescription>{eventsError.message}</AlertDescription></Alert>}
+                        <h3 className='font-semibold'>Pilih Kegiatan dari Kalender</h3>
+                        <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                            <div className="space-y-2">
+                            <Label htmlFor="tanggal-kegiatan">Pilih Tanggal Kegiatan</Label>
                             <Popover>
                                 <PopoverTrigger asChild>
                                 <Button
+                                    id="tanggal-kegiatan"
                                     variant={"outline"}
-                                    className={cn("w-full justify-start text-left font-normal", !manualEvent.start && "text-muted-foreground")}
+                                    className={cn(
+                                    "w-full justify-start text-left font-normal",
+                                    !selectedDate && "text-muted-foreground"
+                                    )}
                                 >
                                     <CalendarIcon className="mr-2 h-4 w-4" />
-                                    {manualEvent.start ? format(parseISO(manualEvent.start), "PPP", { locale: localeId }) : <span>Pilih tanggal</span>}
+                                    {selectedDate ? format(selectedDate, "PPP", { locale: localeId }) : <span>Pilih tanggal</span>}
                                 </Button>
                                 </PopoverTrigger>
                                 <PopoverContent className="w-auto p-0">
-                                <Calendar mode="single" selected={parseISO(manualEvent.start)} onSelect={(date) => setManualEvent(s => ({...s, start: date?.toISOString() || ''}))} initialFocus locale={localeId} />
+                                <Calendar
+                                    mode="single"
+                                    selected={selectedDate}
+                                    onSelect={(date) => {
+                                        setSelectedDate(date);
+                                        setSelectedEvent(null);
+                                    }}
+                                    initialFocus
+                                    locale={localeId}
+                                />
                                 </PopoverContent>
                             </Popover>
-                        </div>
-                        <div className="space-y-2">
-                            <Label htmlFor="manual-end-date">Tanggal Selesai</Label>
-                            <Popover>
-                                <PopoverTrigger asChild>
-                                <Button
-                                    variant={"outline"}
-                                    className={cn("w-full justify-start text-left font-normal", !manualEvent.end && "text-muted-foreground")}
-                                >
-                                    <CalendarIcon className="mr-2 h-4 w-4" />
-                                    {manualEvent.end ? format(parseISO(manualEvent.end), "PPP", { locale: localeId }) : <span>Pilih tanggal</span>}
-                                </Button>
-                                </PopoverTrigger>
-                                <PopoverContent className="w-auto p-0">
-                                <Calendar mode="single" selected={parseISO(manualEvent.end || manualEvent.start)} onSelect={(date) => setManualEvent(s => ({...s, end: date?.toISOString() || ''}))} initialFocus locale={localeId} />
-                                </PopoverContent>
-                            </Popover>
+                            </div>
+                            <div className="space-y-2">
+                            <Label htmlFor="kegiatan">Pilih Kegiatan</Label>
+                            {isLoadingEvents && selectedDate ? (
+                                <div className="flex items-center text-sm text-muted-foreground h-10">
+                                <Loader2 className="mr-2 h-4 w-4 animate-spin" />
+                                Memuat kegiatan...
+                                </div>
+                            ) : filteredEvents.length > 0 ? (
+                                <Select onValueChange={(eventId) => setSelectedEvent(events.find(e => e.id === eventId) || null)} value={selectedEvent?.id ?? ''}>
+                                <SelectTrigger id="kegiatan" className="w-full">
+                                    <SelectValue placeholder="Pilih kegiatan..." />
+                                </SelectTrigger>
+                                <SelectContent style={{ width: 'var(--radix-select-trigger-width)' }}>
+                                    {filteredEvents.map(event => (
+                                    <SelectItem key={event.id} value={event.id}>
+                                        {event.summary} ({format(parseISO(event.start), 'HH:mm')})
+                                    </SelectItem>
+                                    ))}
+                                </SelectContent>
+                                </Select>
+                            ) : (
+                                <div className={cn("flex items-center text-sm h-10 px-3 rounded-md border border-input", selectedDate ? "text-muted-foreground" : "text-muted-foreground/50 bg-muted")}>
+                                {selectedDate ? "Tidak ada kegiatan untuk tanggal ini." : "Pilih tanggal terlebih dahulu."}
+                                </div>
+                            )}
+                            </div>
                         </div>
                     </div>
-                </div>
-            ) : (
-                <div className='space-y-6 animate-in fade-in-0'>
-                    {eventsError && <Alert variant="destructive"><AlertTitle>Error</AlertTitle><AlertDescription>{eventsError.message}</AlertDescription></Alert>}
-                    <h3 className='font-semibold'>Pilih Kegiatan dari Kalender</h3>
-                    <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-                        <div className="space-y-2">
-                        <Label htmlFor="tanggal-kegiatan" className="font-semibold">Pilih Tanggal Kegiatan</Label>
-                        <Popover>
-                            <PopoverTrigger asChild>
-                            <Button
-                                id="tanggal-kegiatan"
-                                variant={"outline"}
-                                className={cn(
-                                "w-full justify-start text-left font-normal",
-                                !selectedDate && "text-muted-foreground"
-                                )}
-                            >
-                                <CalendarIcon className="mr-2 h-4 w-4" />
-                                {selectedDate ? format(selectedDate, "PPP", { locale: localeId }) : <span>Pilih tanggal</span>}
-                            </Button>
-                            </PopoverTrigger>
-                            <PopoverContent className="w-auto p-0">
-                            <Calendar
-                                mode="single"
-                                selected={selectedDate}
-                                onSelect={(date) => {
-                                    setSelectedDate(date);
-                                    setSelectedEvent(null);
-                                }}
-                                initialFocus
-                                locale={localeId}
-                            />
-                            </PopoverContent>
-                        </Popover>
-                        </div>
-                        <div className="space-y-2">
-                        <Label htmlFor="kegiatan" className="font-semibold">Pilih Kegiatan</Label>
-                        {isLoadingEvents && selectedDate ? (
-                            <div className="flex items-center text-sm text-muted-foreground h-10">
-                            <Loader2 className="mr-2 h-4 w-4 animate-spin" />
-                            Memuat kegiatan...
-                            </div>
-                        ) : filteredEvents.length > 0 ? (
-                            <Select onValueChange={(eventId) => setSelectedEvent(events.find(e => e.id === eventId) || null)} value={selectedEvent?.id ?? ''}>
-                            <SelectTrigger id="kegiatan" className="w-full">
-                                <SelectValue placeholder="Pilih kegiatan..." />
-                            </SelectTrigger>
-                            <SelectContent style={{ width: 'var(--radix-select-trigger-width)' }}>
-                                {filteredEvents.map(event => (
-                                <SelectItem key={event.id} value={event.id}>
-                                    {event.summary} ({format(parseISO(event.start), 'HH:mm')})
-                                </SelectItem>
-                                ))}
-                            </SelectContent>
-                            </Select>
-                        ) : (
-                            <div className={cn("flex items-center text-sm h-10 px-3 rounded-md border border-input", selectedDate ? "text-muted-foreground" : "text-muted-foreground/50 bg-muted")}>
-                            {selectedDate ? "Tidak ada kegiatan untuk tanggal ini." : "Pilih tanggal terlebih dahulu."}
-                            </div>
-                        )}
-                        </div>
-                    </div>
-                </div>
-            )}
-          </CardContent>
+                )}
+            </CardContent>
         </Card>
 
         {eventForReport?.summary ? (
@@ -331,7 +331,7 @@ export default function ReportPage() {
                 <CardHeader>
                   <CardTitle>Rincian Laporan</CardTitle>
                 </CardHeader>
-                <CardContent className='p-6 grid grid-cols-1 md:grid-cols-2 gap-6'>
+                <CardContent className='p-4 grid grid-cols-1 md:grid-cols-2 gap-4'>
                     <div className="space-y-2 md:col-span-2">
                         <Label htmlFor='report-pelapor'>Pelaksana / Pelapor</Label>
                         <Textarea id='report-pelapor' placeholder="Nama yang membuat laporan" value={pelapor} onChange={(e) => setPelapor(e.target.value)} />
