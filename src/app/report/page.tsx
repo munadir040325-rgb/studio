@@ -24,12 +24,6 @@ import { Textarea } from '@/components/ui/textarea';
 import Image from 'next/image';
 
 
-const WhatsAppIcon = () => (
-    <svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24" fill="currentColor" className="mr-2 h-4 w-4">
-        <path d="M.057 24l1.687-6.163c-1.041-1.804-1.588-3.849-1.587-5.946.003-6.556 5.338-11.891 11.893-11.891 3.181.001 6.167 1.24 8.413 3.488 2.245 2.248 3.487 5.235 3.487 8.413.003 6.557-5.338 11.892-11.893 11.892-1.99-.001-3.951-.5-5.688-1.448l-6.305 1.654zm6.597-3.807c1.676.995 3.276 1.591 5.392 1.592 5.448 0 9.886-4.434 9.889-9.885.002-5.462-4.415-9.89-9.881-9.89-5.451 0-9.887 4.434-9.889 9.884-.002 2.024.63 3.891 1.742 5.634l-.999 3.648 3.742-1.001z"/>
-    </svg>
-);
-
 type CalendarAttachment = {
     fileUrl: string | null | undefined;
     title: string | null | undefined;
@@ -113,7 +107,7 @@ const ReportHeader = ({ letterheadData, logoUrl }: { letterheadData: any, logoUr
     <div className="mb-4">
         <div className="flex items-start gap-4 pb-2">
             <Image src={logoUrl} alt="Logo Instansi" width={80} height={80} className="print:w-20 print:h-20" />
-            <div className="text-center flex-grow" style={{ lineHeight: 1.2 }}>
+            <div className="text-center flex-grow" style={{ lineHeight: 1.1 }}>
                 <p className="font-semibold" style={{ fontSize: '14pt' }}>{letterheadData.instansi.toUpperCase()}</p>
                 <p className="font-bold" style={{ fontSize: '22pt' }}>{letterheadData.skpd.toUpperCase()}</p>
                 <div style={{ fontSize: '10pt' }}>
@@ -488,34 +482,30 @@ export default function ReportPage() {
                   -webkit-print-color-adjust: exact;
                   print-color-adjust: exact;
               }
-              .print-hidden {
-                  display: none !important;
-              }
-              #print-area {
-                  display: block !important;
-              }
-              .report-page, .attachment-page {
-                  background: white !important;
-              }
-               body > *, body > div:not(#print-area), body > main > div:not(#report-preview-container) {
+
+              body > :not(#report-preview-container) {
                   display: none;
-               }
-               #report-preview-container, #print-area {
-                   display: block !important;
-                   margin: 0 !important;
-                   padding: 0 !important;
-               }
-               main.p-4, main.p-6 {
-                  padding: 0 !important;
+              }
+
+              #report-preview-container, #print-area {
+                  display: block !important;
+                  visibility: visible !important;
+                  position: absolute;
+                  left: 0;
+                  top: 0;
                   margin: 0 !important;
-               }
-               #print-area, #print-area * {
+                  padding: 0 !important;
+                  width: 100%;
+              }
+
+               #print-area * {
                   visibility: visible;
                   font-family: Arial, sans-serif !important;
                   font-size: 12pt !important;
                   line-height: 1.2 !important;
                   color: black !important;
                }
+
                span[contentEditable="true"] {
                    background-color: transparent !important;
                    border: none !important;
