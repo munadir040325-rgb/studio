@@ -106,12 +106,29 @@ export default function ReportPreviewPage() {
         const data = localStorage.getItem('reportDataForPrint');
         if (data) {
             try {
-                setReportData(JSON.parse(data));
+                const parsedData = JSON.parse(data);
+                setReportData(parsedData);
+                // Trigger print after state is set and content is rendered
+                setTimeout(() => {
+                    window.print();
+                }, 500); // Delay to allow images to load
             } catch (e) {
                 console.error("Failed to parse report data from localStorage", e);
             }
         }
         setIsReady(true);
+        
+        const handleAfterPrint = () => {
+          // Notify the parent window that printing is done
+          window.parent.postMessage('print-finished', '*');
+        };
+
+        window.addEventListener('afterprint', handleAfterPrint);
+
+        return () => {
+          window.removeEventListener('afterprint', handleAfterPrint);
+        };
+
     }, []);
 
     if (!isReady) {

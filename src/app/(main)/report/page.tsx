@@ -1,4 +1,3 @@
-
 'use client';
 
 import { useState, useEffect, useCallback, useMemo } from 'react';
@@ -174,22 +173,18 @@ export default function ReportPage() {
         }
 
         iframe.src = '/report/preview';
-
-        const handleLoad = () => {
-            if (iframe.contentWindow) {
-                try {
-                    iframe.contentWindow.print();
-                } catch(e) {
-                    console.error("Print failed", e);
-                     toast({ variant: 'destructive', title: 'Gagal Mencetak', description: 'Browser mungkin memblokir dialog cetak.' });
-                }
+        
+        // The print command is now triggered from within the preview page's useEffect
+        
+        const handleMessage = (event: MessageEvent) => {
+            if (event.data === 'print-finished') {
+                setIsPrinting(false);
+                document.body.removeChild(iframe);
+                window.removeEventListener('message', handleMessage);
             }
-            setIsPrinting(false);
-            iframe.removeEventListener('load', handleLoad);
         };
-        
-        iframe.addEventListener('load', handleLoad);
-        
+        window.addEventListener('message', handleMessage);
+
         iframe.onerror = () => {
             toast({ variant: 'destructive', title: 'Gagal Memuat Pratinjau', description: 'Tidak dapat memuat halaman pratinjau.' });
             setIsPrinting(false);
