@@ -119,20 +119,18 @@ const ReportHeader = ({ letterheadData, logoUrl }: { letterheadData: any, logoUr
                 <p>{letterheadData.alamat}</p>
                 <p>
                     <span>Telepon: {letterheadData.telepon}</span>
-                    <span className="mx-2">|</span>
-                    <span>Fax: {letterheadData.fax}</span>
+                    <span className="mx-2">,</span>
+                    <span>Faksimile: {letterheadData.fax}</span>
                 </p>
-                <p>
-                    <span className="print:hidden">
-                        <a href={letterheadData.website} target="_blank" rel="noopener noreferrer" className="text-blue-600 hover:underline">{letterheadData.website}</a>
-                        <span className="mx-2">|</span>
+                <p className="print:hidden">
+                        <a href={`http://${letterheadData.website}`} target="_blank" rel="noopener noreferrer" className="text-blue-600 hover:underline">{letterheadData.website}</a>
+                        <span className="mx-2">,</span>
                         <a href={`mailto:${letterheadData.email}`} className="text-blue-600 hover:underline">{letterheadData.email}</a>
-                    </span>
-                    <span className="hidden print:inline">
-                        Website: {letterheadData.website}
-                        <span className="mx-2">|</span>
-                        Email: {letterheadData.email}
-                    </span>
+                </p>
+                <p className="hidden print:inline">
+                    <span>Laman: {letterheadData.website}</span>
+                    <span className="mx-2">,</span>
+                    <span>Pos-el: {letterheadData.email}</span>
                 </p>
             </div>
         </div>
@@ -407,15 +405,15 @@ Hormat kami,
 
   const photoAttachments = useMemo(() => selectedEvent?.attachments?.filter(att => att.mimeType?.startsWith('image/')) || [], [selectedEvent]);
 
-  // Placeholder data for letterhead
+  // Get letterhead data from environment variables
   const letterheadData = {
-    instansi: 'PEMERINTAH KABUPATEN CILACAP',
-    skpd: 'KECAMATAN GANDRUNGMANGU',
-    alamat: 'Jalan Raya Gandrungmangu No. 123',
-    telepon: '(0282) 123456',
-    fax: '(0282) 654321',
-    website: 'gandrungmangu.cilacapkab.go.id',
-    email: 'gandrungmangu@cilacapkab.go.id'
+    instansi: process.env.NEXT_PUBLIC_KOP_INSTANSI || 'PEMERINTAH KABUPATEN',
+    skpd: process.env.NEXT_PUBLIC_KOP_SKPD || 'NAMA SKPD',
+    alamat: process.env.NEXT_PUBLIC_KOP_ALAMAT || 'Jalan Alamat No. 123',
+    telepon: process.env.NEXT_PUBLIC_KOP_TELP || '(000) 123456',
+    fax: process.env.NEXT_PUBLIC_KOP_FAX || '(000) 654321',
+    website: process.env.NEXT_PUBLIC_KOP_WEBSITE || 'website.go.id',
+    email: process.env.NEXT_PUBLIC_KOP_EMAIL || 'email@website.go.id'
   };
 
   const logo = PlaceHolderImages.find(img => img.id === 'logo');
