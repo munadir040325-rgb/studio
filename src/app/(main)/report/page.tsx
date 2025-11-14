@@ -4,7 +4,7 @@
 import { useState, useEffect, useCallback, useMemo } from 'react';
 import { Button } from '@/components/ui/button';
 import { Card, CardHeader, CardTitle, CardContent, CardFooter } from '@/components/ui/card';
-import { Calendar as CalendarIcon, Loader2, Printer, Edit, Image as ImageIcon, FileText as FileTextIcon, SwitchIcon } from 'lucide-react';
+import { Calendar as CalendarIcon, Loader2, Printer } from 'lucide-react';
 import { Popover, PopoverContent, PopoverTrigger } from '@/components/ui/popover';
 import { Calendar } from '@/components/ui/calendar';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
@@ -16,6 +16,7 @@ import { id as localeId } from 'date-fns/locale';
 import { useToast } from '@/hooks/use-toast';
 import { PageHeader } from '@/components/page-header';
 import { Switch } from '@/components/ui/switch';
+import type { DateRange } from 'react-day-picker';
 
 
 type CalendarAttachment = {
@@ -75,18 +76,14 @@ export default function ReportPage() {
     const [manualSummary, setManualSummary] = useState('');
     const [manualWaktu, setManualWaktu] = useState('');
     const [manualTempat, setManualTempat] = useState('');
+    const [manualDateRange, setManualDateRange] = useState<DateRange | undefined>();
 
     // Report form state
     const [dasar, setDasar] = useState('');
-    const [pimpinan, setPimpinan] = useState('');
-    const [labelPimpinan, setLabelPimpinan] = useState('Pimpinan Rapat');
+    const [pelaksana, setPelaksana] = useState('');
     const [narasumber, setNarasumber] = useState('');
-    const [labelNarasumber, setLabelNarasumber] = useState('Narasumber/Verifikator');
     const [peserta, setPeserta] = useState('');
-    const [labelPeserta, setLabelPeserta] = useState('Peserta/Pejabat yang Hadir');
     const [reportContent, setReportContent] = useState('');
-    const [lokasiTanggal, setLokasiTanggal] = useState('');
-    const [pelapor, setPelapor] = useState('');
     
     // Attachment state
     const [photoAttachments, setPhotoAttachments] = useState<CalendarAttachment[]>([]);
@@ -127,28 +124,27 @@ export default function ReportPage() {
     useEffect(() => {
         const eventToUse = selectedEvent;
         if (eventToUse) {
-             const defaultLokasi = process.env.NEXT_PUBLIC_KOP_KECAMATAN || "Gandrungmangu";
-             const defaultTanggal = format(parseISO(eventToUse.start), 'dd MMMM yyyy', { locale: localeId });
-             setLokasiTanggal(`${defaultLokasi}, ${defaultTanggal}`);
-
              const imageAttachments = eventToUse.attachments?.filter(att => 
                 att.mimeType?.startsWith('image/')
              ) || [];
              setPhotoAttachments(imageAttachments);
         } else {
-             const defaultLokasi = process.env.NEXT_PUBLIC_KOP_KECAMATAN || "Gandrungmangu";
-             const defaultTanggal = format(new Date(), 'dd MMMM yyyy', { locale: localeId });
-             setLokasiTanggal(`${defaultLokasi}, ${defaultTanggal}`);
              setPhotoAttachments([]);
         }
     }, [selectedEvent]);
 
     const handleIframePrint = () => {
         const eventData = isManualMode
-            ? { summary: manualSummary, start: new Date().toISOString(), waktu: manualWaktu, location: manualTempat }
+            ? { 
+                summary: manualSummary, 
+                start: manualDateRange?.from?.toISOString() ?? new Date().toISOString(),
+                end: manualDateRange?.to?.toISOString(),
+                waktu: manualWaktu, 
+                location: manualTempat 
+              }
             : selectedEvent;
             
-        if (!eventData) {
+        if (!eventData || !eventData.summary) {
             toast({ variant: 'destructive', title: 'Belum Lengkap', description: 'Silakan pilih kegiatan atau isi data manual terlebih dahulu.' });
             return;
         }
@@ -156,13 +152,20 @@ export default function ReportPage() {
         setIsPrinting(true);
         const reportData = {
             event: eventData,
-            dasar, pimpinan, labelPimpinan, narasumber, labelNarasumber, peserta, labelPeserta, reportContent, lokasiTanggal, pelapor, photoAttachments
+            dasar, 
+            pelaksana, 
+            narasumber, 
+            peserta, 
+            reportContent, 
+            photoAttachments,
         };
 
         localStorage.setItem('reportDataForPrint', JSON.stringify(reportData));
         
         const iframe = document.createElement('iframe');
-        iframe.style.display = 'none';
+        iframe.style.position = 'fixed';
+        iframe.style.top = '-9999px';
+        iframe.style.left = '-9999px';
         iframe.src = '/report/preview';
         document.body.appendChild(iframe);
 
@@ -170,7 +173,6 @@ export default function ReportPage() {
             if (iframe.contentWindow) {
                 iframe.contentWindow.print();
             }
-            // Cleanup after a delay to ensure print dialog is handled
             setTimeout(() => {
                 document.body.removeChild(iframe);
                 setIsPrinting(false);
@@ -210,6 +212,36 @@ export default function ReportPage() {
                     {isManualMode ? (
                         <>
                             <ReportField label="Judul Kegiatan" id="manual-summary" value={manualSummary} onChange={(e) => setManualSummary(e.target.value)} placeholder="Misal: Rapat Koordinasi..." />
+                            <div className="grid gap-2">
+                                <Label>Tanggal Kegiatan</Label>
+                                <Popover>
+                                    <PopoverTrigger asChild>
+                                        <Button id="date" variant={"outline"} className="w-full justify-start text-left font-normal">
+                                            <CalendarIcon className="mr-2 h-4 w-4" />
+                                            {manualDateRange?.from ? (
+                                                manualDateRange.to ? (
+                                                    `${format(manualDateRange.from, "LLL dd, y")} - ${format(manualDateRange.to, "LLL dd, y")}`
+                                                ) : (
+                                                    format(manualDateRange.from, "LLL dd, y")
+                                                )
+                                            ) : (
+                                                <span>Pilih rentang tanggal</span>
+                                            )}
+                                        </Button>
+                                    </PopoverTrigger>
+                                    <PopoverContent className="w-auto p-0" align="start">
+                                        <Calendar
+                                            initialFocus
+                                            mode="range"
+                                            defaultMonth={manualDateRange?.from}
+                                            selected={manualDateRange}
+                                            onSelect={setManualDateRange}
+                                            numberOfMonths={2}
+                                            locale={localeId}
+                                        />
+                                    </PopoverContent>
+                                </Popover>
+                            </div>
                             <ReportField label="Waktu Pelaksanaan" id="manual-waktu" value={manualWaktu} onChange={(e) => setManualWaktu(e.target.value)} placeholder="Misal: Pukul 09.00 WIB s.d. Selesai" />
                             <ReportField label="Tempat Pelaksanaan" id="manual-tempat" value={manualTempat} onChange={(e) => setManualTempat(e.target.value)} placeholder="Misal: Aula Kecamatan" />
                         </>
@@ -274,16 +306,12 @@ export default function ReportPage() {
                                       )}
                                   </div>
                                </div>
-                                <ReportEditorField label="Pimpinan Rapat" value={pimpinan} onEditorChange={setPimpinan} placeholder="Contoh: Camat Gandrungmangu" />
+                                <ReportEditorField label="Pelaksana" value={pelaksana} onEditorChange={setPelaksana} placeholder="Contoh: Camat Gandrungmangu" />
                                 <ReportEditorField label="Narasumber/Verifikator" value={narasumber} onEditorChange={setNarasumber} placeholder="Contoh: 1. Inspektorat Daerah..." />
-                                <ReportEditorField label="Peserta" value={peserta} onEditorChange={setPeserta} placeholder="Contoh: 1. Kasubbag Perencanaan..." />
+                                <ReportEditorField label="Pejabat/Peserta" value={peserta} onEditorChange={setPeserta} placeholder="Contoh: 1. Kasubbag Perencanaan..." />
                             </div>
                             <div className="space-y-4">
                                 <ReportEditorField label="III. Hasil dan Tindak Lanjut" value={reportContent} onEditorChange={setReportContent} placeholder="Tuliskan hasil pembahasan dan langkah selanjutnya..." />
-                                <div className="grid grid-cols-2 gap-4">
-                                   <ReportField label="Lokasi & Tanggal Laporan" id="lokasi-tanggal" value={lokasiTanggal} onChange={(e) => setLokasiTanggal(e.target.value)} placeholder="Gandrungmangu, ..." />
-                                   <ReportField label="Pelapor" id="pelapor" value={pelapor} onChange={(e) => setPelapor(e.target.value)} placeholder="Nama Pelapor" />
-                                </div>
                             </div>
                         </div>
 

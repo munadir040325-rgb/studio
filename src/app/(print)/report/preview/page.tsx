@@ -1,11 +1,8 @@
 
-
 'use client';
 
 import { useEffect, useState } from 'react';
-import { Button } from '@/components/ui/button';
-import { Loader2, Printer } from 'lucide-react';
-import { cn } from '@/lib/utils';
+import { Loader2 } from 'lucide-react';
 import { parseISO, format, isSameDay, isSameMonth } from 'date-fns';
 import { id as localeId } from 'date-fns/locale';
 
@@ -30,15 +27,10 @@ type EventData = {
 type ReportData = {
     event: EventData;
     dasar: string;
-    pimpinan: string;
-    labelPimpinan: string;
+    pelaksana: string;
     narasumber: string;
-    labelNarasumber: string;
     peserta: string;
-    labelPeserta: string;
     reportContent: string;
-    lokasiTanggal: string;
-    pelapor: string;
     photoAttachments: any[];
 };
 
@@ -140,9 +132,9 @@ export default function ReportPreviewPage() {
         );
     }
     
-    const { event, dasar, pimpinan, labelPimpinan, narasumber, labelNarasumber, peserta, labelPeserta, reportContent, lokasiTanggal, pelapor, photoAttachments } = reportData;
+    const { event, dasar, pelaksana, narasumber, peserta, reportContent, photoAttachments } = reportData;
     const isManualEvent = 'waktu' in event && !!event.waktu;
-    
+
     const letterheadData = {
         instansi: process.env.NEXT_PUBLIC_KOP_INSTANSI || 'PEMERINTAH KABUPATEN CILACAP',
         skpd: process.env.NEXT_PUBLIC_KOP_SKPD || 'KECAMATAN GANDRUNGMANGU',
@@ -153,6 +145,9 @@ export default function ReportPreviewPage() {
         email: process.env.NEXT_PUBLIC_KOP_EMAIL || 'kecamatan.gandrungmangu2020@gmail.com'
     };
     const logoUrl = process.env.NEXT_PUBLIC_KOP_LOGO || "https://i.ibb.co/5xcxSzd/logo-cilacap.png";
+    
+    const lokasiTanggal = `${process.env.NEXT_PUBLIC_KOP_KECAMATAN || 'Gandrungmangu'}, ${format(parseISO(event.start), 'dd MMMM yyyy', { locale: localeId })}`;
+
 
     return (
         <>
@@ -175,7 +170,7 @@ export default function ReportPreviewPage() {
 
                             <tr>
                                 <td className="w-[1.8rem] align-top font-semibold">II.</td>
-                                <td colSpan={3} className='font-semibold'>Kegiatan</td>
+                                <td colSpan={3} className='font-semibold'>Rincian Kegiatan</td>
                             </tr>
                             <tr>
                                 <td></td>
@@ -186,9 +181,9 @@ export default function ReportPreviewPage() {
                                             <tr><td className='w-32 align-top'>Hari/Tanggal</td><td className='w-4 align-top'>:</td><td>{formatReportDateRange(event.start, event.end)}</td></tr>
                                             <tr><td className='w-32 align-top'>Waktu</td><td className='w-4 align-top'>:</td><td>{isManualEvent ? event.waktu : `Pukul ${format(parseISO(event.start), 'HH:mm', { locale: localeId })} WIB s.d. Selesai`}</td></tr>
                                             <tr><td className='w-32 align-top'>Tempat</td><td className='w-4 align-top'>:</td><td>{event.location}</td></tr>
-                                            <tr><td className='w-32 align-top'>{labelPimpinan}</td><td className='w-4 align-top'>:</td><td dangerouslySetInnerHTML={{ __html: pimpinan }}></td></tr>
-                                            <tr><td className="w-32 align-top">{labelNarasumber}</td><td className='w-4 align-top'>:</td><td dangerouslySetInnerHTML={{ __html: narasumber }}></td></tr>
-                                            <tr><td className='w-32 align-top'>{labelPeserta}</td><td className='w-4 align-top'>:</td><td dangerouslySetInnerHTML={{ __html: peserta }}></td></tr>
+                                            <tr><td className='w-32 align-top'>Pelaksana</td><td className='w-4 align-top'>:</td><td dangerouslySetInnerHTML={{ __html: pelaksana }}></td></tr>
+                                            <tr><td className="w-32 align-top">Narasumber/Verifikator</td><td className='w-4 align-top'>:</td><td dangerouslySetInnerHTML={{ __html: narasumber }}></td></tr>
+                                            <tr><td className='w-32 align-top'>Pejabat/Peserta</td><td className='w-4 align-top'>:</td><td dangerouslySetInnerHTML={{ __html: peserta }}></td></tr>
                                         </tbody>
                                     </table>
                                 </td>
@@ -202,10 +197,10 @@ export default function ReportPreviewPage() {
                     
                     <div className="flex justify-end mt-8">
                         <div className="text-center w-72">
-                            <p dangerouslySetInnerHTML={{ __html: lokasiTanggal }}></p>
+                            <p>{lokasiTanggal}</p>
                             <p>Yang melaksanakan kegiatan,</p>
                             <br /><br /><br />
-                            <p className="font-semibold underline" dangerouslySetInnerHTML={{ __html: pelapor }}></p>
+                            <p className="font-semibold underline" dangerouslySetInnerHTML={{ __html: pelaksana }}></p>
                         </div>
                     </div>
                 </div>
@@ -233,3 +228,5 @@ export default function ReportPreviewPage() {
         </>
     );
 }
+
+    
