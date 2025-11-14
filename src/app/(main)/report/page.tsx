@@ -133,7 +133,7 @@ export default function ReportPage() {
         }
     }, [selectedEvent]);
 
-    const handleIframePrint = () => {
+     const handlePrint = () => {
         const eventData = isManualMode
             ? { 
                 summary: manualSummary, 
@@ -160,39 +160,16 @@ export default function ReportPage() {
             photoAttachments,
         };
 
+        // Simpan data ke localStorage untuk diakses oleh tab baru
         localStorage.setItem('reportDataForPrint', JSON.stringify(reportData));
         
-        let iframe = document.getElementById('print-iframe') as HTMLIFrameElement;
-        if (iframe) {
-            document.body.removeChild(iframe);
+        // Buka halaman pratinjau di tab baru
+        const printWindow = window.open('/report/preview', '_blank');
+        if (!printWindow) {
+            toast({ variant: 'destructive', title: 'Gagal Membuka Tab', description: 'Browser Anda mungkin memblokir pop-up. Mohon izinkan pop-up untuk situs ini.' });
         }
-
-        iframe = document.createElement('iframe');
-        iframe.id = 'print-iframe';
-        iframe.style.position = 'absolute';
-        iframe.style.width = '0';
-        iframe.style.height = '0';
-        iframe.style.border = 'none';
         
-        iframe.onload = () => {
-            try {
-                iframe.contentWindow?.focus(); // Focus on the iframe
-                iframe.contentWindow?.print(); // Trigger print
-            } catch (e: any) {
-                toast({ variant: 'destructive', title: 'Gagal Mencetak', description: `Terjadi kesalahan saat membuka dialog cetak: ${e.message}` });
-            } finally {
-                setIsPrinting(false);
-                // Optionally remove the iframe after a delay
-                setTimeout(() => {
-                    if (document.body.contains(iframe)) {
-                        document.body.removeChild(iframe);
-                    }
-                }, 1000);
-            }
-        };
-
-        iframe.src = '/report/preview';
-        document.body.appendChild(iframe);
+        setIsPrinting(false);
     };
 
     return (
@@ -201,7 +178,7 @@ export default function ReportPage() {
                 title="Buat Laporan Kegiatan"
                 description="Pilih kegiatan yang sudah ada atau input manual untuk membuat draf laporan."
             >
-                 <Button onClick={handleIframePrint} disabled={isPrinting || (!selectedEventId && !isManualMode)}>
+                 <Button onClick={handlePrint} disabled={isPrinting || (!selectedEventId && !isManualMode)}>
                     {isPrinting ? <Loader2 className="mr-2 h-4 w-4 animate-spin" /> : <Printer className="mr-2 h-4 w-4" />}
                     Cetak Laporan
                 </Button>

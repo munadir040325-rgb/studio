@@ -100,22 +100,33 @@ const ReportHeader = ({ letterheadData, logoUrl }: { letterheadData: any, logoUr
 
 export default function ReportPreviewPage() {
     const [reportData, setReportData] = useState<ReportData | null>(null);
-    const [isReady, setIsReady] = useState(false);
+    const [isLoading, setIsLoading] = useState(true);
+    const [error, setError] = useState<string | null>(null);
 
     useEffect(() => {
-        const data = localStorage.getItem('reportDataForPrint');
-        if (data) {
-            try {
-                const parsedData = JSON.parse(data);
-                setReportData(parsedData);
-            } catch (e) {
-                console.error("Failed to parse report data from localStorage", e);
+        try {
+            const data = localStorage.getItem('reportDataForPrint');
+            if (data) {
+                setReportData(JSON.parse(data));
+            } else {
+                setError("Data laporan tidak ditemukan di localStorage.");
             }
+        } catch (e) {
+            setError("Gagal mem-parsing data laporan.");
+            console.error("Failed to parse report data from localStorage", e);
+        } finally {
+            setIsLoading(false);
         }
-        setIsReady(true);
     }, []);
 
-    if (!isReady) {
+    useEffect(() => {
+        // Panggil print HANYA setelah data berhasil dimuat dan state diupdate
+        if (reportData && !isLoading) {
+            window.print();
+        }
+    }, [reportData, isLoading]);
+
+    if (isLoading) {
         return (
             <div className="flex items-center justify-center min-h-screen text-muted-foreground bg-gray-100">
                 <Loader2 className="mr-2 h-4 w-4 animate-spin" />
@@ -124,11 +135,12 @@ export default function ReportPreviewPage() {
         );
     }
     
-    if (!reportData) {
+    if (error || !reportData) {
         return (
             <div className="flex flex-col items-center justify-center min-h-screen text-muted-foreground bg-gray-100 gap-4 p-4">
                  <h2 className="text-xl font-bold">Data Laporan Tidak Ditemukan</h2>
-                 <p className="text-center">Silakan kembali ke halaman sebelumnya dan pastikan Anda telah mengisi detail laporan sebelum mencetak.</p>
+                 <p className="text-center">{error || "Silakan kembali ke halaman sebelumnya dan coba lagi."}</p>
+                 <button onClick={() => window.close()} className="mt-4 px-4 py-2 bg-blue-500 text-white rounded">Tutup Tab</button>
             </div>
         );
     }
@@ -151,77 +163,75 @@ export default function ReportPreviewPage() {
 
 
     return (
-        <>
-            <div id="print-area" className="bg-white text-black p-8 max-w-4xl mx-auto" style={{ lineHeight: 1.2 }}>
-                {/* Halaman 1: Laporan */}
-                <div className="report-page">
-                    <ReportHeader letterheadData={letterheadData} logoUrl={logoUrl} />
-                    <h3 className="text-center font-bold text-lg my-6 uppercase">Laporan Kegiatan/Perjalanan Dinas</h3>
-                    
-                    <table className="w-full mt-4 border-separate" style={{borderSpacing: '0 8px'}}>
-                        <tbody>
-                            <tr>
-                                <td colSpan={4} className='font-semibold'>Dasar Kegiatan</td>
-                            </tr>
-                            <tr>
-                                <td colSpan={4} className='pb-2' dangerouslySetInnerHTML={{ __html: dasar }}></td>
-                            </tr>
+        <div id="print-area" className="bg-white text-black p-8 max-w-4xl mx-auto" style={{ lineHeight: 1.2 }}>
+            {/* Halaman 1: Laporan */}
+            <div className="report-page">
+                <ReportHeader letterheadData={letterheadData} logoUrl={logoUrl} />
+                <h3 className="text-center font-bold text-lg my-6 uppercase">Laporan Kegiatan/Perjalanan Dinas</h3>
+                
+                <table className="w-full mt-4 border-separate" style={{borderSpacing: '0 8px'}}>
+                    <tbody>
+                        <tr>
+                            <td colSpan={4} className='font-semibold'>Dasar Kegiatan</td>
+                        </tr>
+                        <tr>
+                            <td colSpan={4} className='pb-2' dangerouslySetInnerHTML={{ __html: dasar }}></td>
+                        </tr>
 
-                            <tr>
-                                <td colSpan={4} className='font-semibold'>II. Rincian Kegiatan</td>
-                            </tr>
-                            <tr>
-                                <td colSpan={4}>
-                                    <table className="w-full">
-                                        <tbody>
-                                            <tr><td className="w-32 align-top">Acara</td><td className="w-4 align-top">:</td><td>{event.summary}</td></tr>
-                                            <tr><td className='w-32 align-top'>Hari/Tanggal</td><td className='w-4 align-top'>:</td><td>{formatReportDateRange(event.start, event.end)}</td></tr>
-                                            <tr><td className='w-32 align-top'>Waktu</td><td className='w-4 align-top'>:</td><td>{isManualEvent ? event.waktu : `Pukul ${format(parseISO(event.start), 'HH:mm', { locale: localeId })} WIB s.d. Selesai`}</td></tr>
-                                            <tr><td className='w-32 align-top'>Tempat</td><td className='w-4 align-top'>:</td><td>{event.location}</td></tr>
-                                            <tr><td className='w-32 align-top'>Pelaksana</td><td className='w-4 align-top'>:</td><td dangerouslySetInnerHTML={{ __html: pelaksana }}></td></tr>
-                                            <tr><td className="w-32 align-top">Narasumber/Verifikator</td><td className='w-4 align-top'>:</td><td dangerouslySetInnerHTML={{ __html: narasumber }}></td></tr>
-                                            <tr><td className='w-32 align-top'>Pejabat/Peserta</td><td className='w-4 align-top'>:</td><td dangerouslySetInnerHTML={{ __html: peserta }}></td></tr>
-                                        </tbody>
-                                    </table>
-                                </td>
-                            </tr>
-                            
-                            <tr><td colSpan={4} className='font-semibold pt-2'>Hasil dan Tindak Lanjut</td></tr>
-                            <tr><td colSpan={4} className="w-full" dangerouslySetInnerHTML={{ __html: reportContent }}></td></tr>
-                            <tr className='text-justify'><td colSpan={4} className="pt-4">Demikian untuk menjadikan periksa dan terima kasih.</td></tr>
-                        </tbody>
-                    </table>
-                    
-                    <div className="flex justify-end mt-8">
-                        <div className="text-center w-72">
-                            <p>{lokasiTanggal}</p>
-                            <p>Yang melaksanakan kegiatan,</p>
-                            <br /><br /><br />
-                            <p className="font-semibold underline" dangerouslySetInnerHTML={{ __html: pelaksana }}></p>
-                        </div>
+                        <tr>
+                            <td colSpan={4} className='font-semibold'>II. Rincian Kegiatan</td>
+                        </tr>
+                        <tr>
+                            <td colSpan={4}>
+                                <table className="w-full">
+                                    <tbody>
+                                        <tr><td className="w-32 align-top">Acara</td><td className="w-4 align-top">:</td><td>{event.summary}</td></tr>
+                                        <tr><td className='w-32 align-top'>Hari/Tanggal</td><td className='w-4 align-top'>:</td><td>{formatReportDateRange(event.start, event.end)}</td></tr>
+                                        <tr><td className='w-32 align-top'>Waktu</td><td className='w-4 align-top'>:</td><td>{isManualEvent ? event.waktu : `Pukul ${format(parseISO(event.start), 'HH:mm', { locale: localeId })} WIB s.d. Selesai`}</td></tr>
+                                        <tr><td className='w-32 align-top'>Tempat</td><td className='w-4 align-top'>:</td><td>{event.location}</td></tr>
+                                        <tr><td className='w-32 align-top'>Pelaksana</td><td className='w-4 align-top'>:</td><td dangerouslySetInnerHTML={{ __html: pelaksana }}></td></tr>
+                                        <tr><td className="w-32 align-top">Narasumber/Verifikator</td><td className='w-4 align-top'>:</td><td dangerouslySetInnerHTML={{ __html: narasumber }}></td></tr>
+                                        <tr><td className='w-32 align-top'>Pejabat/Peserta</td><td className='w-4 align-top'>:</td><td dangerouslySetInnerHTML={{ __html: peserta }}></td></tr>
+                                    </tbody>
+                                </table>
+                            </td>
+                        </tr>
+                        
+                        <tr><td colSpan={4} className='font-semibold pt-2'>Hasil dan Tindak Lanjut</td></tr>
+                        <tr><td colSpan={4} className="w-full" dangerouslySetInnerHTML={{ __html: reportContent }}></td></tr>
+                        <tr className='text-justify'><td colSpan={4} className="pt-4">Demikian untuk menjadikan periksa dan terima kasih.</td></tr>
+                    </tbody>
+                </table>
+                
+                <div className="flex justify-end mt-8">
+                    <div className="text-center w-72">
+                        <p>{lokasiTanggal}</p>
+                        <p>Yang melaksanakan kegiatan,</p>
+                        <br /><br /><br />
+                        <p className="font-semibold underline" dangerouslySetInnerHTML={{ __html: pelaksana }}></p>
                     </div>
                 </div>
-
-                {/* Halaman 2: Lampiran Foto (jika ada) */}
-                {photoAttachments.length > 0 && (
-                    <div className="attachment-page p-8 md:p-12">
-                        <h3 className="text-center font-bold text-lg mb-4 uppercase">Lampiran Foto Kegiatan</h3>
-                        <h4 className="text-center font-semibold text-base mb-8">{event.summary}</h4>
-                        <div className="grid grid-cols-2 gap-4">
-                            {photoAttachments.map((att, index) => (
-                            <div key={index} className="flex flex-col items-center">
-                                <img 
-                                    src={getGoogleDriveThumbnailUrl(att.fileId!)} 
-                                    alt={att.title || `Lampiran ${index + 1}`}
-                                    className="w-full h-auto object-cover border"
-                                />
-                                <p className="text-sm mt-2 text-center">{att.title}</p>
-                            </div>
-                            ))}
-                        </div>
-                    </div>
-                )}
             </div>
-        </>
+
+            {/* Halaman 2: Lampiran Foto (jika ada) */}
+            {photoAttachments.length > 0 && (
+                <div className="attachment-page p-8 md:p-12" style={{ breakBefore: 'page' }}>
+                    <h3 className="text-center font-bold text-lg mb-4 uppercase">Lampiran Foto Kegiatan</h3>
+                    <h4 className="text-center font-semibold text-base mb-8">{event.summary}</h4>
+                    <div className="grid grid-cols-2 gap-4">
+                        {photoAttachments.map((att, index) => (
+                        <div key={index} className="flex flex-col items-center">
+                            <img 
+                                src={getGoogleDriveThumbnailUrl(att.fileId!)} 
+                                alt={att.title || `Lampiran ${index + 1}`}
+                                className="w-full h-auto object-cover border"
+                            />
+                            <p className="text-sm mt-2 text-center">{att.title}</p>
+                        </div>
+                        ))}
+                    </div>
+                </div>
+            )}
+        </div>
     );
 }
