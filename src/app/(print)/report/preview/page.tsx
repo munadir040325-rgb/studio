@@ -108,7 +108,6 @@ const ReportHeader = ({ letterheadData, logoUrl }: { letterheadData: any, logoUr
 const parsePelaksana = (html: string): PelaksanaData[] => {
     if (typeof document === 'undefined') return [];
 
-    // Hapus tag p kosong dan <br> di awal/akhir
     const cleanedHtml = html.trim().replace(/^<p><br><\/p>$/, '').replace(/^(<br\s*\/?>)+|(<br\s*\/?>)+$/g, '');
     if (!cleanedHtml) return [];
 
@@ -119,7 +118,6 @@ const parsePelaksana = (html: string): PelaksanaData[] => {
     const listItems = Array.from(tempDiv.querySelectorAll('li'));
 
     if (listItems.length > 0) {
-        // Handle list items (ul, ol)
         for (const li of listItems) {
             const lines = li.innerHTML.split('<br>')
                 .map(line => line.replace(/<[^>]*>/g, '').trim())
@@ -132,7 +130,6 @@ const parsePelaksana = (html: string): PelaksanaData[] => {
             }
         }
     } else {
-        // Handle plain text with <br> or multiple <p>
         const blocks = Array.from(tempDiv.children).length > 0 ? Array.from(tempDiv.children) : [tempDiv];
         for (const block of blocks) {
             const lines = block.innerHTML.split('<br>')
@@ -156,15 +153,16 @@ const HtmlContent = ({ html, asList = false }: { html: string, asList?: boolean 
         return null;
     }
 
+    // Cek jika sudah ada <ul> atau <ol>
+    if (cleanedHtml.startsWith('<ul>') || cleanedHtml.startsWith('<ol>')) {
+        return <div dangerouslySetInnerHTML={{ __html: cleanedHtml }} />;
+    }
+
     if (asList) {
-        // Cek jika sudah ada <ul> atau <ol>
-        if (cleanedHtml.startsWith('<ul>') || cleanedHtml.startsWith('<ol>')) {
-             return <div dangerouslySetInnerHTML={{ __html: cleanedHtml }} />;
-        }
         // Jika tidak, bungkus dengan <ol>
         return <ol className="list-decimal list-inside" dangerouslySetInnerHTML={{ __html: cleanedHtml.replace(/<p>/g, '<li>').replace(/<\/p>/g, '</li>') }} />;
     }
-
+    
     return <div dangerouslySetInnerHTML={{ __html: cleanedHtml }} />;
 };
 
@@ -175,30 +173,47 @@ export default function ReportPreviewPage() {
     const [error, setError] = useState<string | null>(null);
 
     useEffect(() => {
-        try {
-            const data = localStorage.getItem('reportDataForPrint');
-            if (data) {
-                const parsedData = JSON.parse(data);
-                setReportData(parsedData);
+        let attempts = 0;
+        const maxAttempts = 10; // Try for 1 second (10 * 100ms)
+        const interval = 100;
+
+        const tryLoadData = () => {
+            try {
+                const data = localStorage.getItem('reportDataForPrint');
+                if (data) {
+                    const parsedData = JSON.parse(data);
+                    setReportData(parsedData);
+                    setIsLoading(false);
+                    return; // Success
+                }
+            } catch (e) {
+                setError("Gagal mem-parsing data laporan.");
+                setIsLoading(false);
+                console.error("Failed to parse report data from localStorage", e);
+                return; // Error
+            }
+
+            // If data not found, try again
+            attempts++;
+            if (attempts < maxAttempts) {
+                setTimeout(tryLoadData, interval);
             } else {
                 setError("Data laporan tidak ditemukan. Silakan kembali dan coba lagi.");
+                setIsLoading(false);
             }
-        } catch (e) {
-            setError("Gagal mem-parsing data laporan.");
-            console.error("Failed to parse report data from localStorage", e);
-        } finally {
-            setIsLoading(false);
-        }
+        };
+
+        tryLoadData();
     }, []);
 
     useEffect(() => {
-        if (reportData && !isLoading) {
+        if (reportData && !isLoading && !error) {
              const timeoutId = setTimeout(() => {
                 window.print();
-            }, 500); 
+            }, 500); // Small delay to ensure rendering is complete
             return () => clearTimeout(timeoutId);
         }
-    }, [reportData, isLoading]);
+    }, [reportData, isLoading, error]);
 
     if (isLoading) {
         return (
@@ -327,7 +342,3 @@ export default function ReportPreviewPage() {
         </div>
     );
 }
-
-    
-
-    
