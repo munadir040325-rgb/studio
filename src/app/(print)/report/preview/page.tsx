@@ -1,7 +1,8 @@
 
 'use client';
 
-import { useEffect, useState } from 'react';
+import { useEffect, useState, Suspense } from 'react';
+import { useSearchParams } from 'next/navigation';
 import { Button } from '@/components/ui/button';
 import { Loader2 } from 'lucide-react';
 import { parseISO, format, isSameDay, isSameMonth } from 'date-fns';
@@ -154,57 +155,45 @@ const HtmlContent = ({ html, asList = false }: { html: string, asList?: boolean 
     }
 
     // Cek jika sudah ada <ul> atau <ol>
-    if (cleanedHtml.startsWith('<ul>') || cleanedHtml.startsWith('<ol>')) {
-        return <div dangerouslySetInnerHTML={{ __html: cleanedHtml }} />;
-    }
-
+    const isAlreadyList = cleanedHtml.startsWith('<ul') || cleanedHtml.startsWith('<ol>');
+    
     if (asList) {
+        if (isAlreadyList) {
+            // Sudah dalam format list, render langsung
+            return <div dangerouslySetInnerHTML={{ __html: cleanedHtml }} />;
+        }
         // Jika tidak, bungkus dengan <ol>
-        return <ol className="list-decimal list-inside" dangerouslySetInnerHTML={{ __html: cleanedHtml.replace(/<p>/g, '<li>').replace(/<\/p>/g, '</li>') }} />;
+        const listContent = cleanedHtml.replace(/<p>/g, '<li>').replace(/<\/p>/g, '</li>');
+        return <ol className="list-decimal list-inside" dangerouslySetInnerHTML={{ __html: listContent }} />;
     }
     
     return <div dangerouslySetInnerHTML={{ __html: cleanedHtml }} />;
 };
 
 
-export default function ReportPreviewPage() {
+function ReportPreviewComponent() {
+    const searchParams = useSearchParams();
     const [reportData, setReportData] = useState<ReportData | null>(null);
     const [isLoading, setIsLoading] = useState(true);
     const [error, setError] = useState<string | null>(null);
 
     useEffect(() => {
-        let attempts = 0;
-        const maxAttempts = 10; // Try for 1 second (10 * 100ms)
-        const interval = 100;
-
-        const tryLoadData = () => {
-            try {
-                const data = localStorage.getItem('reportDataForPrint');
-                if (data) {
-                    const parsedData = JSON.parse(data);
-                    setReportData(parsedData);
-                    setIsLoading(false);
-                    return; // Success
-                }
-            } catch (e) {
-                setError("Gagal mem-parsing data laporan.");
-                setIsLoading(false);
-                console.error("Failed to parse report data from localStorage", e);
-                return; // Error
-            }
-
-            // If data not found, try again
-            attempts++;
-            if (attempts < maxAttempts) {
-                setTimeout(tryLoadData, interval);
+        try {
+            const encodedData = searchParams.get('data');
+            if (encodedData) {
+                const decodedData = decodeURIComponent(encodedData);
+                const parsedData = JSON.parse(decodedData);
+                setReportData(parsedData);
             } else {
-                setError("Data laporan tidak ditemukan. Silakan kembali dan coba lagi.");
-                setIsLoading(false);
+                throw new Error("Data laporan tidak ditemukan di URL.");
             }
-        };
-
-        tryLoadData();
-    }, []);
+        } catch (e: any) {
+            console.error("Failed to parse report data from URL", e);
+            setError(e.message || "Gagal mem-parsing data laporan dari URL.");
+        } finally {
+            setIsLoading(false);
+        }
+    }, [searchParams]);
 
     useEffect(() => {
         if (reportData && !isLoading && !error) {
@@ -341,4 +330,17 @@ export default function ReportPreviewPage() {
             )}
         </div>
     );
+}
+
+export default function ReportPreviewPage() {
+    return (
+        <Suspense fallback={
+            <div className="flex items-center justify-center min-h-screen text-muted-foreground bg-gray-100">
+                <Loader2 className="mr-2 h-4 w-4 animate-spin" />
+                Mempersiapkan pratinjau...
+            </div>
+        }>
+            <ReportPreviewComponent />
+        </Suspense>
+    )
 }

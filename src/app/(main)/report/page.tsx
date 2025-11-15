@@ -160,16 +160,23 @@ export default function ReportPage() {
             photoAttachments,
         };
 
-        // Simpan data ke localStorage untuk diakses oleh tab baru
-        localStorage.setItem('reportDataForPrint', JSON.stringify(reportData));
-        
-        // Buka halaman pratinjau di tab baru
-        const printWindow = window.open('/report/preview', '_blank');
-        if (!printWindow) {
-            toast({ variant: 'destructive', title: 'Gagal Membuka Tab', description: 'Browser Anda mungkin memblokir pop-up. Mohon izinkan pop-up untuk situs ini.' });
+        // Encode data for URL
+        try {
+            const dataString = JSON.stringify(reportData);
+            const encodedData = encodeURIComponent(dataString);
+            
+            // Open preview page in a new tab with data in URL
+            const printWindow = window.open(`/report/preview?data=${encodedData}`, '_blank');
+
+            if (!printWindow) {
+                toast({ variant: 'destructive', title: 'Gagal Membuka Tab', description: 'Browser Anda mungkin memblokir pop-up. Mohon izinkan pop-up untuk situs ini.' });
+            }
+        } catch (e) {
+            console.error("Error encoding report data", e);
+            toast({ variant: 'destructive', title: 'Gagal', description: 'Terjadi kesalahan saat mempersiapkan data untuk dicetak.' });
+        } finally {
+            setIsPrinting(false);
         }
-        
-        setIsPrinting(false);
     };
 
     return (
