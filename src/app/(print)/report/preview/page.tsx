@@ -244,67 +244,65 @@ function ReportPreviewComponent() {
 
     return (
         <div id="print-area" className="bg-white text-black p-8 max-w-4xl mx-auto" style={{ lineHeight: 1.2 }}>
-            <div>
-                <ReportHeader letterheadData={letterheadData} logoUrl={logoUrl} />
-                <h3 className="text-center font-bold text-lg my-6 uppercase">Laporan Kegiatan/Perjalanan Dinas</h3>
-                
-                <table className="w-full mt-4 border-separate" style={{borderSpacing: '0 8px'}}>
-                    <tbody>
-                        <tr>
-                            <td colSpan={4} className='font-semibold'>Dasar Kegiatan</td>
-                        </tr>
-                        <tr>
-                            <td colSpan={4} className='pb-2'><HtmlContent html={dasar} asList={true} /></td>
-                        </tr>
+            <ReportHeader letterheadData={letterheadData} logoUrl={logoUrl} />
+            <h3 className="text-center font-bold text-lg my-6 uppercase">Laporan Kegiatan/Perjalanan Dinas</h3>
+            
+            <table className="w-full mt-4 border-separate" style={{borderSpacing: '0 8px'}}>
+                <tbody>
+                    <tr>
+                        <td colSpan={4} className='font-semibold'>Dasar Kegiatan</td>
+                    </tr>
+                    <tr>
+                        <td colSpan={4} className='pb-2'><HtmlContent html={dasar} asList={true} /></td>
+                    </tr>
 
-                        <tr>
-                            <td colSpan={4}>
-                                <table className="w-full">
-                                    <tbody>
-                                        <tr><td className="w-32 align-top">Acara</td><td className="w-4 align-top">:</td><td>{event.summary}</td></tr>
-                                        <tr><td className='w-32 align-top'>Hari/Tanggal</td><td className='w-4 align-top'>:</td><td>{formatReportDateRange(event.start, event.end)}</td></tr>
-                                        <tr><td className='w-32 align-top'>Waktu</td><td className='w-4 align-top'>:</td><td>{isManualEvent ? event.waktu : `Pukul ${format(parseISO(event.start), 'HH:mm', { locale: localeId })} WIB s.d. Selesai`}</td></tr>
-                                        <tr><td className='w-32 align-top'>Tempat</td><td className='w-4 align-top'>:</td><td>{event.location}</td></tr>
-                                        <tr><td className='w-32 align-top'>Pelaksana</td><td className='w-4 align-top'>:</td><td><HtmlContent html={pelaksana} asList={true} /></td></tr>
-                                        <tr><td className="w-32 align-top">Narasumber/Verifikator</td><td className='w-4 align-top'>:</td><td><HtmlContent html={narasumber} asList={true} /></td></tr>
-                                        <tr><td className='w-32 align-top'>Pejabat/Peserta</td><td className='w-4 align-top'>:</td><td><HtmlContent html={peserta} asList={true} /></td></tr>
-                                    </tbody>
-                                </table>
-                            </td>
-                        </tr>
-                        
-                        <tr><td colSpan={4} className='font-semibold pt-2'>Hasil dan Tindak Lanjut</td></tr>
-                        <tr><td colSpan={4} className="w-full"><HtmlContent html={reportContent} /></td></tr>
-                        <tr className='text-justify'><td colSpan={4} className="pt-4">Demikian untuk menjadikan periksa dan terima kasih.</td></tr>
-                    </tbody>
-                </table>
-                
-                <div className="flex justify-between mt-8">
-                    <div></div>
-                    <div className="text-center w-80">
-                        <p>{lokasiTanggal}</p>
-                        <p>Yang melaksanakan kegiatan,</p>
-                        <br />
-                        
-                        {parsedPelaksana.length > 0 && (
-                            <table className="w-full text-left" style={{ borderSpacing: '0 2rem' }}>
+                    <tr>
+                        <td colSpan={4}>
+                            <table className="w-full">
                                 <tbody>
-                                    {parsedPelaksana.map((item, index) => (
-                                        <tr key={index}>
-                                            <td className="align-top pr-2">{index + 1}.</td>
-                                            <td>
-                                                <div className="flex flex-col">
-                                                    <span className="h-12">(.....................................)</span>
-                                                    <span className="font-semibold underline">{item.nama}</span>
-                                                    <span>{item.jabatan}</span>
-                                                </div>
-                                            </td>
-                                        </tr>
-                                    ))}
+                                    <tr><td className="w-32 align-top">Acara</td><td className="w-4 align-top">:</td><td>{event.summary}</td></tr>
+                                    <tr><td className='w-32 align-top'>Hari/Tanggal</td><td className='w-4 align-top'>:</td><td>{formatReportDateRange(event.start, event.end)}</td></tr>
+                                    <tr><td className='w-32 align-top'>Waktu</td><td className='w-4 align-top'>:</td><td>{isManualEvent ? event.waktu : `Pukul ${format(parseISO(event.start), 'HH:mm', { locale: localeId })} WIB s.d. Selesai`}</td></tr>
+                                    <tr><td className='w-32 align-top'>Tempat</td><td className='w-4 align-top'>:</td><td>{event.location}</td></tr>
+                                    <tr><td className='w-32 align-top'>Pelaksana</td><td className='w-4 align-top'>:</td><td><HtmlContent html={pelaksana} asList={true} /></td></tr>
+                                    <tr><td className="w-32 align-top">Narasumber/Verifikator</td><td className='w-4 align-top'>:</td><td><HtmlContent html={narasumber} asList={true} /></td></tr>
+                                    <tr><td className='w-32 align-top'>Pejabat/Peserta</td><td className='w-4 align-top'>:</td><td><HtmlContent html={peserta} asList={true} /></td></tr>
                                 </tbody>
                             </table>
-                        )}
-                    </div>
+                        </td>
+                    </tr>
+                    
+                    <tr><td colSpan={4} className='font-semibold pt-2'>Hasil dan Tindak Lanjut</td></tr>
+                    <tr><td colSpan={4} className="w-full"><HtmlContent html={reportContent} /></td></tr>
+                    <tr className='text-justify'><td colSpan={4} className="pt-4">Demikian untuk menjadikan periksa dan terima kasih.</td></tr>
+                </tbody>
+            </table>
+            
+            <div className="flex justify-between mt-8">
+                <div></div>
+                <div className="text-center w-80">
+                    <p>{lokasiTanggal}</p>
+                    <p>Yang melaksanakan kegiatan,</p>
+                    <br />
+                    
+                    {parsedPelaksana.length > 0 && (
+                        <table className="w-full text-left" style={{ borderSpacing: '0 2rem' }}>
+                            <tbody>
+                                {parsedPelaksana.map((item, index) => (
+                                    <tr key={index}>
+                                        <td className="align-top pr-2">{index + 1}.</td>
+                                        <td>
+                                            <div className="flex flex-col">
+                                                <span className="h-12">(.....................................)</span>
+                                                <span className="font-semibold underline">{item.nama}</span>
+                                                <span>{item.jabatan}</span>
+                                            </div>
+                                        </td>
+                                    </tr>
+                                ))}
+                            </tbody>
+                        </table>
+                    )}
                 </div>
             </div>
 
