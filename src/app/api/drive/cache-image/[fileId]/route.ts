@@ -2,11 +2,11 @@
 import 'dotenv/config'
 import { google } from 'googleapis';
 import { getGoogleAuth } from '@/ai/google-services';
-import { NextResponse } from 'next/server';
+import { NextRequest, NextResponse } from 'next/server';
 
 export const dynamic = 'force-dynamic';
 
-export async function GET(request, { params }) {
+export async function GET(request: NextRequest, { params }: { params: { fileId: string } }) {
   const { fileId } = params;
 
   if (!fileId) {
@@ -34,7 +34,7 @@ export async function GET(request, { params }) {
     });
 
     const mimeType = metadataRes.data.mimeType || 'image/jpeg';
-    const imageBuffer = Buffer.from(fileRes.data);
+    const imageBuffer = Buffer.from(fileRes.data as any);
 
     return new NextResponse(imageBuffer, {
       status: 200,
@@ -44,7 +44,7 @@ export async function GET(request, { params }) {
       },
     });
 
-  } catch (error) {
+  } catch (error: any) {
     console.error(`Error fetching file ${fileId} from Google Drive:`, error);
     let errorMessage = "Gagal mengambil file dari Google Drive.";
     if (error.code === 404) {
