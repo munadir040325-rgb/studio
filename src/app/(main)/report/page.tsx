@@ -385,9 +385,8 @@ export default function ReportPage() {
                     </CardHeader>
                     <CardContent>
                         <Tabs defaultValue="hasil" className="w-full">
-                            <TabsList className="grid w-full grid-cols-4">
+                            <TabsList className="grid w-full grid-cols-3">
                                 <TabsTrigger value="hasil">Hasil</TabsTrigger>
-                                <TabsTrigger value="dasar">Dasar</TabsTrigger>
                                 <TabsTrigger value="peserta">Peserta</TabsTrigger>
                                 <TabsTrigger value="narasumber">Narasumber</TabsTrigger>
                             </TabsList>
@@ -397,14 +396,6 @@ export default function ReportPage() {
                                     onEditorChange={setReportContent}
                                     placeholder="Tuliskan hasil pembahasan dan langkah selanjutnya dari kegiatan ini..."
                                     heightClass="min-h-48"
-                                />
-                            </TabsContent>
-                            <TabsContent value="dasar" className="mt-4">
-                                <ReportEditorField
-                                    value={dasar}
-                                    onEditorChange={setDasar}
-                                    placeholder="1. Peraturan Daerah..."
-                                    heightClass="h-32"
                                 />
                             </TabsContent>
                             <TabsContent value="peserta" className="mt-4">
@@ -446,3 +437,6 @@ export default function ReportPage() {
         </div>
     );
 }
+
+
+    
