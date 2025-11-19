@@ -89,8 +89,12 @@ const getGoogleDriveThumbnailUrl = (fileIdOrUrl: string): string => {
 
 const HtmlContent = ({ html, asList = false }: { html: string, asList?: boolean }) => {
     if (!html || html.trim() === '' || html.trim() === '<p><br></p>') {
-      return null;
+      return asList ? <ol><li>-</li></ol> : <p>-</p>;
     }
+    if (html.trim() === '-') {
+      return asList ? <ol><li>-</li></ol> : <p>-</p>;
+    }
+
     if (asList) {
         const content = html.replace(/<p>/g, '<li>').replace(/<\/p>/g, '</li>');
         if (html.includes('<ol>')) {

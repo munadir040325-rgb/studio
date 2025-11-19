@@ -158,12 +158,12 @@ export default function ReportPage() {
                         setDasar(formattedDasar);
                         toast({ title: 'Data SPPD ditemukan!', description: 'Dasar kegiatan telah diisi otomatis.' });
                     } else {
-                        setDasar(''); // Clear if not found
+                        setDasar('-'); // Set to hyphen if not found or empty
                     }
                 } catch (e: any) {
                     // Fail silently if SPPD sheet or data not found
                     console.warn("Could not fetch SPPD data:", e.message);
-                    setDasar('');
+                    setDasar('-');
                 }
             } else {
                 setDasar('');

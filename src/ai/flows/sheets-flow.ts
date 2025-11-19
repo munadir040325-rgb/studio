@@ -512,8 +512,8 @@ export const findSppdByEventIdFlow = ai.defineFlow({
 
         // Iterate through rows, skipping the header
         for (const row of rows.slice(1)) {
-            const rowEventId = row[eventIdIndex];
-            if (rowEventId && rowEventId === input.eventId) {
+            // Check if the eventId in the current row matches the input eventId
+            if (row[eventIdIndex] && row[eventIdIndex] === input.eventId) {
                 // Found the matching row, extract data
                 return {
                     nomorSurat: row[nomorStIndex] || null,
@@ -594,3 +594,4 @@ export async function findSppdByEventId(input: FindSppdInput): Promise<{ nomorSu
     
 
     
+
