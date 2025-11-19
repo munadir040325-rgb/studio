@@ -212,6 +212,8 @@ function ReportPreviewComponent() {
     
     const { event, dasar, pelaksana, narasumber, peserta, reportContent, photoAttachments } = reportData;
     const isManualEvent = 'waktu' in event && !!event.waktu;
+    const isPesertaFilled = peserta && peserta.trim() !== '' && peserta.trim() !== '<p><br></p>';
+
     
     const lokasiTanggal = `${process.env.NEXT_PUBLIC_KOP_KECAMATAN || 'Gandrungmangu'}, ${format(parseISO(event.start), 'dd MMMM yyyy', { locale: localeId })}`;
 
@@ -239,6 +241,13 @@ function ReportPreviewComponent() {
                             <tr><td className='w-32 align-top'>Hari/Tanggal</td><td className='w-2 align-top'>:</td><td>{formatReportDateRange(event.start, event.end)}</td></tr>
                             <tr><td className='w-32 align-top'>Waktu</td><td className='w-2 align-top'>:</td><td>{isManualEvent ? event.waktu : `Pukul ${format(parseISO(event.start), 'HH:mm', { locale: localeId })} WIB s.d. Selesai`}</td></tr>
                             <tr><td className='w-32 align-top'>Tempat</td><td className='w-2 align-top'>:</td><td>{event.location}</td></tr>
+                            {isPesertaFilled && (
+                                <tr>
+                                    <td className='w-32 align-top'>Peserta</td>
+                                    <td className='w-2 align-top'>:</td>
+                                    <td><HtmlContent html={peserta} asList={true} /></td>
+                                </tr>
+                            )}
                         </tbody>
                     </table>
                 </ReportSection>
