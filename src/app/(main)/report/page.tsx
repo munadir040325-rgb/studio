@@ -405,7 +405,7 @@ export default function ReportPage() {
                                  <ReportEditorField
                                     value={peserta}
                                     onEditorChange={setPeserta}
-                                    placeholder="1. Kasubbag Perencanaan..."
+                                    placeholder="Tuliskan peserta/perwakilan pada kegiatan"
                                     minHeightClass="min-h-16"
                                 />
                             </TabsContent>
@@ -413,7 +413,7 @@ export default function ReportPage() {
                                 <ReportEditorField
                                     value={narasumber}
                                     onEditorChange={setNarasumber}
-                                    placeholder="1. Inspektorat Daerah..."
+                                    placeholder="Tuliskan Pihak/pejabat/narasumber pada kegiatan"
                                     minHeightClass="min-h-16"
                                 />
                             </TabsContent>
@@ -440,5 +440,7 @@ export default function ReportPage() {
         </div>
     );
 }
+
+    
 
     
