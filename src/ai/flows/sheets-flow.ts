@@ -498,56 +498,42 @@ export const findSppdByEventIdFlow = ai.defineFlow({
     const sheets = google.sheets({ version: 'v4', auth });
     
     const sheetName = 'SPPD'; 
-    const range = `${sheetName}!A:O`; // Search across all relevant columns up to 'O' (calendarEventId)
+    const range = `${sheetName}!A:O`; // Search from column A to O
 
     try {
         const response = await sheets.spreadsheets.values.get({ spreadsheetId, range });
         const rows = response.data.values;
         if (!rows) return { nomorSurat: null, dasarHukum: null };
 
-        // Assuming headers are in the first row. Let's find column indices dynamically.
-        const headers = (rows[0] || []).map((h: string) => h.toLowerCase().trim());
-        const eventIdIndex = headers.indexOf('calendareventid');
-        const nomorStIndex = headers.indexOf('nomor_st');
-        const dasarSuratIndex = headers.indexOf('dasar_surat');
-        
-        if (eventIdIndex === -1 || nomorStIndex === -1 || dasarSuratIndex === -1) {
-            // Fallback to fixed positions if headers are not found or don't match
-            // A=0, B=1, C=2 ... O=14
-            const fixedEventIdIndex = 14; 
-            const fixedNomorStIndex = 2; // Column C
-            const fixedDasarSuratIndex = 4; // Column E
+        // Define fixed column indices (0-based)
+        const eventIdIndex = 14;      // Column O
+        const nomorStIndex = 2;       // Column C
+        const dasarSuratIndex = 4;    // Column E
 
-            for (const row of rows.slice(1)) { // Skip header row
-                const rowEventId = row[fixedEventIdIndex];
-                if (rowEventId === input.eventId) {
-                    return {
-                        nomorSurat: row[fixedNomorStIndex] || null,
-                        dasarHukum: row[fixedDasarSuratIndex] || null,
-                    };
-                }
-            }
-        } else {
-             for (const row of rows.slice(1)) { // Skip header row
-                const rowEventId = row[eventIdIndex];
-                if (rowEventId === input.eventId) {
-                    return {
-                        nomorSurat: row[nomorStIndex] || null,
-                        dasarHukum: row[dasarSuratIndex] || null,
-                    };
-                }
+        // Iterate through rows, skipping the header
+        for (const row of rows.slice(1)) {
+            const rowEventId = row[eventIdIndex];
+            if (rowEventId && rowEventId === input.eventId) {
+                // Found the matching row, extract data
+                return {
+                    nomorSurat: row[nomorStIndex] || null,
+                    dasarHukum: row[dasarSuratIndex] || null,
+                };
             }
         }
 
     } catch (e: any) {
         if (e.message.includes('Unable to parse range')) {
             console.warn(`Sheet '${sheetName}' tidak ditemukan. Tidak dapat mengambil data SPPD.`);
-            return { nomorSurat: null, dasarHukum: null }; // Fail gracefully
+            // Fail gracefully if sheet doesn't exist
+            return { nomorSurat: null, dasarHukum: null };
         }
-        throw e; // Re-throw other errors
+        // Re-throw other unexpected errors
+        throw e;
     }
 
-    return { nomorSurat: null, dasarHukum: null }; // Not found
+    // Return null if no match was found after searching all rows
+    return { nomorSurat: null, dasarHukum: null };
 });
 
 
@@ -602,6 +588,8 @@ export async function findSppdByEventId(input: FindSppdInput): Promise<{ nomorSu
 
 
 
+
+    
 
     
 
