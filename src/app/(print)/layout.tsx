@@ -11,17 +11,12 @@ export default function PrintLayout({
 }: Readonly<{
   children: React.ReactNode;
 }>) {
+  // A layout file should not render its own <html> and <body> tags.
+  // Only the root layout does that.
+  // We wrap the children in a div with the necessary print styles.
   return (
-    <html lang="id">
-      <head>
-        <link rel="preconnect" href="https://fonts.googleapis.com" />
-        <link rel="preconnect" href="https://fonts.gstatic.com" crossOrigin="anonymous" />
-        <link href="https://fonts.googleapis.com/css2?family=PT+Sans:ital,wght@0,400;0,700;1,400;1,700&display=swap" rel="stylesheet" />
-      </head>
-      {/* Ensure a clean white background for printing to avoid gray pages */}
-      <body className="font-body antialiased bg-white print:bg-white">
-        {children}
-      </body>
-    </html>
+    <div className="bg-white print:bg-white">
+      {children}
+    </div>
   );
 }
