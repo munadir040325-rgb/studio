@@ -16,8 +16,8 @@ export const ReportHeader = () => {
 
     return (
         <div className="mb-2">
-            <div className="flex items-start gap-4 pb-2">
-                <img src={logoUrl} alt="Logo Instansi" width={80} className="print:w-20" />
+            <div className="flex items-center gap-4 pb-2">
+                <img src={logoUrl} alt="Logo Instansi" width={75} />
                 <div className="text-center flex-grow" style={{ lineHeight: 1.1 }}>
                     <p className="font-semibold uppercase" style={{ fontSize: '14pt' }}>{letterheadData.instansi}</p>
                     <p className="font-bold uppercase" style={{ fontSize: '22pt' }}>{letterheadData.skpd}</p>
