@@ -108,19 +108,32 @@ const PelaksanaList = ({ pelaksana }: { pelaksana: PelaksanaData[] }) => {
     }
 
     return (
-         <ol className="list-decimal list-outside pl-5 space-y-2">
+        <div className="space-y-2">
             {pelaksana.map((p, index) => (
-                <li key={p.id}>
-                    <table className="w-full" style={{lineHeight: 1.2}}>
-                        <tbody>
-                            <tr><td className="w-20 align-top">Nama</td><td className="w-2 align-top">:</td><td>{p.nama}</td></tr>
-                            <tr><td className="w-20 align-top">NIP</td><td className="w-2 align-top">:</td><td>{p.nip}</td></tr>
-                            <tr><td className="w-20 align-top">Jabatan</td><td className="w-2 align-top">:</td><td>{p.jabatan}</td></tr>
-                        </tbody>
-                    </table>
-                </li>
+                <table key={p.id} className="w-full border-separate" style={{ borderSpacing: 0, lineHeight: 1.2 }}>
+                    <tbody>
+                        <tr>
+                            <td className="w-5 pr-2 align-top">{index + 1}.</td>
+                            <td className="w-20 align-top">Nama</td>
+                            <td className="w-2 align-top">:</td>
+                            <td>{p.nama}</td>
+                        </tr>
+                        <tr>
+                            <td></td>
+                            <td className="w-20 align-top">NIP</td>
+                            <td className="w-2 align-top">:</td>
+                            <td>{p.nip}</td>
+                        </tr>
+                        <tr>
+                            <td></td>
+                            <td className="w-20 align-top">Jabatan</td>
+                            <td className="w-2 align-top">:</td>
+                            <td>{p.jabatan}</td>
+                        </tr>
+                    </tbody>
+                </table>
             ))}
-        </ol>
+        </div>
     );
 };
 
