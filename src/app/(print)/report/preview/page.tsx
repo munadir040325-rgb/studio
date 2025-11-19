@@ -1,4 +1,5 @@
 
+
 'use client';
 
 import { useEffect, useState, Suspense } from 'react';
@@ -149,25 +150,10 @@ const parsePelaksana = (html: string): PelaksanaData[] => {
 };
 
 const HtmlContent = ({ html, asList = false }: { html: string, asList?: boolean }) => {
-    const cleanedHtml = html.replace(/<p>&nbsp;<\/p>/g, '').replace(/<p><br><\/p>/g, '').trim();
-    if (!cleanedHtml || cleanedHtml === '<br>') {
-        return null;
+    if (!html || html.trim() === '' || html.trim() === '<p><br></p>') {
+      return null;
     }
-
-    // Cek jika sudah ada <ul> atau <ol>
-    const isAlreadyList = cleanedHtml.startsWith('<ul') || cleanedHtml.startsWith('<ol>');
-    
-    if (asList) {
-        if (isAlreadyList) {
-            // Sudah dalam format list, render langsung
-            return <div dangerouslySetInnerHTML={{ __html: cleanedHtml }} />;
-        }
-        // Jika tidak, bungkus dengan <ol>
-        const listContent = cleanedHtml.replace(/<p>/g, '<li>').replace(/<\/p>/g, '</li>');
-        return <ol className="list-decimal list-inside" dangerouslySetInnerHTML={{ __html: listContent }} />;
-    }
-    
-    return <div dangerouslySetInnerHTML={{ __html: cleanedHtml }} />;
+    return <div dangerouslySetInnerHTML={{ __html: html }} className={asList ? 'list-decimal list-inside' : ''} />;
 };
 
 
@@ -206,7 +192,7 @@ function ReportPreviewComponent() {
 
     if (isLoading) {
         return (
-            <div className="flex items-center justify-center min-h-screen text-muted-foreground bg-gray-100">
+            <div className="flex items-center justify-center min-h-screen text-muted-foreground bg-white">
                 <Loader2 className="mr-2 h-4 w-4 animate-spin" />
                 Mempersiapkan pratinjau...
             </div>
@@ -215,7 +201,7 @@ function ReportPreviewComponent() {
     
     if (error || !reportData) {
         return (
-            <div className="flex flex-col items-center justify-center min-h-screen text-muted-foreground bg-gray-100 gap-4 p-4">
+            <div className="flex flex-col items-center justify-center min-h-screen text-muted-foreground bg-white gap-4 p-4">
                  <h2 className="text-xl font-bold">Data Laporan Tidak Ditemukan</h2>
                  <p className="text-center">{error}</p>
                  <Button onClick={() => window.close()}>Tutup Tab</Button>
@@ -237,7 +223,7 @@ function ReportPreviewComponent() {
         website: process.env.NEXT_PUBLIC_KOP_WEBSITE || 'www.gandrungmangu.cilacapkab.go.id',
         email: process.env.NEXT_PUBLIC_KOP_EMAIL || 'kecamatan.gandrungmangu2020@gmail.com'
     };
-    const logoUrl = process.env.NEXT_PUBLIC_KOP_LOGO || "https://i.ibb.co/5xcxSzd/logo-cilacap.png";
+    const logoUrl = process.env.NEXT_PUBLIC_KOP_LOGO || "https://upload.wikimedia.org/wikipedia/commons/7/76/Lambang_Kabupaten_Cilacap.png";
     
     const lokasiTanggal = `${process.env.NEXT_PUBLIC_KOP_KECAMATAN || 'Gandrungmangu'}, ${format(parseISO(event.start), 'dd MMMM yyyy', { locale: localeId })}`;
 
@@ -333,7 +319,7 @@ function ReportPreviewComponent() {
 export default function ReportPreviewPage() {
     return (
         <Suspense fallback={
-            <div className="flex items-center justify-center min-h-screen text-muted-foreground bg-gray-100">
+            <div className="flex items-center justify-center min-h-screen text-muted-foreground bg-white">
                 <Loader2 className="mr-2 h-4 w-4 animate-spin" />
                 Mempersiapkan pratinjau...
             </div>
