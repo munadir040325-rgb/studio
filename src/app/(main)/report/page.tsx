@@ -387,37 +387,33 @@ export default function ReportPage() {
                     <CardHeader>
                         <CardTitle>Isi Detail Laporan</CardTitle>
                     </CardHeader>
-                    <CardContent>
-                        <Tabs defaultValue="hasil" className="w-full">
-                            <TabsList className="grid w-full grid-cols-3">
-                                <TabsTrigger value="hasil">Hasil</TabsTrigger>
-                                <TabsTrigger value="peserta">Peserta</TabsTrigger>
-                                <TabsTrigger value="narasumber">Narasumber</TabsTrigger>
-                            </TabsList>
-                            <TabsContent value="hasil" className="mt-4" forceMount>
-                                <ReportEditorField
-                                    value={reportContent}
-                                    onEditorChange={setReportContent}
-                                    placeholder="Tuliskan hasil pembahasan dan langkah selanjutnya dari kegiatan ini..."
-                                />
-                            </TabsContent>
-                            <TabsContent value="peserta" className="mt-4" forceMount>
-                                 <ReportEditorField
-                                    value={peserta}
-                                    onEditorChange={setPeserta}
-                                    placeholder="Tuliskan peserta/perwakilan pada kegiatan"
-                                    minHeightClass="min-h-16"
-                                />
-                            </TabsContent>
-                            <TabsContent value="narasumber" className="mt-4" forceMount>
-                                <ReportEditorField
-                                    value={narasumber}
-                                    onEditorChange={setNarasumber}
-                                    placeholder="Tuliskan Pihak/pejabat/narasumber pada kegiatan"
-                                    minHeightClass="min-h-16"
-                                />
-                            </TabsContent>
-                        </Tabs>
+                    <CardContent className="space-y-4">
+                        <div>
+                            <Label>Hasil Kegiatan</Label>
+                            <ReportEditorField
+                                value={reportContent}
+                                onEditorChange={setReportContent}
+                                placeholder="Tuliskan hasil pembahasan dan langkah selanjutnya dari kegiatan ini..."
+                            />
+                        </div>
+                         <div>
+                            <Label>Peserta</Label>
+                             <ReportEditorField
+                                value={peserta}
+                                onEditorChange={setPeserta}
+                                placeholder="Tuliskan peserta/perwakilan pada kegiatan"
+                                minHeightClass="min-h-16"
+                            />
+                        </div>
+                        <div>
+                            <Label>Pihak Terkait / Narasumber</Label>
+                            <ReportEditorField
+                                value={narasumber}
+                                onEditorChange={setNarasumber}
+                                placeholder="Tuliskan Pihak/pejabat/narasumber pada kegiatan"
+                                minHeightClass="min-h-16"
+                            />
+                        </div>
 
                          {photoAttachments.length > 0 && !isManualMode && (
                             <div className="mt-6">
@@ -440,6 +436,8 @@ export default function ReportPage() {
         </div>
     );
 }
+
+    
 
     
 
