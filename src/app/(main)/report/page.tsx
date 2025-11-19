@@ -187,34 +187,32 @@ export default function ReportPage() {
 
      const handlePrint = () => {
         setIsPrinting(true);
-
-        const eventData = isManualMode
-            ? { 
-                summary: manualSummary, 
-                start: manualDateRange?.from?.toISOString() ?? new Date().toISOString(),
-                end: manualDateRange?.to?.toISOString(),
-                waktu: manualWaktu, 
-                location: manualTempat 
-              }
-            : selectedEvent;
-            
-        if (!eventData || !eventData.summary) {
-            toast({ variant: 'destructive', title: 'Belum Lengkap', description: 'Silakan pilih kegiatan atau isi data manual terlebih dahulu.' });
-            setIsPrinting(false);
-            return;
-        }
-
-        const reportData = {
-            event: eventData,
-            dasar: dasar, // <-- Pastikan data 'dasar' disertakan
-            pelaksana: selectedPegawai,
-            narasumber, 
-            peserta, 
-            reportContent, 
-            photoAttachments,
-        };
-
         try {
+            const eventData = isManualMode
+                ? { 
+                    summary: manualSummary, 
+                    start: manualDateRange?.from?.toISOString() ?? new Date().toISOString(),
+                    end: manualDateRange?.to?.toISOString(),
+                    waktu: manualWaktu, 
+                    location: manualTempat 
+                  }
+                : selectedEvent;
+                
+            if (!eventData || !eventData.summary) {
+                toast({ variant: 'destructive', title: 'Belum Lengkap', description: 'Silakan pilih kegiatan atau isi data manual terlebih dahulu.' });
+                return;
+            }
+
+            const reportData = {
+                event: eventData,
+                dasar: dasar,
+                pelaksana: selectedPegawai,
+                narasumber, 
+                peserta, 
+                reportContent, 
+                photoAttachments,
+            };
+
             const dataString = JSON.stringify(reportData);
             const encodedData = encodeURIComponent(dataString);
             
@@ -436,5 +434,3 @@ export default function ReportPage() {
         </div>
     );
 }
-
-    
