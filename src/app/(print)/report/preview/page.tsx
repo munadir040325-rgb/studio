@@ -260,7 +260,7 @@ function ReportPreviewComponent() {
                             <tbody>
                                 {pelaksana.map((item, index) => (
                                     <tr key={item.id}>
-                                        <td className="align-top pr-2">{index + 1}.</td>
+                                        <td className="align-top pr-2 w-5">{index + 1}.</td>
                                         <td>
                                             <div className="flex flex-col">
                                                 <span className="h-12">(.....................................)</span>
