@@ -15,7 +15,7 @@ export const ReportHeader = () => {
     const logoUrl = "/logo-cilacap.png";
 
     return (
-        <div className="mb-4">
+        <div className="mb-2">
             <div className="flex items-start gap-4 pb-2">
                 <img src={logoUrl} alt="Logo Instansi" width={80} className="print:w-20" />
                 <div className="text-center flex-grow" style={{ lineHeight: 1.1 }}>
