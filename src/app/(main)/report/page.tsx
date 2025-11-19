@@ -151,17 +151,24 @@ export default function ReportPage() {
             if (selectedEventId && !isManualMode) {
                 try {
                     const sppdData = await findSppdByEventId({ eventId: selectedEventId });
-                    if (sppdData?.nomorSurat && sppdData.dasarHukum) {
-                        const formattedDasar = `
-                            <ol><li>${sppdData.dasarHukum}</li><li>Surat Perintah Tugas Camat Gandrungmangu Nomor: ${sppdData.nomorSurat}</li></ol>
-                        `;
+                    
+                    if (sppdData?.nomorSurat || sppdData?.dasarHukum) {
+                        let dasarItems = [];
+                        if (sppdData.dasarHukum) {
+                            dasarItems.push(`<li>${sppdData.dasarHukum}</li>`);
+                        }
+                        if (sppdData.nomorSurat) {
+                            dasarItems.push(`<li>Surat Perintah Tugas Camat Gandrungmangu Nomor: ${sppdData.nomorSurat}</li>`);
+                        }
+                        
+                        const formattedDasar = `<ol>${dasarItems.join('')}</ol>`;
                         setDasar(formattedDasar);
                         toast({ title: 'Data SPPD ditemukan!', description: 'Dasar kegiatan telah diisi otomatis.' });
                     } else {
-                        setDasar('-'); // Set to hyphen if not found or empty
+                        setDasar('-');
                     }
+
                 } catch (e: any) {
-                    // Fail silently if SPPD sheet or data not found
                     console.warn("Could not fetch SPPD data:", e.message);
                     setDasar('-');
                 }
@@ -200,6 +207,7 @@ export default function ReportPage() {
                 
             if (!eventData || !eventData.summary) {
                 toast({ variant: 'destructive', title: 'Belum Lengkap', description: 'Silakan pilih kegiatan atau isi data manual terlebih dahulu.' });
+                setIsPrinting(false); // Make sure to stop printing state on error
                 return;
             }
 
