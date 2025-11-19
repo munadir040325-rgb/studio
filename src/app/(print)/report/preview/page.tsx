@@ -120,20 +120,20 @@ const PelaksanaList = ({ pelaksana }: { pelaksana: PelaksanaData[] }) => {
                 <table key={p.id} className="w-full border-separate" style={{ borderSpacing: 0, lineHeight: 1.2 }}>
                     <tbody>
                         <tr>
-                            <td className="w-5 pr-2 align-top">{index + 1}.</td>
-                            <td className="w-24 align-top">Nama</td>
+                            <td className="w-6 pr-2 align-top">{index + 1}.</td>
+                            <td className="w-28 align-top">Nama</td>
                             <td className="w-2 align-top">:</td>
                             <td>{p.nama}</td>
                         </tr>
                         <tr>
                             <td></td>
-                            <td className="w-24 align-top">NIP</td>
+                            <td className="w-28 align-top">NIP</td>
                             <td className="w-2 align-top">:</td>
                             <td>{p.nip}</td>
                         </tr>
                         <tr>
                             <td></td>
-                            <td className="w-24 align-top">Jabatan</td>
+                            <td className="w-28 align-top">Jabatan</td>
                             <td className="w-2 align-top">:</td>
                             <td>{p.jabatan}</td>
                         </tr>
@@ -215,12 +215,14 @@ function ReportPreviewComponent() {
 
     return (
         <div id="print-area" className="bg-white text-black p-8 max-w-4xl mx-auto" style={{ lineHeight: 1.5 }}>
-            <ReportHeader />
+            <div className='-mt-2'>
+                <ReportHeader />
+            </div>
             <h3 className="text-center font-bold text-lg my-4 uppercase">LAPORAN KEGIATAN</h3>
             
             <div className="space-y-4 text-justify">
                 <ReportSection number="I." title="Dasar">
-                    <HtmlContent html={dasar} asList={true} />
+                   <HtmlContent html={dasar} asList={true} />
                 </ReportSection>
 
                 <ReportSection number="II." title="Maksud dan Tujuan">
@@ -256,28 +258,26 @@ function ReportPreviewComponent() {
             </div>
             
             <div className="flex justify-end mt-12">
-                <div className="text-center w-80">
+                <div className="w-96">
                     <p>{lokasiTanggal}</p>
                     <p>Yang melaksanakan tugas,</p>
-                    <br />
-                    
-                     {pelaksana.length > 0 && (
-                        <table className="w-full text-left" style={{ borderSpacing: '0 1rem' }}>
-                            <tbody>
-                                {pelaksana.map((item, index) => (
-                                    <tr key={item.id}>
-                                        <td className="align-bottom pr-2 w-5 h-24">{index + 1}.</td>
-                                        <td className="align-bottom">
-                                            <div className="flex flex-col">
-                                                <span className="font-semibold underline">{item.nama}</span>
-                                                <span>{item.jabatan}</span>
-                                            </div>
-                                        </td>
-                                    </tr>
-                                ))}
-                            </tbody>
-                        </table>
-                    )}
+                    <div className="mt-4 text-left">
+                        {pelaksana.length > 0 ? (
+                             pelaksana.map((item, index) => (
+                                <div key={item.id} className="h-28 mb-8">
+                                    <div className="flex">
+                                        <span className="w-6">{index + 1}.</span>
+                                        <div className="flex-1">
+                                            <div className="font-semibold underline">{item.nama}</div>
+                                            <div>{item.jabatan}</div>
+                                        </div>
+                                    </div>
+                                </div>
+                            ))
+                        ) : (
+                            <div className="h-28">-</div>
+                        )}
+                    </div>
                 </div>
             </div>
 
