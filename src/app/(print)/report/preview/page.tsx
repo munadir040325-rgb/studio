@@ -95,11 +95,14 @@ const HtmlContent = ({ html, asList = false }: { html: string, asList?: boolean 
       return asList ? <ol><li>-</li></ol> : <p>-</p>;
     }
 
+    // Jika html sudah mengandung tag <ol>, render langsung
+    if (html.includes('<ol>')) {
+        return <div dangerouslySetInnerHTML={{ __html: html }} className="list-decimal list-inside" />;
+    }
+    
+    // Jika sebagai list tapi tidak ada tag <ol>, bungkus dengan <ol>
     if (asList) {
         const content = html.replace(/<p>/g, '<li>').replace(/<\/p>/g, '</li>');
-        if (html.includes('<ol>')) {
-             return <div dangerouslySetInnerHTML={{ __html: content }} />;
-        }
         return <ol className="list-decimal list-inside" dangerouslySetInnerHTML={{ __html: content }} />;
     }
 
@@ -118,19 +121,19 @@ const PelaksanaList = ({ pelaksana }: { pelaksana: PelaksanaData[] }) => {
                     <tbody>
                         <tr>
                             <td className="w-5 pr-2 align-top">{index + 1}.</td>
-                            <td className="w-20 align-top">Nama</td>
+                            <td className="w-24 align-top">Nama</td>
                             <td className="w-2 align-top">:</td>
                             <td>{p.nama}</td>
                         </tr>
                         <tr>
                             <td></td>
-                            <td className="w-20 align-top">NIP</td>
+                            <td className="w-24 align-top">NIP</td>
                             <td className="w-2 align-top">:</td>
                             <td>{p.nip}</td>
                         </tr>
                         <tr>
                             <td></td>
-                            <td className="w-20 align-top">Jabatan</td>
+                            <td className="w-24 align-top">Jabatan</td>
                             <td className="w-2 align-top">:</td>
                             <td>{p.jabatan}</td>
                         </tr>
@@ -213,7 +216,7 @@ function ReportPreviewComponent() {
     return (
         <div id="print-area" className="bg-white text-black p-8 max-w-4xl mx-auto" style={{ lineHeight: 1.5 }}>
             <ReportHeader />
-            <h3 className="text-center font-bold text-lg my-6 uppercase">LAPORAN KEGIATAN</h3>
+            <h3 className="text-center font-bold text-lg my-4 uppercase">LAPORAN KEGIATAN</h3>
             
             <div className="space-y-4 text-justify">
                 <ReportSection number="I." title="Dasar">
@@ -252,22 +255,20 @@ function ReportPreviewComponent() {
                 </ReportSection>
             </div>
             
-            <div className="flex justify-between mt-12">
-                <div></div>
+            <div className="flex justify-end mt-12">
                 <div className="text-center w-80">
                     <p>{lokasiTanggal}</p>
                     <p>Yang melaksanakan tugas,</p>
                     <br />
                     
                      {pelaksana.length > 0 && (
-                        <table className="w-full text-left" style={{ borderSpacing: '0 2.5rem' }}>
+                        <table className="w-full text-left" style={{ borderSpacing: '0 1rem' }}>
                             <tbody>
                                 {pelaksana.map((item, index) => (
                                     <tr key={item.id}>
-                                        <td className="align-top pr-2 w-5">{index + 1}.</td>
-                                        <td>
+                                        <td className="align-bottom pr-2 w-5 h-24">{index + 1}.</td>
+                                        <td className="align-bottom">
                                             <div className="flex flex-col">
-                                                <span className="h-12">(.....................................)</span>
                                                 <span className="font-semibold underline">{item.nama}</span>
                                                 <span>{item.jabatan}</span>
                                             </div>
@@ -316,5 +317,3 @@ export default function ReportPreviewPage() {
         </Suspense>
     )
 }
-
-    
