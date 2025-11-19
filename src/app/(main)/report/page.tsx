@@ -148,7 +148,7 @@ export default function ReportPage() {
     // Fetch SPPD data when event is selected
     useEffect(() => {
         const fetchSppd = async () => {
-            if (selectedEventId) {
+            if (selectedEventId && !isManualMode) {
                 try {
                     const sppdData = await findSppdByEventId({ eventId: selectedEventId });
                     if (sppdData?.nomorSurat && sppdData.dasarHukum) {
@@ -170,7 +170,7 @@ export default function ReportPage() {
             }
         };
         fetchSppd();
-    }, [selectedEventId, toast]);
+    }, [selectedEventId, isManualMode, toast]);
 
 
     useEffect(() => {
@@ -186,6 +186,8 @@ export default function ReportPage() {
     }, [selectedEvent]);
 
      const handlePrint = () => {
+        setIsPrinting(true);
+
         const eventData = isManualMode
             ? { 
                 summary: manualSummary, 
@@ -198,13 +200,13 @@ export default function ReportPage() {
             
         if (!eventData || !eventData.summary) {
             toast({ variant: 'destructive', title: 'Belum Lengkap', description: 'Silakan pilih kegiatan atau isi data manual terlebih dahulu.' });
+            setIsPrinting(false);
             return;
         }
 
-        setIsPrinting(true);
         const reportData = {
             event: eventData,
-            dasar, 
+            dasar: dasar, // <-- Pastikan data 'dasar' disertakan
             pelaksana: selectedPegawai,
             narasumber, 
             peserta, 
@@ -212,12 +214,10 @@ export default function ReportPage() {
             photoAttachments,
         };
 
-        // Encode data for URL
         try {
             const dataString = JSON.stringify(reportData);
             const encodedData = encodeURIComponent(dataString);
             
-            // Open preview page in a new tab with data in URL
             const printWindow = window.open(`/report/preview?data=${encodedData}`, '_blank');
 
             if (!printWindow) {
@@ -436,3 +436,5 @@ export default function ReportPage() {
         </div>
     );
 }
+
+    
