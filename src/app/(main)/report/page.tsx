@@ -1,4 +1,5 @@
 
+
 'use client';
 
 import { useState, useEffect, useCallback, useMemo } from 'react';
@@ -20,6 +21,7 @@ import type { DateRange } from 'react-day-picker';
 import { Command, CommandEmpty, CommandGroup, CommandInput, CommandItem, CommandList } from '@/components/ui/command';
 import { Badge } from '@/components/ui/badge';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
+import { findSppdByEventId } from '@/ai/flows/sheets-flow';
 
 
 type CalendarAttachment = {
@@ -142,6 +144,35 @@ export default function ReportPage() {
         if (isManualMode) return null;
         return events.find(e => e.id === selectedEventId);
     }, [events, selectedEventId, isManualMode]);
+    
+    // Fetch SPPD data when event is selected
+    useEffect(() => {
+        const fetchSppd = async () => {
+            if (selectedEventId) {
+                try {
+                    const sppdData = await findSppdByEventId({ eventId: selectedEventId });
+                    if (sppdData?.nomorSurat && sppdData.dasarHukum) {
+                        const formattedDasar = `
+                            <p>1. ${sppdData.dasarHukum}</p>
+                            <p>2. Surat Perintah Tugas Camat Gandrungmangu Nomor: ${sppdData.nomorSurat}</p>
+                        `;
+                        setDasar(formattedDasar);
+                        toast({ title: 'Data SPPD ditemukan!', description: 'Dasar kegiatan telah diisi otomatis.' });
+                    } else {
+                        setDasar(''); // Clear if not found
+                    }
+                } catch (e: any) {
+                    // Fail silently if SPPD sheet or data not found
+                    console.warn("Could not fetch SPPD data:", e.message);
+                    setDasar('');
+                }
+            } else {
+                setDasar('');
+            }
+        };
+        fetchSppd();
+    }, [selectedEventId, toast]);
+
 
     useEffect(() => {
         const eventToUse = selectedEvent;
@@ -289,61 +320,61 @@ export default function ReportPage() {
                                     </SelectContent>
                                 </Select>
                             </div>
-                             <div className="grid gap-2 md:col-span-2">
-                                <Label>3. Pilih Pelaksana</Label>
-                                 <Popover>
-                                    <PopoverTrigger asChild>
-                                        <Button variant="outline" role="combobox" className="w-full h-auto min-h-10 justify-start">
-                                            <div className="flex gap-1 flex-wrap">
-                                                {selectedPegawai.length > 0 ? (
-                                                     selectedPegawai.map(p => (
-                                                        <Badge key={p.id} variant="secondary" className="mr-1">
-                                                            {p.nama}
-                                                            <button
-                                                                className="ml-1 ring-offset-background rounded-full outline-none focus:ring-2 focus:ring-ring focus:ring-offset-2"
-                                                                onClick={(e) => {
-                                                                    e.preventDefault();
-                                                                    e.stopPropagation();
-                                                                    setSelectedPegawai(prev => prev.filter(sp => sp.id !== p.id));
-                                                                }}
-                                                            >
-                                                                <X className="h-3 w-3 text-muted-foreground hover:text-foreground" />
-                                                            </button>
-                                                        </Badge>
-                                                    ))
-                                                ) : "Pilih pelaksana..." }
-                                            </div>
-                                        </Button>
-                                    </PopoverTrigger>
-                                    <PopoverContent className="w-[--radix-popover-trigger-width] p-0" align="start">
-                                        <Command>
-                                            <CommandInput placeholder="Cari nama pegawai..." />
-                                            <CommandList>
-                                                <CommandEmpty>Pegawai tidak ditemukan.</CommandEmpty>
-                                                <CommandGroup>
-                                                    {pegawaiList.map(p => (
-                                                        <CommandItem
-                                                            key={p.id}
-                                                            onSelect={() => {
-                                                                setSelectedPegawai(prev => 
-                                                                    prev.some(sp => sp.id === p.id)
-                                                                        ? prev.filter(sp => sp.id !== p.id)
-                                                                        : [...prev, p]
-                                                                );
-                                                            }}
-                                                            className="cursor-pointer"
-                                                        >
-                                                            {p.nama}
-                                                        </CommandItem>
-                                                    ))}
-                                                </CommandGroup>
-                                            </CommandList>
-                                        </Command>
-                                    </PopoverContent>
-                                </Popover>
-                            </div>
                         </>
                     )}
+                     <div className="grid gap-2 md:col-span-2">
+                        <Label>Pilih Pelaksana</Label>
+                         <Popover>
+                            <PopoverTrigger asChild>
+                                <Button variant="outline" role="combobox" className="w-full h-auto min-h-10 justify-start">
+                                    <div className="flex gap-1 flex-wrap">
+                                        {selectedPegawai.length > 0 ? (
+                                             selectedPegawai.map(p => (
+                                                <Badge key={p.id} variant="secondary" className="mr-1">
+                                                    {p.nama}
+                                                    <button
+                                                        className="ml-1 ring-offset-background rounded-full outline-none focus:ring-2 focus:ring-ring focus:ring-offset-2"
+                                                        onClick={(e) => {
+                                                            e.preventDefault();
+                                                            e.stopPropagation();
+                                                            setSelectedPegawai(prev => prev.filter(sp => sp.id !== p.id));
+                                                        }}
+                                                    >
+                                                        <X className="h-3 w-3 text-muted-foreground hover:text-foreground" />
+                                                    </button>
+                                                </Badge>
+                                            ))
+                                        ) : "Pilih pelaksana..." }
+                                    </div>
+                                </Button>
+                            </PopoverTrigger>
+                            <PopoverContent className="w-[--radix-popover-trigger-width] p-0" align="start">
+                                <Command>
+                                    <CommandInput placeholder="Cari nama pegawai..." />
+                                    <CommandList>
+                                        <CommandEmpty>Pegawai tidak ditemukan.</CommandEmpty>
+                                        <CommandGroup>
+                                            {pegawaiList.map(p => (
+                                                <CommandItem
+                                                    key={p.id}
+                                                    onSelect={() => {
+                                                        setSelectedPegawai(prev => 
+                                                            prev.some(sp => sp.id === p.id)
+                                                                ? prev.filter(sp => sp.id !== p.id)
+                                                                : [...prev, p]
+                                                        );
+                                                    }}
+                                                    className="cursor-pointer"
+                                                >
+                                                    {p.nama}
+                                                </CommandItem>
+                                            ))}
+                                        </CommandGroup>
+                                    </CommandList>
+                                </Command>
+                            </PopoverContent>
+                        </Popover>
+                    </div>
                 </CardContent>
             </Card>
 

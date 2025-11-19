@@ -9,6 +9,7 @@ import 'dotenv/config';
  * - writeEventToSheet - Writes a new event to the appropriate cell in the Google Sheet. It now handles "adopting" existing manual entries and iterates over multi-day events.
  * - deleteSheetEntry - Finds and deletes an event entry from the Google Sheet based on eventId.
  * - findBagianByEventIds - Finds the 'bagian' for a list of event IDs in a single batch operation.
+ * - findSppdByEventId - Finds SPPD data (nomor surat, dasar hukum) from the 'SPPD' sheet based on eventId.
  */
 
 import { ai } from '@/ai/genkit';
@@ -64,6 +65,12 @@ const findBagianBatchInputSchema = z.object({
     eventIds: z.array(z.string()),
 });
 export type FindBagianBatchInput = z.infer<typeof findBagianBatchInputSchema>;
+
+
+const findSppdInputSchema = z.object({
+    eventId: z.string(),
+});
+export type FindSppdInput = z.infer<typeof findSppdInputSchema>;
 
 
 // Constants from your Apps Script
@@ -476,6 +483,49 @@ export const findBagianByEventIdsFlow = ai.defineFlow({
     return eventIdToBagianMap;
 });
 
+export const findSppdByEventIdFlow = ai.defineFlow({
+    name: 'findSppdByEventIdFlow',
+    inputSchema: findSppdInputSchema,
+    outputSchema: z.object({
+        nomorSurat: z.string().nullable(),
+        dasarHukum: z.string().nullable(),
+    }),
+}, async (input) => {
+    if (!spreadsheetId) throw new Error("ID Google Sheet (NEXT_PUBLIC_SHEET_ID) belum diatur.");
+    if (!input.eventId) return { nomorSurat: null, dasarHukum: null };
+
+    const auth = await getGoogleAuth(['https://www.googleapis.com/auth/spreadsheets.readonly']);
+    const sheets = google.sheets({ version: 'v4', auth });
+    
+    // Assumes the sheet is named 'SPPD' and columns are A: eventId, B: nomorSurat, C: dasarHukum
+    const sheetName = 'SPPD'; 
+    const range = `${sheetName}!A:C`;
+
+    try {
+        const response = await sheets.spreadsheets.values.get({ spreadsheetId, range });
+        const rows = response.data.values;
+        if (!rows) return { nomorSurat: null, dasarHukum: null };
+
+        for (const row of rows) {
+            const rowEventId = row[0];
+            if (rowEventId === input.eventId) {
+                return {
+                    nomorSurat: row[1] || null,
+                    dasarHukum: row[2] || null,
+                };
+            }
+        }
+    } catch (e: any) {
+        if (e.message.includes('Unable to parse range')) {
+            console.warn(`Sheet '${sheetName}' tidak ditemukan. Tidak dapat mengambil data SPPD.`);
+            return { nomorSurat: null, dasarHukum: null }; // Fail gracefully
+        }
+        throw e; // Re-throw other errors
+    }
+
+    return { nomorSurat: null, dasarHukum: null }; // Not found
+});
+
 
 // Wrapper functions
 const checkSheetId = () => {
@@ -515,7 +565,15 @@ export async function findBagianByEventIds(input: FindBagianBatchInput): Promise
     }
     return findBagianByEventIdsFlow(input);
 }
+
+export async function findSppdByEventId(input: FindSppdInput): Promise<{ nomorSurat: string | null; dasarHukum: string | null }> {
+    if (!checkSheetId()) {
+        return { nomorSurat: null, dasarHukum: null };
+    }
+    return findSppdByEventIdFlow(input);
+}
     
 
     
+
 
