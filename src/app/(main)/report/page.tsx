@@ -128,7 +128,7 @@ export default function ReportPage() {
             const data = await res.json();
             if (!res.ok) throw new Error(data.error || "Gagal mengambil data pegawai.");
             setPegawaiList(data.pegawai || []);
-        } catch (error: any) => {
+        } catch (error: any) {
             toast({ variant: 'destructive', title: 'Error Pegawai', description: error.message });
         }
     }, [toast]);
@@ -168,7 +168,7 @@ export default function ReportPage() {
                         setDasar('-');
                     }
 
-                } catch (e: any) => {
+                } catch (e: any) {
                     console.warn("Could not fetch SPPD data:", e.message);
                     setDasar('-');
                 }
