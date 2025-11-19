@@ -88,11 +88,9 @@ const getGoogleDriveThumbnailUrl = (fileIdOrUrl: string): string => {
 
 
 const HtmlContent = ({ html, asList = false }: { html: string, asList?: boolean }) => {
-    // Jangan render apapun jika HTML dasarnya kosong
     if (!html || html.trim() === '' || html.trim() === '<p><br></p>') {
       return null;
     }
-    // Jika sebagai list, bungkus dengan tag list yang sesuai
     if (asList) {
         const content = html.replace(/<p>/g, '<li>').replace(/<\/p>/g, '</li>');
         if (html.includes('<ol>')) {
@@ -112,11 +110,25 @@ const PelaksanaList = ({ pelaksana }: { pelaksana: PelaksanaData[] }) => {
     return (
         <ol className="list-decimal list-inside">
             {pelaksana.map(p => (
-                <li key={p.id}>{p.nama}</li>
+                <li key={p.id}>
+                    <div>Nama: {p.nama}</div>
+                    <div>NIP: {p.nip}</div>
+                    <div>Jabatan: {p.jabatan}</div>
+                </li>
             ))}
         </ol>
     );
 };
+
+const ReportSection = ({ number, title, children }: { number: string, title: string, children: React.ReactNode }) => (
+    <div className="flex mb-2">
+        <div className="w-12 text-left">{number}</div>
+        <div className="flex-1">
+            <div className="font-semibold uppercase">{title}</div>
+            <div className="mt-1">{children}</div>
+        </div>
+    </div>
+);
 
 
 function ReportPreviewComponent() {
@@ -178,46 +190,52 @@ function ReportPreviewComponent() {
 
 
     return (
-        <div id="print-area" className="bg-white text-black p-8 max-w-4xl mx-auto" style={{ lineHeight: 1.2 }}>
+        <div id="print-area" className="bg-white text-black p-8 max-w-4xl mx-auto" style={{ lineHeight: 1.5 }}>
             <ReportHeader />
-            <h3 className="text-center font-bold text-lg my-6 uppercase">Laporan Kegiatan/Perjalanan Dinas</h3>
+            <h3 className="text-center font-bold text-lg my-6 uppercase">LAPORAN KEGIATAN</h3>
             
-            <table className="w-full mt-4 border-separate" style={{borderSpacing: '0 8px'}}>
-                <tbody>
-                    <tr>
-                        <td colSpan={4} className='font-semibold'>Dasar Kegiatan</td>
-                    </tr>
-                    <tr>
-                        <td colSpan={4} className='pb-2'><HtmlContent html={dasar} asList={true} /></td>
-                    </tr>
+            <div className="space-y-4">
+                <ReportSection number="I." title="Dasar">
+                    <HtmlContent html={dasar} asList={true} />
+                </ReportSection>
 
-                    <tr>
-                        <td colSpan={4}>
-                            <table className="w-full">
-                                <tbody>
-                                    <tr><td className="w-32 align-top">Acara</td><td className="w-4 align-top">:</td><td>{event.summary}</td></tr>
-                                    <tr><td className='w-32 align-top'>Hari/Tanggal</td><td className='w-4 align-top'>:</td><td>{formatReportDateRange(event.start, event.end)}</td></tr>
-                                    <tr><td className='w-32 align-top'>Waktu</td><td className='w-4 align-top'>:</td><td>{isManualEvent ? event.waktu : `Pukul ${format(parseISO(event.start), 'HH:mm', { locale: localeId })} WIB s.d. Selesai`}</td></tr>
-                                    <tr><td className='w-32 align-top'>Tempat</td><td className='w-4 align-top'>:</td><td>{event.location}</td></tr>
-                                    <tr><td className='w-32 align-top'>Pelaksana</td><td className='w-4 align-top'>:</td><td><PelaksanaList pelaksana={pelaksana} /></td></tr>
-                                    <tr><td className="w-32 align-top">Narasumber/Verifikator</td><td className='w-4 align-top'>:</td><td><HtmlContent html={narasumber} asList={true} /></td></tr>
-                                    <tr><td className='w-32 align-top'>Pejabat/Peserta</td><td className='w-4 align-top'>:</td><td><HtmlContent html={peserta} asList={true} /></td></tr>
-                                </tbody>
-                            </table>
-                        </td>
-                    </tr>
-                    
-                    <tr><td colSpan={4} className='font-semibold pt-2'>Hasil dan Tindak Lanjut</td></tr>
-                    <tr><td colSpan={4} className="w-full"><HtmlContent html={reportContent} /></td></tr>
-                    <tr className='text-justify'><td colSpan={4} className="pt-4">Demikian untuk menjadikan periksa dan terima kasih.</td></tr>
-                </tbody>
-            </table>
+                <ReportSection number="II." title="Maksud dan Tujuan">
+                    <p>Menghadiri kegiatan {event.summary} dalam rangka meningkatkan koordinasi dan pelaksanaan tugas.</p>
+                </ReportSection>
+                
+                <ReportSection number="III." title="Kegiatan yang dilaksanakan">
+                     <table className="w-full">
+                        <tbody>
+                            <tr><td className="w-32 align-top">Nama Kegiatan</td><td className="w-4 align-top">:</td><td>{event.summary}</td></tr>
+                            <tr><td className='w-32 align-top'>Hari/Tanggal</td><td className='w-4 align-top'>:</td><td>{formatReportDateRange(event.start, event.end)}</td></tr>
+                            <tr><td className='w-32 align-top'>Waktu</td><td className='w-4 align-top'>:</td><td>{isManualEvent ? event.waktu : `Pukul ${format(parseISO(event.start), 'HH:mm', { locale: localeId })} WIB s.d. Selesai`}</td></tr>
+                            <tr><td className='w-32 align-top'>Tempat</td><td className='w-4 align-top'>:</td><td>{event.location}</td></tr>
+                        </tbody>
+                    </table>
+                </ReportSection>
+
+                <ReportSection number="IV." title="Pelaksana Tugas">
+                    <PelaksanaList pelaksana={pelaksana} />
+                </ReportSection>
+
+                <ReportSection number="V." title="Pihak Terkait / Narasumber">
+                    <HtmlContent html={narasumber} asList={true} />
+                </ReportSection>
+
+                <ReportSection number="VI." title="Hasil Kegiatan dan Tindak Lanjut">
+                    <HtmlContent html={reportContent} />
+                </ReportSection>
+                
+                <ReportSection number="VII." title="Penutup">
+                    <p>Demikian laporan ini dibuat untuk menjadikan periksa dan sebagai bahan masukan untuk pimpinan dalam mengambil kebijakan lebih lanjut.</p>
+                </ReportSection>
+            </div>
             
-            <div className="flex justify-between mt-8">
+            <div className="flex justify-between mt-12">
                 <div></div>
                 <div className="text-center w-80">
                     <p>{lokasiTanggal}</p>
-                    <p>Yang melaksanakan kegiatan,</p>
+                    <p>Yang melaksanakan tugas,</p>
                     <br />
                     
                      {pelaksana.length > 0 && (
@@ -277,3 +295,5 @@ export default function ReportPreviewPage() {
         </Suspense>
     )
 }
+
+  
