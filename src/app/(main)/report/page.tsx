@@ -1,9 +1,10 @@
+
 'use client';
 
 import { useState, useEffect, useCallback, useMemo } from 'react';
 import { Button } from '@/components/ui/button';
 import { Card, CardHeader, CardTitle, CardContent, CardFooter } from '@/components/ui/card';
-import { Calendar as CalendarIcon, Loader2, Printer } from 'lucide-react';
+import { Calendar as CalendarIcon, Loader2, Printer, X } from 'lucide-react';
 import { Popover, PopoverContent, PopoverTrigger } from '@/components/ui/popover';
 import { Calendar } from '@/components/ui/calendar';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
@@ -16,7 +17,8 @@ import { useToast } from '@/hooks/use-toast';
 import { PageHeader } from '@/components/page-header';
 import { Switch } from '@/components/ui/switch';
 import type { DateRange } from 'react-day-picker';
-
+import { Command, CommandEmpty, CommandGroup, CommandInput, CommandItem, CommandList } from '@/components/ui/command';
+import { Badge } from '@/components/ui/badge';
 
 type CalendarAttachment = {
     fileUrl: string | null | undefined;
@@ -34,6 +36,14 @@ type EventData = {
     waktu?: string;
     description?: string | null;
     attachments?: CalendarAttachment[];
+};
+
+type PegawaiData = {
+    id: string;
+    nama: string;
+    nip: string;
+    pangkat: string;
+    jabatan: string;
 };
 
 type ReportFieldProps = {
@@ -66,6 +76,8 @@ const ReportEditorField = ({ label, value, onEditorChange, placeholder, heightCl
 export default function ReportPage() {
     const [selectedDate, setSelectedDate] = useState<Date | undefined>(undefined);
     const [events, setEvents] = useState<EventData[]>([]);
+    const [pegawaiList, setPegawaiList] = useState<PegawaiData[]>([]);
+    const [selectedPegawai, setSelectedPegawai] = useState<PegawaiData[]>([]);
     const [selectedEventId, setSelectedEventId] = useState<string>('');
     const [isLoading, setIsLoading] = useState(false);
     const [isPrinting, setIsPrinting] = useState(false);
@@ -80,7 +92,6 @@ export default function ReportPage() {
 
     // Report form state
     const [dasar, setDasar] = useState('');
-    const [pelaksana, setPelaksana] = useState('');
     const [narasumber, setNarasumber] = useState('');
     const [peserta, setPeserta] = useState('');
     const [reportContent, setReportContent] = useState('');
@@ -109,12 +120,24 @@ export default function ReportPage() {
             setIsLoading(false);
         }
     }, [toast]);
+    
+    const fetchPegawai = useCallback(async () => {
+        try {
+            const res = await fetch('/api/pegawai');
+            const data = await res.json();
+            if (!res.ok) throw new Error(data.error || "Gagal mengambil data pegawai.");
+            setPegawaiList(data.pegawai || []);
+        } catch (error: any) {
+            toast({ variant: 'destructive', title: 'Error Pegawai', description: error.message });
+        }
+    }, [toast]);
 
     useEffect(() => {
         if (selectedDate && !isManualMode) {
             fetchEvents(selectedDate);
         }
-    }, [selectedDate, fetchEvents, isManualMode]);
+        fetchPegawai();
+    }, [selectedDate, fetchEvents, fetchPegawai, isManualMode]);
 
     const selectedEvent = useMemo(() => {
         if (isManualMode) return null;
@@ -153,7 +176,7 @@ export default function ReportPage() {
         const reportData = {
             event: eventData,
             dasar, 
-            pelaksana, 
+            pelaksana: selectedPegawai,
             narasumber, 
             peserta, 
             reportContent, 
@@ -194,7 +217,7 @@ export default function ReportPage() {
             <Card>
                 <CardHeader>
                     <div className="flex justify-between items-center">
-                        <CardTitle>Pilih Kegiatan</CardTitle>
+                        <CardTitle>Pilih Kegiatan & Pelaksana</CardTitle>
                         <div className="flex items-center space-x-2">
                             <Switch id="manual-mode" checked={isManualMode} onCheckedChange={setIsManualMode} />
                             <Label htmlFor="manual-mode">Input Manual</Label>
@@ -262,10 +285,63 @@ export default function ReportPage() {
                                     </SelectTrigger>
                                     <SelectContent>
                                         {events.map(event => (
-                                            event.id && <SelectItem key={event.id} value={event.id}>{event.summary}</SelectItem>
+                                            event.id && <SelectItem key={event.id} value={event.id} className="h-auto whitespace-normal">{event.summary}</SelectItem>
                                         ))}
                                     </SelectContent>
                                 </Select>
+                            </div>
+                             <div className="grid gap-2 md:col-span-2">
+                                <Label>3. Pilih Pelaksana</Label>
+                                 <Popover>
+                                    <PopoverTrigger asChild>
+                                        <Button variant="outline" role="combobox" className="w-full h-auto min-h-10 justify-start">
+                                            <div className="flex gap-1 flex-wrap">
+                                                {selectedPegawai.length > 0 ? (
+                                                     selectedPegawai.map(p => (
+                                                        <Badge key={p.id} variant="secondary" className="mr-1">
+                                                            {p.nama}
+                                                            <button
+                                                                className="ml-1 ring-offset-background rounded-full outline-none focus:ring-2 focus:ring-ring focus:ring-offset-2"
+                                                                onClick={(e) => {
+                                                                    e.preventDefault();
+                                                                    e.stopPropagation();
+                                                                    setSelectedPegawai(prev => prev.filter(sp => sp.id !== p.id));
+                                                                }}
+                                                            >
+                                                                <X className="h-3 w-3 text-muted-foreground hover:text-foreground" />
+                                                            </button>
+                                                        </Badge>
+                                                    ))
+                                                ) : "Pilih pelaksana..." }
+                                            </div>
+                                        </Button>
+                                    </PopoverTrigger>
+                                    <PopoverContent className="w-[--radix-popover-trigger-width] p-0" align="start">
+                                        <Command>
+                                            <CommandInput placeholder="Cari nama pegawai..." />
+                                            <CommandList>
+                                                <CommandEmpty>Pegawai tidak ditemukan.</CommandEmpty>
+                                                <CommandGroup>
+                                                    {pegawaiList.map(p => (
+                                                        <CommandItem
+                                                            key={p.id}
+                                                            onSelect={() => {
+                                                                setSelectedPegawai(prev => 
+                                                                    prev.some(sp => sp.id === p.id)
+                                                                        ? prev.filter(sp => sp.id !== p.id)
+                                                                        : [...prev, p]
+                                                                );
+                                                            }}
+                                                            className="cursor-pointer"
+                                                        >
+                                                            {p.nama}
+                                                        </CommandItem>
+                                                    ))}
+                                                </CommandGroup>
+                                            </CommandList>
+                                        </Command>
+                                    </PopoverContent>
+                                </Popover>
                             </div>
                         </>
                     )}
@@ -281,7 +357,6 @@ export default function ReportPage() {
                         <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
                             <div className="space-y-4">
                                <ReportEditorField label="Dasar Kegiatan" value={dasar} onEditorChange={setDasar} placeholder="1. Peraturan Daerah..." heightClass="h-20" />
-                                <ReportEditorField label="Pelaksana" value={pelaksana} onEditorChange={setPelaksana} placeholder="Contoh: Camat Gandrungmangu" heightClass="h-20" />
                                 <ReportEditorField label="Narasumber/Verifikator" value={narasumber} onEditorChange={setNarasumber} placeholder="Contoh: 1. Inspektorat Daerah..." heightClass="h-20" />
                                 <ReportEditorField label="Pejabat/Peserta" value={peserta} onEditorChange={setPeserta} placeholder="Contoh: 1. Kasubbag Perencanaan..." heightClass="h-20" />
                             </div>

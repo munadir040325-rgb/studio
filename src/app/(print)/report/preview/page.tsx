@@ -29,20 +29,24 @@ type EventData = {
   attachments?: CalendarAttachment[];
 };
 
+type PelaksanaData = {
+    id: string;
+    nama: string;
+    nip: string;
+    pangkat: string;
+    jabatan: string;
+};
+
 type ReportData = {
     event: EventData;
     dasar: string;
-    pelaksana: string;
+    pelaksana: PelaksanaData[];
     narasumber: string;
     peserta: string;
     reportContent: string;
     photoAttachments: any[];
 };
 
-type PelaksanaData = {
-    nama: string;
-    jabatan: string;
-};
 
 
 const formatReportDateRange = (startStr: string, endStr?: string): string => {
@@ -82,47 +86,6 @@ const getGoogleDriveThumbnailUrl = (fileIdOrUrl: string): string => {
     return `/api/drive/cache-image/${fileId}`;
 };
 
-const parsePelaksana = (html: string): PelaksanaData[] => {
-    if (typeof document === 'undefined' || !html) return [];
-
-    const tempDiv = document.createElement('div');
-    tempDiv.innerHTML = html;
-
-    const results: PelaksanaData[] = [];
-    // Prioritaskan list items jika ada
-    const listItems = Array.from(tempDiv.querySelectorAll('li'));
-
-    if (listItems.length > 0) {
-        listItems.forEach(li => {
-            const lines = li.innerHTML.split('<br>')
-                .map(line => line.replace(/<[^>]*>/g, '').trim())
-                .filter(Boolean);
-            if (lines.length > 0) {
-                results.push({
-                    nama: lines[0] || '',
-                    jabatan: lines[1] || '',
-                });
-            }
-        });
-    } else {
-        // Fallback untuk teks biasa dengan <br>
-         const blocks = html.split(/<\/?p>/).filter(Boolean);
-         blocks.forEach(block => {
-             const lines = block.split('<br>')
-                .map(line => line.replace(/<[^>]*>/g, '').trim())
-                .filter(Boolean);
-            if (lines.length > 0) {
-                 results.push({
-                    nama: lines[0] || '',
-                    jabatan: lines[1] || '',
-                });
-            }
-         });
-    }
-    
-    return results.filter(p => p.nama); // Hanya kembalikan yang punya nama
-};
-
 
 const HtmlContent = ({ html, asList = false }: { html: string, asList?: boolean }) => {
     // Jangan render apapun jika HTML dasarnya kosong
@@ -139,6 +102,20 @@ const HtmlContent = ({ html, asList = false }: { html: string, asList?: boolean 
     }
 
     return <div dangerouslySetInnerHTML={{ __html: html }} />;
+};
+
+const PelaksanaList = ({ pelaksana }: { pelaksana: PelaksanaData[] }) => {
+    if (!pelaksana || pelaksana.length === 0) {
+        return <span>-</span>;
+    }
+
+    return (
+        <ol className="list-decimal list-inside">
+            {pelaksana.map(p => (
+                <li key={p.id}>{p.nama}</li>
+            ))}
+        </ol>
+    );
 };
 
 
@@ -197,8 +174,6 @@ function ReportPreviewComponent() {
     const { event, dasar, pelaksana, narasumber, peserta, reportContent, photoAttachments } = reportData;
     const isManualEvent = 'waktu' in event && !!event.waktu;
     
-    const parsedPelaksana = parsePelaksana(pelaksana);
-    
     const lokasiTanggal = `${process.env.NEXT_PUBLIC_KOP_KECAMATAN || 'Gandrungmangu'}, ${format(parseISO(event.start), 'dd MMMM yyyy', { locale: localeId })}`;
 
 
@@ -224,7 +199,7 @@ function ReportPreviewComponent() {
                                     <tr><td className='w-32 align-top'>Hari/Tanggal</td><td className='w-4 align-top'>:</td><td>{formatReportDateRange(event.start, event.end)}</td></tr>
                                     <tr><td className='w-32 align-top'>Waktu</td><td className='w-4 align-top'>:</td><td>{isManualEvent ? event.waktu : `Pukul ${format(parseISO(event.start), 'HH:mm', { locale: localeId })} WIB s.d. Selesai`}</td></tr>
                                     <tr><td className='w-32 align-top'>Tempat</td><td className='w-4 align-top'>:</td><td>{event.location}</td></tr>
-                                    <tr><td className='w-32 align-top'>Pelaksana</td><td className='w-4 align-top'>:</td><td><HtmlContent html={pelaksana} asList={true} /></td></tr>
+                                    <tr><td className='w-32 align-top'>Pelaksana</td><td className='w-4 align-top'>:</td><td><PelaksanaList pelaksana={pelaksana} /></td></tr>
                                     <tr><td className="w-32 align-top">Narasumber/Verifikator</td><td className='w-4 align-top'>:</td><td><HtmlContent html={narasumber} asList={true} /></td></tr>
                                     <tr><td className='w-32 align-top'>Pejabat/Peserta</td><td className='w-4 align-top'>:</td><td><HtmlContent html={peserta} asList={true} /></td></tr>
                                 </tbody>
@@ -245,11 +220,11 @@ function ReportPreviewComponent() {
                     <p>Yang melaksanakan kegiatan,</p>
                     <br />
                     
-                     {parsedPelaksana.length > 0 && (
+                     {pelaksana.length > 0 && (
                         <table className="w-full text-left" style={{ borderSpacing: '0 2.5rem' }}>
                             <tbody>
-                                {parsedPelaksana.map((item, index) => (
-                                    <tr key={index}>
+                                {pelaksana.map((item, index) => (
+                                    <tr key={item.id}>
                                         <td className="align-top pr-2">{index + 1}.</td>
                                         <td>
                                             <div className="flex flex-col">
