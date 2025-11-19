@@ -113,6 +113,21 @@ const PelaksanaList = ({ pelaksana }: { pelaksana: PelaksanaData[] }) => {
         return <div>-</div>;
     }
 
+    if (pelaksana.length === 1) {
+        const p = pelaksana[0];
+        return (
+            <div key={p.id}>
+                <table className="w-full border-separate" style={{ borderSpacing: 0 }}>
+                    <tbody>
+                        <tr><td className="w-36 align-top">Nama</td><td className="w-2 px-1 align-top">:</td><td>{p.nama}</td></tr>
+                        <tr><td className="w-36 align-top">NIP</td><td className="w-2 px-1 align-top">:</td><td>{p.nip}</td></tr>
+                        <tr><td className="w-36 align-top">Jabatan</td><td className="w-2 px-1 align-top">:</td><td>{p.jabatan}</td></tr>
+                    </tbody>
+                </table>
+            </div>
+        );
+    }
+
     return (
         <div className="space-y-2">
             {pelaksana.map((p, index) => (
@@ -122,21 +137,9 @@ const PelaksanaList = ({ pelaksana }: { pelaksana: PelaksanaData[] }) => {
                         <div className="flex-1">
                             <table className="w-full border-separate" style={{ borderSpacing: 0 }}>
                                 <tbody>
-                                    <tr>
-                                        <td className="w-32 align-top">Nama</td>
-                                        <td className="w-2 px-1 align-top">:</td>
-                                        <td>{p.nama}</td>
-                                    </tr>
-                                    <tr>
-                                        <td className="w-32 align-top">NIP</td>
-                                        <td className="w-2 px-1 align-top">:</td>
-                                        <td>{p.nip}</td>
-                                    </tr>
-                                    <tr>
-                                        <td className="w-32 align-top">Jabatan</td>
-                                        <td className="w-2 px-1 align-top">:</td>
-                                        <td>{p.jabatan}</td>
-                                    </tr>
+                                    <tr><td className="w-32 align-top">Nama</td><td className="w-2 px-1 align-top">:</td><td>{p.nama}</td></tr>
+                                    <tr><td className="w-32 align-top">NIP</td><td className="w-2 px-1 align-top">:</td><td>{p.nip}</td></tr>
+                                    <tr><td className="w-32 align-top">Jabatan</td><td className="w-2 px-1 align-top">:</td><td>{p.jabatan}</td></tr>
                                 </tbody>
                             </table>
                         </div>
@@ -270,11 +273,16 @@ function ReportPreviewComponent() {
             </div>
             
             <div className="flex justify-end mt-12">
-                <div className="w-96">
+                <div className="w-96 text-left">
                     <p>{lokasiTanggal}</p>
                     <p>Yang melaksanakan tugas,</p>
-                    <div className="mt-4 text-left">
-                        {pelaksana.length > 0 ? (
+                    <div className="mt-4">
+                        {pelaksana.length === 1 ? (
+                            <div className="h-24">
+                                <div className="font-semibold underline">{pelaksana[0].nama}</div>
+                                <div>{pelaksana[0].jabatan}</div>
+                            </div>
+                        ) : pelaksana.length > 1 ? (
                              pelaksana.map((item, index) => (
                                 <div key={item.id} className="h-24">
                                     <div className="flex">
@@ -329,5 +337,7 @@ export default function ReportPreviewPage() {
         </Suspense>
     )
 }
+
+    
 
     
