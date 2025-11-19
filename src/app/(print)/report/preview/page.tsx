@@ -1,5 +1,4 @@
 
-
 'use client';
 
 import { useEffect, useState, Suspense } from 'react';
@@ -111,34 +110,38 @@ const HtmlContent = ({ html, asList = false }: { html: string, asList?: boolean 
 
 const PelaksanaList = ({ pelaksana }: { pelaksana: PelaksanaData[] }) => {
     if (!pelaksana || pelaksana.length === 0) {
-        return <span>-</span>;
+        return <div>-</div>;
     }
 
     return (
         <div className="space-y-2">
             {pelaksana.map((p, index) => (
-                <table key={p.id} className="w-full border-separate" style={{ borderSpacing: 0, lineHeight: 1.2 }}>
-                    <tbody>
-                        <tr>
-                            <td className="w-6 pr-2 align-top">{index + 1}.</td>
-                            <td className="w-28 align-top">Nama</td>
-                            <td className="w-2 align-top">:</td>
-                            <td>{p.nama}</td>
-                        </tr>
-                        <tr>
-                            <td></td>
-                            <td className="w-28 align-top">NIP</td>
-                            <td className="w-2 align-top">:</td>
-                            <td>{p.nip}</td>
-                        </tr>
-                        <tr>
-                            <td></td>
-                            <td className="w-28 align-top">Jabatan</td>
-                            <td className="w-2 align-top">:</td>
-                            <td>{p.jabatan}</td>
-                        </tr>
-                    </tbody>
-                </table>
+                <div key={p.id}>
+                    <div className="flex">
+                        <span className="w-6 align-top">{index + 1}.</span>
+                        <div className="flex-1">
+                            <table className="w-full border-separate" style={{ borderSpacing: 0 }}>
+                                <tbody>
+                                    <tr>
+                                        <td className="w-32 align-top">Nama</td>
+                                        <td className="w-2 px-1 align-top">:</td>
+                                        <td>{p.nama}</td>
+                                    </tr>
+                                    <tr>
+                                        <td className="w-32 align-top">NIP</td>
+                                        <td className="w-2 px-1 align-top">:</td>
+                                        <td>{p.nip}</td>
+                                    </tr>
+                                    <tr>
+                                        <td className="w-32 align-top">Jabatan</td>
+                                        <td className="w-2 px-1 align-top">:</td>
+                                        <td>{p.jabatan}</td>
+                                    </tr>
+                                </tbody>
+                            </table>
+                        </div>
+                    </div>
+                </div>
             ))}
         </div>
     );
@@ -214,8 +217,8 @@ function ReportPreviewComponent() {
 
 
     return (
-        <div id="print-area" className="bg-white text-black p-8 max-w-4xl mx-auto" style={{ lineHeight: 1.5 }}>
-            <div className='-mt-2'>
+        <div id="print-area" className="bg-white text-black p-8 max-w-4xl mx-auto" style={{ lineHeight: 1.1 }}>
+            <div className='-mt-8'>
                 <ReportHeader />
             </div>
             <h3 className="text-center font-bold text-lg my-4 uppercase">LAPORAN KEGIATAN</h3>
@@ -264,7 +267,7 @@ function ReportPreviewComponent() {
                     <div className="mt-4 text-left">
                         {pelaksana.length > 0 ? (
                              pelaksana.map((item, index) => (
-                                <div key={item.id} className="h-28 mb-8">
+                                <div key={item.id} className="h-24">
                                     <div className="flex">
                                         <span className="w-6">{index + 1}.</span>
                                         <div className="flex-1">
@@ -317,3 +320,5 @@ export default function ReportPreviewPage() {
         </Suspense>
     )
 }
+
+    

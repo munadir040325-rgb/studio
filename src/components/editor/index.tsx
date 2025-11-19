@@ -1,7 +1,7 @@
 "use client";
 
 import { LexicalComposer } from "@lexical/react/LexicalComposer";
-import { RichTextPlugin } from "@lexical/react/LexicalRichTextPlugin";
+import { RichTextPlugin } from "@lexical/react/RichTextPlugin";
 import { LexicalErrorBoundary } from "@lexical/react/LexicalErrorBoundary";
 import { ListPlugin } from "@lexical/react/LexicalListPlugin";
 import { OnChangePlugin } from "@lexical/react/LexicalOnChangePlugin";
@@ -11,17 +11,18 @@ import { Toolbar } from "./toolbar";
 import { editorConfig } from "./config";
 import { ContentEditable } from "./content-editable";
 import { cn } from "@/lib/utils";
+import { AutoFocusPlugin } from '@lexical/react/LexicalAutoFocusPlugin';
 
 interface RichTextEditorProps {
   onChange: (html: string) => void;
   placeholder?: string;
-  initialHeight?: string;
+  minHeightClass?: string;
 }
 
 export function RichTextEditor({
   onChange,
   placeholder,
-  initialHeight = 'min-h-48'
+  minHeightClass
 }: RichTextEditorProps) {
 
   const handleOnChange = (editorState: EditorState, editor: LexicalEditor) => {
@@ -35,7 +36,7 @@ export function RichTextEditor({
     <LexicalComposer initialConfig={editorConfig}>
       <div className="w-full overflow-hidden rounded-lg border mt-2">
         <Toolbar />
-        <div className={cn("relative", initialHeight)}>
+        <div className={cn("relative", minHeightClass)}>
           <RichTextPlugin
             contentEditable={<ContentEditable />}
             ErrorBoundary={LexicalErrorBoundary}
@@ -52,3 +53,5 @@ export function RichTextEditor({
     </LexicalComposer>
   );
 }
+
+    

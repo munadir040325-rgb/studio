@@ -1,5 +1,4 @@
 
-
 'use client';
 
 import { useState, useEffect, useCallback, useMemo } from 'react';
@@ -65,11 +64,11 @@ const ReportField = ({ label, id, value, onChange, placeholder }: ReportFieldPro
     </div>
 );
 
-const ReportEditorField = ({ value, onEditorChange, placeholder, heightClass }: { value: string, onEditorChange: (html: string) => void, placeholder: string, heightClass?: string }) => (
+const ReportEditorField = ({ value, onEditorChange, placeholder, minHeightClass }: { value: string, onEditorChange: (html: string) => void, placeholder: string, minHeightClass?: string }) => (
     <RichTextEditor
         onChange={onEditorChange}
         placeholder={placeholder}
-        initialHeight={heightClass}
+        minHeightClass={minHeightClass}
     />
 );
 
@@ -207,6 +206,7 @@ export default function ReportPage() {
                 
             if (!eventData || !eventData.summary) {
                 toast({ variant: 'destructive', title: 'Belum Lengkap', description: 'Silakan pilih kegiatan atau isi data manual terlebih dahulu.' });
+                setIsPrinting(false); // Reset on validation fail
                 return;
             }
 
@@ -399,7 +399,6 @@ export default function ReportPage() {
                                     value={reportContent}
                                     onEditorChange={setReportContent}
                                     placeholder="Tuliskan hasil pembahasan dan langkah selanjutnya dari kegiatan ini..."
-                                    heightClass="min-h-48"
                                 />
                             </TabsContent>
                             <TabsContent value="peserta" className="mt-4" forceMount>
@@ -407,7 +406,7 @@ export default function ReportPage() {
                                     value={peserta}
                                     onEditorChange={setPeserta}
                                     placeholder="1. Kasubbag Perencanaan..."
-                                    heightClass="h-32"
+                                    minHeightClass="min-h-16"
                                 />
                             </TabsContent>
                             <TabsContent value="narasumber" className="mt-4" forceMount>
@@ -415,7 +414,7 @@ export default function ReportPage() {
                                     value={narasumber}
                                     onEditorChange={setNarasumber}
                                     placeholder="1. Inspektorat Daerah..."
-                                    heightClass="h-32"
+                                    minHeightClass="min-h-16"
                                 />
                             </TabsContent>
                         </Tabs>
@@ -441,3 +440,5 @@ export default function ReportPage() {
         </div>
     );
 }
+
+    
