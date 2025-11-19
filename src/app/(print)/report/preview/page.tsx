@@ -108,12 +108,16 @@ const PelaksanaList = ({ pelaksana }: { pelaksana: PelaksanaData[] }) => {
     }
 
     return (
-        <ol className="list-decimal list-inside">
+         <ol className="list-decimal list-outside pl-5 space-y-2">
             {pelaksana.map(p => (
                 <li key={p.id}>
-                    <div>Nama: {p.nama}</div>
-                    <div>NIP: {p.nip}</div>
-                    <div>Jabatan: {p.jabatan}</div>
+                    <table className="w-full" style={{lineHeight: 1.2}}>
+                        <tbody>
+                            <tr><td className="w-20 align-top">Nama</td><td className="w-4 align-top">:</td><td>{p.nama}</td></tr>
+                            <tr><td className="w-20 align-top">NIP</td><td className="w-4 align-top">:</td><td>{p.nip}</td></tr>
+                            <tr><td className="w-20 align-top">Jabatan</td><td className="w-4 align-top">:</td><td>{p.jabatan}</td></tr>
+                        </tbody>
+                    </table>
                 </li>
             ))}
         </ol>
