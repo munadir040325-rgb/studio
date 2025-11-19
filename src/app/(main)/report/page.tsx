@@ -153,8 +153,7 @@ export default function ReportPage() {
                     const sppdData = await findSppdByEventId({ eventId: selectedEventId });
                     if (sppdData?.nomorSurat && sppdData.dasarHukum) {
                         const formattedDasar = `
-                            <p>1. ${sppdData.dasarHukum}</p>
-                            <p>2. Surat Perintah Tugas Camat Gandrungmangu Nomor: ${sppdData.nomorSurat}</p>
+                            <ol><li>${sppdData.dasarHukum}</li><li>Surat Perintah Tugas Camat Gandrungmangu Nomor: ${sppdData.nomorSurat}</li></ol>
                         `;
                         setDasar(formattedDasar);
                         toast({ title: 'Data SPPD ditemukan!', description: 'Dasar kegiatan telah diisi otomatis.' });
@@ -437,6 +436,3 @@ export default function ReportPage() {
         </div>
     );
 }
-
-
-    
