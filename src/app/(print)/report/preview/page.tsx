@@ -211,7 +211,7 @@ function ReportPreviewComponent() {
             <ReportHeader />
             <h3 className="text-center font-bold text-lg my-6 uppercase">LAPORAN KEGIATAN</h3>
             
-            <div className="space-y-4">
+            <div className="space-y-4 text-justify">
                 <ReportSection number="I." title="Dasar">
                     <HtmlContent html={dasar} asList={true} />
                 </ReportSection>

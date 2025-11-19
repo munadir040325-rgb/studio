@@ -101,7 +101,11 @@ body {
    FIX HALAMAN KOSONG SAAT PRINT
    ============================= */
 @media print {
-
+  @page {
+    margin-top: 1cm;
+    margin-bottom: 1.7cm;
+  }
+  
   /* Hapus tinggi layar yang memicu halaman kosong & paksa background putih */
   html, body {
     height: auto !important;
