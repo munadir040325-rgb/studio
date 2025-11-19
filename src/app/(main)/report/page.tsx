@@ -128,7 +128,7 @@ export default function ReportPage() {
             const data = await res.json();
             if (!res.ok) throw new Error(data.error || "Gagal mengambil data pegawai.");
             setPegawaiList(data.pegawai || []);
-        } catch (error: any) {
+        } catch (error: any) => {
             toast({ variant: 'destructive', title: 'Error Pegawai', description: error.message });
         }
     }, [toast]);
@@ -168,7 +168,7 @@ export default function ReportPage() {
                         setDasar('-');
                     }
 
-                } catch (e: any) {
+                } catch (e: any) => {
                     console.warn("Could not fetch SPPD data:", e.message);
                     setDasar('-');
                 }
@@ -207,7 +207,6 @@ export default function ReportPage() {
                 
             if (!eventData || !eventData.summary) {
                 toast({ variant: 'destructive', title: 'Belum Lengkap', description: 'Silakan pilih kegiatan atau isi data manual terlebih dahulu.' });
-                setIsPrinting(false); // Make sure to stop printing state on error
                 return;
             }
 
@@ -395,7 +394,7 @@ export default function ReportPage() {
                                 <TabsTrigger value="peserta">Peserta</TabsTrigger>
                                 <TabsTrigger value="narasumber">Narasumber</TabsTrigger>
                             </TabsList>
-                            <TabsContent value="hasil" className="mt-4">
+                            <TabsContent value="hasil" className="mt-4" forceMount>
                                 <ReportEditorField
                                     value={reportContent}
                                     onEditorChange={setReportContent}
@@ -403,7 +402,7 @@ export default function ReportPage() {
                                     heightClass="min-h-48"
                                 />
                             </TabsContent>
-                            <TabsContent value="peserta" className="mt-4">
+                            <TabsContent value="peserta" className="mt-4" forceMount>
                                  <ReportEditorField
                                     value={peserta}
                                     onEditorChange={setPeserta}
@@ -411,7 +410,7 @@ export default function ReportPage() {
                                     heightClass="h-32"
                                 />
                             </TabsContent>
-                            <TabsContent value="narasumber" className="mt-4">
+                            <TabsContent value="narasumber" className="mt-4" forceMount>
                                 <ReportEditorField
                                     value={narasumber}
                                     onEditorChange={setNarasumber}
