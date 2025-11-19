@@ -94,13 +94,7 @@ const HtmlContent = ({ html, asList = false }: { html: string, asList?: boolean 
       return asList ? <ol><li>-</li></ol> : <p>-</p>;
     }
 
-    // Jika html sudah mengandung tag <ol>, render langsung
-    if (html.includes('<ol>')) {
-        return <div dangerouslySetInnerHTML={{ __html: html }} className="list-decimal list-inside" />;
-    }
-    
-    // Jika sebagai list tapi tidak ada tag <ol>, bungkus dengan <ol>
-    if (asList) {
+    if (asList && !html.includes('<ol>') && !html.includes('<ul>')) {
         const content = html.replace(/<p>/g, '<li>').replace(/<\/p>/g, '</li>');
         return <ol className="list-decimal list-inside" dangerouslySetInnerHTML={{ __html: content }} />;
     }
@@ -119,9 +113,9 @@ const PelaksanaList = ({ pelaksana }: { pelaksana: PelaksanaData[] }) => {
             <div key={p.id}>
                 <table className="w-full border-separate" style={{ borderSpacing: 0 }}>
                     <tbody>
-                        <tr><td className="w-36 align-top">Nama</td><td className="w-2 px-1 align-top">:</td><td>{p.nama}</td></tr>
-                        <tr><td className="w-36 align-top">NIP</td><td className="w-2 px-1 align-top">:</td><td>{p.nip}</td></tr>
-                        <tr><td className="w-36 align-top">Jabatan</td><td className="w-2 px-1 align-top">:</td><td>{p.jabatan}</td></tr>
+                        <tr><td className="w-40 align-top">Nama</td><td className="w-2 px-1 align-top">:</td><td>{p.nama}</td></tr>
+                        <tr><td className="w-40 align-top">NIP</td><td className="w-2 px-1 align-top">:</td><td>{p.nip}</td></tr>
+                        <tr><td className="w-40 align-top">Jabatan</td><td className="w-2 px-1 align-top">:</td><td>{p.jabatan}</td></tr>
                     </tbody>
                 </table>
             </div>
@@ -137,9 +131,9 @@ const PelaksanaList = ({ pelaksana }: { pelaksana: PelaksanaData[] }) => {
                         <div className="flex-1">
                             <table className="w-full border-separate" style={{ borderSpacing: 0 }}>
                                 <tbody>
-                                    <tr><td className="w-32 align-top">Nama</td><td className="w-2 px-1 align-top">:</td><td>{p.nama}</td></tr>
-                                    <tr><td className="w-32 align-top">NIP</td><td className="w-2 px-1 align-top">:</td><td>{p.nip}</td></tr>
-                                    <tr><td className="w-32 align-top">Jabatan</td><td className="w-2 px-1 align-top">:</td><td>{p.jabatan}</td></tr>
+                                    <tr><td className="w-36 align-top">Nama</td><td className="w-2 px-1 align-top">:</td><td>{p.nama}</td></tr>
+                                    <tr><td className="w-36 align-top">NIP</td><td className="w-2 px-1 align-top">:</td><td>{p.nip}</td></tr>
+                                    <tr><td className="w-36 align-top">Jabatan</td><td className="w-2 px-1 align-top">:</td><td>{p.jabatan}</td></tr>
                                 </tbody>
                             </table>
                         </div>
@@ -215,7 +209,7 @@ function ReportPreviewComponent() {
     
     const { event, dasar, pelaksana, narasumber, peserta, reportContent, photoAttachments } = reportData;
     const isManualEvent = 'waktu' in event && !!event.waktu;
-    const isPesertaFilled = peserta && peserta.trim() !== '' && peserta.trim() !== '<p><br></p>';
+    const isPesertaFilled = peserta && peserta.trim() !== '' && peserta.trim() !== '<p><br></p>' && peserta.trim() !== '-';
 
     
     const lokasiTanggal = `${process.env.NEXT_PUBLIC_KOP_KECAMATAN || 'Gandrungmangu'}, ${format(parseISO(event.start), 'dd MMMM yyyy', { locale: localeId })}`;
@@ -226,7 +220,7 @@ function ReportPreviewComponent() {
             <div className='-mt-8'>
                 <ReportHeader />
             </div>
-            <h3 className="text-center font-bold text-lg my-4 uppercase">LAPORAN KEGIATAN</h3>
+            <h3 className="text-center font-bold text-lg my-4 uppercase underline">LAPORAN KEGIATAN</h3>
             
             <div className="space-y-4 text-justify">
                 <ReportSection number="I." title="Dasar">
@@ -272,32 +266,30 @@ function ReportPreviewComponent() {
                 </ReportSection>
             </div>
             
-            <div className="flex justify-end mt-12">
+             <div className="flex justify-end mt-12">
                 <div className="w-96 text-left">
                     <p>{lokasiTanggal}</p>
                     <p>Yang melaksanakan tugas,</p>
-                    <div className="mt-4">
-                        {pelaksana.length === 1 ? (
-                            <div className="h-24">
-                                <div className="font-semibold underline">{pelaksana[0].nama}</div>
-                                <div>{pelaksana[0].jabatan}</div>
+                    {pelaksana.length === 1 ? (
+                        <div className="mt-4">
+                            <div className="h-20"></div>
+                            <div className="font-semibold underline">{pelaksana[0].nama}</div>
+                            <div>{pelaksana[0].jabatan}</div>
+                        </div>
+                    ) : pelaksana.length > 1 ? (
+                         pelaksana.map((item, index) => (
+                            <div key={item.id} className="flex">
+                                <span className="w-6 pt-20">{index + 1}.</span>
+                                <div className="flex-1 mt-4">
+                                     <div className="h-16"></div>
+                                     <div className="font-semibold underline">{item.nama}</div>
+                                     <div>{item.jabatan}</div>
+                                 </div>
                             </div>
-                        ) : pelaksana.length > 1 ? (
-                             pelaksana.map((item, index) => (
-                                <div key={item.id} className="h-24">
-                                    <div className="flex">
-                                        <span className="w-6">{index + 1}.</span>
-                                        <div className="flex-1">
-                                            <div className="font-semibold underline">{item.nama}</div>
-                                            <div>{item.jabatan}</div>
-                                        </div>
-                                    </div>
-                                </div>
-                            ))
-                        ) : (
-                            <div className="h-28">-</div>
-                        )}
-                    </div>
+                        ))
+                    ) : (
+                        <div className="h-28">-</div>
+                    )}
                 </div>
             </div>
 
@@ -337,7 +329,3 @@ export default function ReportPreviewPage() {
         </Suspense>
     )
 }
-
-    
-
-    
