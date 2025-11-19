@@ -498,7 +498,7 @@ export const findSppdByEventIdFlow = ai.defineFlow({
     const sheets = google.sheets({ version: 'v4', auth });
     
     const sheetName = 'SPPD'; 
-    const range = `${sheetName}!A:O`; // Search from column A to O
+    const range = `${sheetName}!A:P`; // Search from column A to P
 
     try {
         const response = await sheets.spreadsheets.values.get({ spreadsheetId, range });
@@ -506,7 +506,7 @@ export const findSppdByEventIdFlow = ai.defineFlow({
         if (!rows) return { nomorSurat: null, dasarHukum: null };
 
         // Define fixed column indices (0-based)
-        const eventIdIndex = 14;      // Column O
+        const eventIdIndex = 15;      // Column P
         const nomorStIndex = 2;       // Column C
         const dasarSuratIndex = 4;    // Column E
 
