@@ -19,7 +19,7 @@ export default function PrintLayout({
         <link href="https://fonts.googleapis.com/css2?family=PT+Sans:ital,wght@0,400;0,700;1,400;1,700&display=swap" rel="stylesheet" />
       </head>
       {/* Ensure a clean white background for printing to avoid gray pages */}
-      <body className="font-body antialiased bg-white">
+      <body className="font-body antialiased bg-white print:bg-white">
         {children}
       </body>
     </html>
