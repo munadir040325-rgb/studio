@@ -19,6 +19,8 @@ import { Switch } from '@/components/ui/switch';
 import type { DateRange } from 'react-day-picker';
 import { Command, CommandEmpty, CommandGroup, CommandInput, CommandItem, CommandList } from '@/components/ui/command';
 import { Badge } from '@/components/ui/badge';
+import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
+
 
 type CalendarAttachment = {
     fileUrl: string | null | undefined;
@@ -61,15 +63,12 @@ const ReportField = ({ label, id, value, onChange, placeholder }: ReportFieldPro
     </div>
 );
 
-const ReportEditorField = ({ label, value, onEditorChange, placeholder, heightClass }: { label: string, value: string, onEditorChange: (html: string) => void, placeholder: string, heightClass?: string }) => (
-    <div className="grid gap-2">
-        <Label>{label}</Label>
-        <RichTextEditor
-            onChange={onEditorChange}
-            placeholder={placeholder}
-            initialHeight={heightClass}
-        />
-    </div>
+const ReportEditorField = ({ value, onEditorChange, placeholder, heightClass }: { value: string, onEditorChange: (html: string) => void, placeholder: string, heightClass?: string }) => (
+    <RichTextEditor
+        onChange={onEditorChange}
+        placeholder={placeholder}
+        initialHeight={heightClass}
+    />
 );
 
 
@@ -353,18 +352,50 @@ export default function ReportPage() {
                     <CardHeader>
                         <CardTitle>Isi Detail Laporan</CardTitle>
                     </CardHeader>
-                    <CardContent className="space-y-6">
-                        <div className="space-y-4">
-                           <ReportEditorField label="Dasar Kegiatan" value={dasar} onEditorChange={setDasar} placeholder="1. Peraturan Daerah..." heightClass="h-24" />
-                           <ReportEditorField label="Narasumber/Verifikator" value={narasumber} onEditorChange={setNarasumber} placeholder="Contoh: 1. Inspektorat Daerah..." heightClass="h-24" />
-                           <ReportEditorField label="Pejabat/Peserta" value={peserta} onEditorChange={setPeserta} placeholder="Contoh: 1. Kasubbag Perencanaan..." heightClass="h-24" />
-                        </div>
-                        <div className="space-y-4">
-                            <ReportEditorField label="Hasil dan Tindak Lanjut" value={reportContent} onEditorChange={setReportContent} placeholder="Tuliskan hasil pembahasan dan langkah selanjutnya..." heightClass="min-h-48" />
-                        </div>
+                    <CardContent>
+                        <Tabs defaultValue="hasil" className="w-full">
+                            <TabsList className="grid w-full grid-cols-4">
+                                <TabsTrigger value="hasil">Hasil</TabsTrigger>
+                                <TabsTrigger value="dasar">Dasar</TabsTrigger>
+                                <TabsTrigger value="peserta">Peserta</TabsTrigger>
+                                <TabsTrigger value="narasumber">Narasumber</TabsTrigger>
+                            </TabsList>
+                            <TabsContent value="hasil" className="mt-4">
+                                <ReportEditorField
+                                    value={reportContent}
+                                    onEditorChange={setReportContent}
+                                    placeholder="Tuliskan hasil pembahasan dan langkah selanjutnya dari kegiatan ini..."
+                                    heightClass="min-h-48"
+                                />
+                            </TabsContent>
+                            <TabsContent value="dasar" className="mt-4">
+                                <ReportEditorField
+                                    value={dasar}
+                                    onEditorChange={setDasar}
+                                    placeholder="1. Peraturan Daerah..."
+                                    heightClass="h-32"
+                                />
+                            </TabsContent>
+                            <TabsContent value="peserta" className="mt-4">
+                                 <ReportEditorField
+                                    value={peserta}
+                                    onEditorChange={setPeserta}
+                                    placeholder="1. Kasubbag Perencanaan..."
+                                    heightClass="h-32"
+                                />
+                            </TabsContent>
+                            <TabsContent value="narasumber" className="mt-4">
+                                <ReportEditorField
+                                    value={narasumber}
+                                    onEditorChange={setNarasumber}
+                                    placeholder="1. Inspektorat Daerah..."
+                                    heightClass="h-32"
+                                />
+                            </TabsContent>
+                        </Tabs>
 
                          {photoAttachments.length > 0 && !isManualMode && (
-                            <div>
+                            <div className="mt-6">
                                 <Label>Lampiran Foto</Label>
                                 <div className="mt-2 grid grid-cols-2 md:grid-cols-4 gap-4">
                                     {photoAttachments.map((att, index) => (
@@ -384,5 +415,3 @@ export default function ReportPage() {
         </div>
     );
 }
-
-    
