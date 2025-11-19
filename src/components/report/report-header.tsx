@@ -11,7 +11,8 @@ export const ReportHeader = () => {
         website: process.env.NEXT_PUBLIC_KOP_WEBSITE || 'www.gandrungmangu.cilacapkab.go.id',
         email: process.env.NEXT_PUBLIC_KOP_EMAIL || 'kecamatan.gandrungmangu2020@gmail.com'
     };
-    const logoUrl = process.env.NEXT_PUBLIC_KOP_LOGO || "https://upload.wikimedia.org/wikipedia/commons/7/76/Lambang_Kabupaten_Cilacap.png";
+    // Menggunakan path lokal dari folder /public. Ini lebih andal daripada URL eksternal.
+    const logoUrl = "/logo-cilacap.png";
 
     return (
         <div className="mb-4">
