@@ -506,17 +506,17 @@ export const findSppdByEventIdFlow = ai.defineFlow({
         if (!rows) return { nomorSurat: null, dasarHukum: null };
 
         // Assuming headers are in the first row. Let's find column indices dynamically.
-        const headers = (rows[0] || []).map((h: string) => h.toLowerCase());
+        const headers = (rows[0] || []).map((h: string) => h.toLowerCase().trim());
         const eventIdIndex = headers.indexOf('calendareventid');
         const nomorStIndex = headers.indexOf('nomor_st');
         const dasarSuratIndex = headers.indexOf('dasar_surat');
         
         if (eventIdIndex === -1 || nomorStIndex === -1 || dasarSuratIndex === -1) {
             // Fallback to fixed positions if headers are not found or don't match
-            // C=2, E=4, O=14
+            // A=0, B=1, C=2 ... O=14
             const fixedEventIdIndex = 14; 
-            const fixedNomorStIndex = 2;
-            const fixedDasarSuratIndex = 4;
+            const fixedNomorStIndex = 2; // Column C
+            const fixedDasarSuratIndex = 4; // Column E
 
             for (const row of rows.slice(1)) { // Skip header row
                 const rowEventId = row[fixedEventIdIndex];
@@ -602,5 +602,7 @@ export async function findSppdByEventId(input: FindSppdInput): Promise<{ nomorSu
 
 
 
+
+    
 
     
