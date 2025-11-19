@@ -109,13 +109,13 @@ const PelaksanaList = ({ pelaksana }: { pelaksana: PelaksanaData[] }) => {
 
     return (
          <ol className="list-decimal list-outside pl-5 space-y-2">
-            {pelaksana.map(p => (
+            {pelaksana.map((p, index) => (
                 <li key={p.id}>
                     <table className="w-full" style={{lineHeight: 1.2}}>
                         <tbody>
-                            <tr><td className="w-20 align-top">Nama</td><td className="w-4 align-top">:</td><td>{p.nama}</td></tr>
-                            <tr><td className="w-20 align-top">NIP</td><td className="w-4 align-top">:</td><td>{p.nip}</td></tr>
-                            <tr><td className="w-20 align-top">Jabatan</td><td className="w-4 align-top">:</td><td>{p.jabatan}</td></tr>
+                            <tr><td className="w-20 align-top">Nama</td><td className="w-2 align-top">:</td><td>{p.nama}</td></tr>
+                            <tr><td className="w-20 align-top">NIP</td><td className="w-2 align-top">:</td><td>{p.nip}</td></tr>
+                            <tr><td className="w-20 align-top">Jabatan</td><td className="w-2 align-top">:</td><td>{p.jabatan}</td></tr>
                         </tbody>
                     </table>
                 </li>
@@ -210,10 +210,10 @@ function ReportPreviewComponent() {
                 <ReportSection number="III." title="Kegiatan yang dilaksanakan">
                      <table className="w-full">
                         <tbody>
-                            <tr><td className="w-32 align-top">Nama Kegiatan</td><td className="w-4 align-top">:</td><td>{event.summary}</td></tr>
-                            <tr><td className='w-32 align-top'>Hari/Tanggal</td><td className='w-4 align-top'>:</td><td>{formatReportDateRange(event.start, event.end)}</td></tr>
-                            <tr><td className='w-32 align-top'>Waktu</td><td className='w-4 align-top'>:</td><td>{isManualEvent ? event.waktu : `Pukul ${format(parseISO(event.start), 'HH:mm', { locale: localeId })} WIB s.d. Selesai`}</td></tr>
-                            <tr><td className='w-32 align-top'>Tempat</td><td className='w-4 align-top'>:</td><td>{event.location}</td></tr>
+                            <tr><td className="w-32 align-top">Nama Kegiatan</td><td className="w-2 align-top">:</td><td>{event.summary}</td></tr>
+                            <tr><td className='w-32 align-top'>Hari/Tanggal</td><td className='w-2 align-top'>:</td><td>{formatReportDateRange(event.start, event.end)}</td></tr>
+                            <tr><td className='w-32 align-top'>Waktu</td><td className='w-2 align-top'>:</td><td>{isManualEvent ? event.waktu : `Pukul ${format(parseISO(event.start), 'HH:mm', { locale: localeId })} WIB s.d. Selesai`}</td></tr>
+                            <tr><td className='w-32 align-top'>Tempat</td><td className='w-2 align-top'>:</td><td>{event.location}</td></tr>
                         </tbody>
                     </table>
                 </ReportSection>
