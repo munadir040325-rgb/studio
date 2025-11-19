@@ -354,15 +354,13 @@ export default function ReportPage() {
                         <CardTitle>Isi Detail Laporan</CardTitle>
                     </CardHeader>
                     <CardContent className="space-y-6">
-                        <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-                            <div className="space-y-4">
-                               <ReportEditorField label="Dasar Kegiatan" value={dasar} onEditorChange={setDasar} placeholder="1. Peraturan Daerah..." heightClass="h-20" />
-                                <ReportEditorField label="Narasumber/Verifikator" value={narasumber} onEditorChange={setNarasumber} placeholder="Contoh: 1. Inspektorat Daerah..." heightClass="h-20" />
-                                <ReportEditorField label="Pejabat/Peserta" value={peserta} onEditorChange={setPeserta} placeholder="Contoh: 1. Kasubbag Perencanaan..." heightClass="h-20" />
-                            </div>
-                            <div className="space-y-4">
-                                <ReportEditorField label="Hasil dan Tindak Lanjut" value={reportContent} onEditorChange={setReportContent} placeholder="Tuliskan hasil pembahasan dan langkah selanjutnya..." heightClass="min-h-48" />
-                            </div>
+                        <div className="space-y-4">
+                           <ReportEditorField label="Dasar Kegiatan" value={dasar} onEditorChange={setDasar} placeholder="1. Peraturan Daerah..." heightClass="h-24" />
+                           <ReportEditorField label="Narasumber/Verifikator" value={narasumber} onEditorChange={setNarasumber} placeholder="Contoh: 1. Inspektorat Daerah..." heightClass="h-24" />
+                           <ReportEditorField label="Pejabat/Peserta" value={peserta} onEditorChange={setPeserta} placeholder="Contoh: 1. Kasubbag Perencanaan..." heightClass="h-24" />
+                        </div>
+                        <div className="space-y-4">
+                            <ReportEditorField label="Hasil dan Tindak Lanjut" value={reportContent} onEditorChange={setReportContent} placeholder="Tuliskan hasil pembahasan dan langkah selanjutnya..." heightClass="min-h-48" />
                         </div>
 
                          {photoAttachments.length > 0 && !isManualMode && (
@@ -386,3 +384,5 @@ export default function ReportPage() {
         </div>
     );
 }
+
+    
