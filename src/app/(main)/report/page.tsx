@@ -19,7 +19,6 @@ import { Switch } from '@/components/ui/switch';
 import type { DateRange } from 'react-day-picker';
 import { Command, CommandEmpty, CommandGroup, CommandInput, CommandItem, CommandList } from '@/components/ui/command';
 import { Badge } from '@/components/ui/badge';
-import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { findSppdByEventId } from '@/ai/flows/sheets-flow';
 
 
@@ -144,22 +143,27 @@ export default function ReportPage() {
         return events.find(e => e.id === selectedEventId);
     }, [events, selectedEventId, isManualMode]);
     
-    // Fetch SPPD data when event is selected
+    // Fetch SPPD data when event or pelaksana is selected
     useEffect(() => {
         const fetchSppd = async () => {
             if (selectedEventId && !isManualMode) {
                 try {
                     const sppdData = await findSppdByEventId({ eventId: selectedEventId });
                     
-                    if (sppdData?.nomorSurat || sppdData?.dasarHukum) {
-                        let dasarItems = [];
-                        if (sppdData.dasarHukum) {
-                            dasarItems.push(`<li>${sppdData.dasarHukum}</li>`);
-                        }
-                        if (sppdData.nomorSurat) {
-                            dasarItems.push(`<li>Surat Perintah Tugas Camat Gandrungmangu Nomor: ${sppdData.nomorSurat}</li>`);
-                        }
+                    let dasarItems = [];
+                    if (sppdData.dasarHukum) {
+                        dasarItems.push(`<li>${sppdData.dasarHukum}</li>`);
+                    }
+                    if (sppdData.nomorSurat) {
+                         const isCamat = selectedPegawai.some(p => p.jabatan.toLowerCase() === 'camat');
+                         const suratTugasText = isCamat 
+                            ? `Surat Tugas Sekretaris Daerah Kabupaten Cilacap Nomor: ${sppdData.nomorSurat}`
+                            : `Surat Tugas Camat Gandrungmangu Nomor: ${sppdData.nomorSurat}`;
                         
+                        dasarItems.push(`<li>${suratTugasText}</li>`);
+                    }
+                    
+                    if (dasarItems.length > 0) {
                         const formattedDasar = `<ol>${dasarItems.join('')}</ol>`;
                         setDasar(formattedDasar);
                         toast({ title: 'Data SPPD ditemukan!', description: 'Dasar kegiatan telah diisi otomatis.' });
@@ -176,7 +180,7 @@ export default function ReportPage() {
             }
         };
         fetchSppd();
-    }, [selectedEventId, isManualMode, toast]);
+    }, [selectedEventId, selectedPegawai, isManualMode, toast]);
 
 
     useEffect(() => {
@@ -388,7 +392,7 @@ export default function ReportPage() {
                         <CardTitle>Isi Detail Laporan</CardTitle>
                     </CardHeader>
                     <CardContent className="space-y-4">
-                        <div>
+                       <div>
                             <Label>Hasil Kegiatan</Label>
                             <ReportEditorField
                                 value={reportContent}
@@ -429,16 +433,11 @@ export default function ReportPage() {
                                 </div>
                             </div>
                         )}
-
                     </CardContent>
                 </Card>
             )}
         </div>
     );
 }
-
-    
-
-    
 
     
