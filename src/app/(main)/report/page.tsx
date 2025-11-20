@@ -155,7 +155,7 @@ export default function ReportPage() {
                         dasarItems.push(`<li>${sppdData.dasarHukum}</li>`);
                     }
                     if (sppdData.nomorSurat) {
-                         const isCamat = selectedPegawai.some(p => p.jabatan.toLowerCase() === 'camat');
+                         const isCamat = selectedPegawai.some(p => p.jabatan.toLowerCase() === 'camat gandrungmangu');
                          const suratTugasText = isCamat 
                             ? `Surat Tugas Sekretaris Daerah Kabupaten Cilacap Nomor: ${sppdData.nomorSurat}`
                             : `Surat Tugas Camat Gandrungmangu Nomor: ${sppdData.nomorSurat}`;
@@ -166,7 +166,6 @@ export default function ReportPage() {
                     if (dasarItems.length > 0) {
                         const formattedDasar = `<ol>${dasarItems.join('')}</ol>`;
                         setDasar(formattedDasar);
-                        toast({ title: 'Data SPPD ditemukan!', description: 'Dasar kegiatan telah diisi otomatis.' });
                     } else {
                         setDasar('-');
                     }
@@ -393,6 +392,15 @@ export default function ReportPage() {
                     </CardHeader>
                     <CardContent className="space-y-4">
                        <div>
+                            <Label>Dasar Kegiatan</Label>
+                             <ReportEditorField
+                                value={dasar}
+                                onEditorChange={setDasar}
+                                placeholder="Dasar kegiatan seperti Surat Perintah, Undangan, dll."
+                                minHeightClass="min-h-16"
+                            />
+                        </div>
+                       <div>
                             <Label>Hasil Kegiatan</Label>
                             <ReportEditorField
                                 value={reportContent}
@@ -439,5 +447,3 @@ export default function ReportPage() {
         </div>
     );
 }
-
-    

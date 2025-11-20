@@ -170,7 +170,7 @@ function ReportPreviewComponent() {
 
                 // Re-create the 'dasar' content with the correct logic here as a safeguard
                 const { dasar, pelaksana } = parsedData;
-                const isCamat = pelaksana.some((p: PelaksanaData) => p.jabatan.toLowerCase() === 'camat');
+                const isCamat = pelaksana.some((p: PelaksanaData) => p.jabatan.toLowerCase() === 'camat gandrungmangu');
                 
                 let finalDasar = dasar;
                 
@@ -311,7 +311,7 @@ function ReportPreviewComponent() {
                          <>
                             <div className="h-20"></div>
                             {pelaksana.map((item, index) => (
-                                <div key={item.id} className="mb-4">
+                                <div key={item.id}>
                                     <div className="flex">
                                         <span className="w-6 align-top">{index + 1}.</span>
                                         <div className="flex-1">
@@ -364,7 +364,3 @@ export default function ReportPreviewPage() {
         </Suspense>
     )
 }
-
-    
-
-    
