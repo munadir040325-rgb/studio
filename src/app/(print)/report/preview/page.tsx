@@ -166,7 +166,7 @@ function ReportPreviewComponent() {
             const encodedData = searchParams.get('data');
             if (encodedData) {
                 const decodedData = decodeURIComponent(encodedData);
-                const parsedData = JSON.parse(decodedData);
+                const parsedData: ReportData = JSON.parse(decodedData);
 
                 // Re-create the 'dasar' content with the correct logic here as a safeguard
                 const { dasar, pelaksana } = parsedData;
@@ -175,26 +175,27 @@ function ReportPreviewComponent() {
                 let finalDasar = dasar;
                 
                 const tempDiv = document.createElement('div');
-                tempDiv.innerHTML = dasar;
-                const listItems = Array.from(tempDiv.querySelectorAll('li'));
-                
-                listItems.forEach(li => {
-                    if (li.textContent?.includes("Surat Tugas Camat Gandrungmangu") || li.textContent?.includes("Surat Tugas Sekretaris Daerah")) {
-                        const match = li.textContent.match(/Nomor: (.*)/);
-                        if (match && match[1]) {
-                            const nomorSurat = match[1].trim();
-                            const newText = isCamat
-                                ? `Surat Tugas Sekretaris Daerah Kabupaten Cilacap Nomor: ${nomorSurat}`
-                                : `Surat Tugas Camat Gandrungmangu Nomor: ${nomorSurat}`;
-                            li.textContent = newText;
+                if (dasar) {
+                    tempDiv.innerHTML = dasar;
+                    const listItems = Array.from(tempDiv.querySelectorAll('li'));
+                    
+                    listItems.forEach(li => {
+                        if (li.textContent?.includes("Surat Tugas Camat Gandrungmangu") || li.textContent?.includes("Surat Tugas Sekretaris Daerah")) {
+                            const match = li.textContent.match(/Nomor: (.*)/);
+                            if (match && match[1]) {
+                                const nomorSurat = match[1].trim();
+                                const newText = isCamat 
+                                    ? `Surat Tugas Sekretaris Daerah Kabupaten Cilacap Nomor: ${nomorSurat}`
+                                    : `Surat Tugas Camat Gandrungmangu Nomor: ${nomorSurat}`;
+                                li.textContent = newText;
+                            }
                         }
+                    });
+
+                    if(listItems.length > 0){
+                        finalDasar = `<ol>${tempDiv.innerHTML}</ol>`;
                     }
-                });
-
-                if(listItems.length > 0){
-                    finalDasar = `<ol>${tempDiv.innerHTML}</ol>`;
                 }
-
 
                 setReportData({ ...parsedData, dasar: finalDasar });
 
@@ -301,20 +302,22 @@ function ReportPreviewComponent() {
                     <p>{lokasiTanggal}</p>
                     <p>Yang melaksanakan tugas,</p>
                     {pelaksana.length === 1 ? (
-                        <div className="mt-4">
+                        <div>
                             <div className="h-20"></div>
                             <div className="font-semibold underline">{pelaksana[0].nama}</div>
                             <div>{pelaksana[0].jabatan}</div>
                         </div>
                     ) : pelaksana.length > 1 ? (
                          pelaksana.map((item, index) => (
-                            <div key={item.id} className="flex">
-                                <span className="w-6 align-top pt-20">{index + 1}.</span>
-                                <div className="flex-1">
-                                     <div className="h-16"></div>
-                                     <div className="font-semibold underline">{item.nama}</div>
-                                     <div>{item.jabatan}</div>
-                                 </div>
+                            <div key={item.id}>
+                                <div className="flex">
+                                    <span className="w-6 align-top pt-20">{index + 1}.</span>
+                                    <div className="flex-1">
+                                        <div className="h-20"></div>
+                                        <div className="font-semibold underline">{item.nama}</div>
+                                        <div>{item.jabatan}</div>
+                                    </div>
+                                </div>
                             </div>
                         ))
                     ) : (
@@ -359,5 +362,7 @@ export default function ReportPreviewPage() {
         </Suspense>
     )
 }
+
+    
 
     
