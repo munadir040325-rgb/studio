@@ -308,18 +308,20 @@ function ReportPreviewComponent() {
                             <div>{pelaksana[0].jabatan}</div>
                         </div>
                     ) : pelaksana.length > 1 ? (
-                         pelaksana.map((item, index) => (
-                            <div key={item.id}>
-                                <div className="flex">
-                                    <span className="w-6 align-top pt-20">{index + 1}.</span>
-                                    <div className="flex-1">
-                                        <div className="h-20"></div>
-                                        <div className="font-semibold underline">{item.nama}</div>
-                                        <div>{item.jabatan}</div>
+                         <>
+                            <div className="h-20"></div>
+                            {pelaksana.map((item, index) => (
+                                <div key={item.id} className="mb-4">
+                                    <div className="flex">
+                                        <span className="w-6 align-top">{index + 1}.</span>
+                                        <div className="flex-1">
+                                            <div className="font-semibold underline">{item.nama}</div>
+                                            <div>{item.jabatan}</div>
+                                        </div>
                                     </div>
                                 </div>
-                            </div>
-                        ))
+                            ))}
+                         </>
                     ) : (
                         <div className="h-28">-</div>
                     )}
