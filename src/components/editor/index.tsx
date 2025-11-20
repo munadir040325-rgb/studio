@@ -1,3 +1,4 @@
+
 "use client";
 
 import { LexicalComposer } from "@lexical/react/LexicalComposer";
@@ -12,6 +13,7 @@ import { editorConfig } from "./config";
 import { ContentEditable } from "./content-editable";
 import { cn } from "@/lib/utils";
 import { AutoFocusPlugin } from '@lexical/react/LexicalAutoFocusPlugin';
+import { CheckListPlugin } from "@lexical/react/LexicalCheckListPlugin";
 
 interface RichTextEditorProps {
   onChange: (html: string) => void;
@@ -47,6 +49,7 @@ export function RichTextEditor({
             }
           />
           <ListPlugin />
+          <CheckListPlugin />
           <OnChangePlugin onChange={handleOnChange} />
         </div>
       </div>
