@@ -150,13 +150,24 @@ export default function ReportPage() {
             if (selectedEventId && selectedEvent && !isManualMode) {
                 try {
                     const sppdData = await findSppdByEventId({ eventId: selectedEventId });
+                    
+                    let dasarItems: string[] = [];
+
+                    if (sppdData.dasarHukum) {
+                        dasarItems.push(`<li>${sppdData.dasarHukum}</li>`);
+                    }
+
                     if (sppdData.nomorSurat) {
                         const isCamat = selectedPegawai.some(p => p.jabatan.toLowerCase() === 'camat gandrungmangu');
                         const tglMulai = format(parseISO(selectedEvent.start), 'dd MMMM yyyy', { locale: localeId });
                         const tugasDari = isCamat ? "Sekretaris Daerah Kabupaten Cilacap" : "Camat Gandrungmangu";
                         
-                        const formattedDasar = `Surat Tugas ${tugasDari} Nomor: ${sppdData.nomorSurat} Tanggal ${tglMulai}`;
-                        setDasar(formattedDasar);
+                        const suratTugasText = `Surat Tugas ${tugasDari} Nomor: ${sppdData.nomorSurat} Tanggal ${tglMulai}`;
+                        dasarItems.push(`<li>${suratTugasText}</li>`);
+                    }
+
+                    if (dasarItems.length > 0) {
+                        setDasar(`<ol>${dasarItems.join('')}</ol>`);
                     } else {
                         setDasar('-');
                     }
@@ -384,10 +395,6 @@ export default function ReportPage() {
                         <CardTitle>Isi Detail Laporan</CardTitle>
                     </CardHeader>
                     <CardContent className="space-y-4">
-                       <div className="grid gap-2">
-                           <Label htmlFor="dasar-kegiatan">Dasar Kegiatan</Label>
-                           <Input id="dasar-kegiatan" value={dasar} onChange={(e) => setDasar(e.target.value)} placeholder="Diisi otomatis jika SPPD ditemukan..." />
-                       </div>
                        <div>
                             <Label>Hasil Kegiatan</Label>
                             <ReportEditorField
@@ -435,3 +442,4 @@ export default function ReportPage() {
         </div>
     );
 }
+
