@@ -154,7 +154,7 @@ export default function ReportPage() {
                     let dasarItems: string[] = [];
 
                     if (sppdData.dasarHukum) {
-                        dasarItems.push(`<li>${sppdData.dasarHukum}</li>`);
+                        dasarItems.push(`<li>${sppdData.dasarHukum}.</li>`);
                     }
 
                     if (sppdData.nomorSurat) {
@@ -163,7 +163,7 @@ export default function ReportPage() {
                         const tugasDari = isCamat ? "Sekretaris Daerah Kabupaten Cilacap" : "Camat Gandrungmangu";
                         
                         const suratTugasText = `Surat Tugas ${tugasDari} Nomor: ${sppdData.nomorSurat} Tanggal ${tglMulai}`;
-                        dasarItems.push(`<li>${suratTugasText}</li>`);
+                        dasarItems.push(`<li>${suratTugasText}.</li>`);
                     }
 
                     if (dasarItems.length > 0) {
@@ -181,7 +181,7 @@ export default function ReportPage() {
             }
         };
         fetchSppd();
-    }, [selectedEventId, selectedEvent, selectedPegawai, isManualMode, toast]);
+    }, [selectedEventId, selectedEvent, selectedPegawai, isManualMode]);
 
 
     useEffect(() => {
