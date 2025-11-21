@@ -156,59 +156,30 @@ const ReportSection = ({ number, title, children }: { number: string, title: str
 
 
 function ReportPreviewComponent() {
-    const searchParams = useSearchParams();
     const [reportData, setReportData] = useState<ReportData | null>(null);
     const [isLoading, setIsLoading] = useState(true);
     const [error, setError] = useState<string | null>(null);
 
     useEffect(() => {
         try {
-            const encodedData = searchParams.get('data');
-            if (encodedData) {
-                const decodedData = decodeURIComponent(encodedData);
-                const parsedData: ReportData = JSON.parse(decodedData);
+            const dataString = localStorage.getItem('reportPrintData');
+            if (dataString) {
+                const parsedData: ReportData = JSON.parse(dataString);
 
-                // Re-create the 'dasar' content with the correct logic here as a safeguard
-                const { dasar, pelaksana } = parsedData;
-                const isCamat = pelaksana.some((p: PelaksanaData) => p.jabatan.toLowerCase() === 'camat gandrungmangu');
-                
-                let finalDasar = dasar;
-                
-                const tempDiv = document.createElement('div');
-                if (dasar) {
-                    tempDiv.innerHTML = dasar;
-                    const listItems = Array.from(tempDiv.querySelectorAll('li'));
-                    
-                    listItems.forEach(li => {
-                        if (li.textContent?.includes("Surat Tugas Camat Gandrungmangu") || li.textContent?.includes("Surat Tugas Sekretaris Daerah")) {
-                            const match = li.textContent.match(/Nomor: (.*)/);
-                            if (match && match[1]) {
-                                const nomorSurat = match[1].trim();
-                                const newText = isCamat 
-                                    ? `Surat Tugas Sekretaris Daerah Kabupaten Cilacap Nomor: ${nomorSurat}`
-                                    : `Surat Tugas Camat Gandrungmangu Nomor: ${nomorSurat}`;
-                                li.textContent = newText;
-                            }
-                        }
-                    });
+                // Clean up localStorage immediately after reading
+                localStorage.removeItem('reportPrintData');
 
-                    if(listItems.length > 0){
-                        finalDasar = `<ol>${tempDiv.innerHTML}</ol>`;
-                    }
-                }
-
-                setReportData({ ...parsedData, dasar: finalDasar });
-
+                setReportData(parsedData);
             } else {
-                throw new Error("Data laporan tidak ditemukan di URL.");
+                throw new Error("Data laporan tidak ditemukan di penyimpanan lokal.");
             }
         } catch (e: any) {
-            console.error("Failed to parse report data from URL", e);
-            setError(e.message || "Gagal mem-parsing data laporan dari URL.");
+            console.error("Failed to parse report data from localStorage", e);
+            setError(e.message || "Gagal mem-parsing data laporan dari penyimpanan lokal.");
         } finally {
             setIsLoading(false);
         }
-    }, [searchParams]);
+    }, []);
 
     useEffect(() => {
         if (reportData && !isLoading && !error) {
@@ -255,7 +226,7 @@ function ReportPreviewComponent() {
             
             <div className="space-y-4 text-justify">
                 <ReportSection number="I." title="Dasar">
-                   <HtmlContent html={dasar} asList={true} />
+                   <p>{dasar}</p>
                 </ReportSection>
 
                 <ReportSection number="II." title="Maksud dan Tujuan">
@@ -301,19 +272,18 @@ function ReportPreviewComponent() {
                 <div className="w-96 text-left">
                     <p>{lokasiTanggal}</p>
                     <p>Yang melaksanakan tugas,</p>
+                    <div className="h-20"></div>
                     {pelaksana.length === 1 ? (
                         <div>
-                            <div className="h-20"></div>
                             <div className="font-semibold underline">{pelaksana[0].nama}</div>
                             <div>{pelaksana[0].jabatan}</div>
                         </div>
                     ) : pelaksana.length > 1 ? (
                          <>
-                            <div className="h-20"></div>
                             {pelaksana.map((item, index) => (
-                                <div key={item.id}>
+                                <div key={item.id} className="mt-4">
                                     <div className="flex">
-                                        <span className="w-6 align-top">{index + 1}.</span>
+                                        <span className="w-6 align-top pt-20">{index + 1}.</span>
                                         <div className="flex-1">
                                             <div className="font-semibold underline">{item.nama}</div>
                                             <div>{item.jabatan}</div>

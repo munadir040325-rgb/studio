@@ -149,23 +149,12 @@ export default function ReportPage() {
             if (selectedEventId && selectedEvent && !isManualMode) {
                 try {
                     const sppdData = await findSppdByEventId({ eventId: selectedEventId });
-                    
-                    let dasarItems = [];
-                    if (sppdData.dasarHukum) {
-                        dasarItems.push(`<li>${sppdData.dasarHukum}</li>`);
-                    }
                     if (sppdData.nomorSurat) {
-                         const isCamat = selectedPegawai.some(p => p.jabatan.toLowerCase() === 'camat gandrungmangu');
-                         const tglMulai = format(parseISO(selectedEvent.start), 'dd MMMM yyyy', { locale: localeId });
-                         const suratTugasText = isCamat 
-                            ? `Surat Tugas Sekretaris Daerah Kabupaten Cilacap Nomor: ${sppdData.nomorSurat} Tanggal ${tglMulai}`
-                            : `Surat Tugas Camat Gandrungmangu Nomor: ${sppdData.nomorSurat} Tanggal ${tglMulai}`;
+                        const isCamat = selectedPegawai.some(p => p.jabatan.toLowerCase() === 'camat gandrungmangu');
+                        const tglMulai = format(parseISO(selectedEvent.start), 'dd MMMM yyyy', { locale: localeId });
+                        const tugasDari = isCamat ? "Sekretaris Daerah Kabupaten Cilacap" : "Camat Gandrungmangu";
                         
-                        dasarItems.push(`<li>${suratTugasText}</li>`);
-                    }
-                    
-                    if (dasarItems.length > 0) {
-                        const formattedDasar = `<ol>${dasarItems.join('')}</ol>`;
+                        const formattedDasar = `Surat Tugas ${tugasDari} Nomor: ${sppdData.nomorSurat} Tanggal ${tglMulai}`;
                         setDasar(formattedDasar);
                     } else {
                         setDasar('-');
@@ -224,16 +213,16 @@ export default function ReportPage() {
                 photoAttachments,
             };
 
-            const dataString = JSON.stringify(reportData);
-            const encodedData = encodeURIComponent(dataString);
+            // Store data in localStorage instead of URL
+            localStorage.setItem('reportPrintData', JSON.stringify(reportData));
             
-            const printWindow = window.open(`/report/preview?data=${encodedData}`, '_blank');
+            const printWindow = window.open(`/report/preview`, '_blank');
 
             if (!printWindow) {
                 toast({ variant: 'destructive', title: 'Gagal Membuka Tab', description: 'Browser Anda mungkin memblokir pop-up. Mohon izinkan pop-up untuk situs ini.' });
             }
         } catch (e) {
-            console.error("Error encoding report data", e);
+            console.error("Error preparing report data", e);
             toast({ variant: 'destructive', title: 'Gagal', description: 'Terjadi kesalahan saat mempersiapkan data untuk dicetak.' });
         } finally {
             setIsPrinting(false);
@@ -439,5 +428,3 @@ export default function ReportPage() {
         </div>
     );
 }
-
-    
