@@ -161,25 +161,31 @@ function ReportPreviewComponent() {
     const [error, setError] = useState<string | null>(null);
 
     useEffect(() => {
-        try {
-            const dataString = localStorage.getItem('reportPrintData');
-            if (dataString) {
-                const parsedData: ReportData = JSON.parse(dataString);
+        // Add a short delay to mitigate race conditions with localStorage
+        const timer = setTimeout(() => {
+            try {
+                const dataString = localStorage.getItem('reportPrintData');
+                if (dataString) {
+                    const parsedData: ReportData = JSON.parse(dataString);
 
-                // Clean up localStorage immediately after reading
-                localStorage.removeItem('reportPrintData');
+                    // Clean up localStorage immediately after reading
+                    localStorage.removeItem('reportPrintData');
 
-                setReportData(parsedData);
-            } else {
-                throw new Error("Data laporan tidak ditemukan di penyimpanan lokal.");
+                    setReportData(parsedData);
+                } else {
+                    throw new Error("Data laporan tidak ditemukan di penyimpanan lokal.");
+                }
+            } catch (e: any) {
+                console.error("Failed to parse report data from localStorage", e);
+                setError(e.message || "Gagal mem-parsing data laporan dari penyimpanan lokal.");
+            } finally {
+                setIsLoading(false);
             }
-        } catch (e: any) {
-            console.error("Failed to parse report data from localStorage", e);
-            setError(e.message || "Gagal mem-parsing data laporan dari penyimpanan lokal.");
-        } finally {
-            setIsLoading(false);
-        }
+        }, 100); // 100ms delay
+
+        return () => clearTimeout(timer);
     }, []);
+
 
     useEffect(() => {
         if (reportData && !isLoading && !error) {
@@ -280,10 +286,11 @@ function ReportPreviewComponent() {
                         </div>
                     ) : pelaksana.length > 1 ? (
                          <>
+                            <div className="h-20"></div>
                             {pelaksana.map((item, index) => (
-                                <div key={item.id} className="mt-4">
+                                <div key={item.id}>
                                     <div className="flex">
-                                        <span className="w-6 align-top pt-20">{index + 1}.</span>
+                                        <span className="w-6 align-top">{index + 1}.</span>
                                         <div className="flex-1">
                                             <div className="font-semibold underline">{item.nama}</div>
                                             <div>{item.jabatan}</div>
