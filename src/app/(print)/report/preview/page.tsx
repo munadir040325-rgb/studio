@@ -1,4 +1,5 @@
 
+
 'use client';
 
 import { useEffect, useState, Suspense } from 'react';
@@ -117,9 +118,9 @@ const PelaksanaList = ({ pelaksana }: { pelaksana: PelaksanaData[] }) => {
                         <div className="flex-1">
                             <table className="w-full border-separate" style={{ borderSpacing: 0 }}>
                                 <tbody>
-                                    <tr><td className="w-36 align-top">Nama</td><td className="w-2 px-1 align-top">:</td><td>{p.nama}</td></tr>
-                                    <tr><td className="w-36 align-top">NIP</td><td className="w-2 px-1 align-top">:</td><td>{p.nip}</td></tr>
-                                    <tr><td className="w-36 align-top">Jabatan</td><td className="w-2 px-1 align-top">:</td><td>{p.jabatan}</td></tr>
+                                    <tr><td className="w-20 align-top">Nama</td><td className="w-2 px-1 align-top">:</td><td>{p.nama}</td></tr>
+                                    <tr><td className="w-20 align-top">NIP</td><td className="w-2 px-1 align-top">:</td><td>{p.nip}</td></tr>
+                                    <tr><td className="w-20 align-top">Jabatan</td><td className="w-2 px-1 align-top">:</td><td>{p.jabatan}</td></tr>
                                 </tbody>
                             </table>
                         </div>
@@ -226,14 +227,30 @@ function ReportPreviewComponent() {
                 <ReportSection number="III." title="Kegiatan yang dilaksanakan">
                      <table className="w-full">
                         <tbody>
-                            <tr><td className="w-32 align-top">Nama Kegiatan</td><td className="w-2 align-top">:</td><td>{event.summary}</td></tr>
-                            <tr><td className='w-32 align-top'>Hari/Tanggal</td><td className='w-2 align-top'>:</td><td>{formatReportDateRange(event.start, event.end)}</td></tr>
-                            <tr><td className='w-32 align-top'>Waktu</td><td className='w-2 align-top'>:</td><td>{isManualEvent ? event.waktu : `Pukul ${format(parseISO(event.start), 'HH:mm', { locale: localeId })} WIB s.d. Selesai`}</td></tr>
-                            <tr><td className='w-32 align-top'>Tempat</td><td className='w-2 align-top'>:</td><td>{event.location}</td></tr>
+                            <tr>
+                                <td className="w-32 align-top">Nama Kegiatan</td>
+                                <td className="w-2 px-1 align-top">:</td>
+                                <td>{event.summary}</td>
+                            </tr>
+                            <tr>
+                                <td className='w-32 align-top'>Hari/Tanggal</td>
+                                <td className='w-2 px-1 align-top'>:</td>
+                                <td>{formatReportDateRange(event.start, event.end)}</td>
+                            </tr>
+                            <tr>
+                                <td className='w-32 align-top'>Waktu</td>
+                                <td className='w-2 px-1 align-top'>:</td>
+                                <td>{isManualEvent ? event.waktu : `Pukul ${format(parseISO(event.start), 'HH:mm', { locale: localeId })} WIB s.d. Selesai`}</td>
+                            </tr>
+                            <tr>
+                                <td className='w-32 align-top'>Tempat</td>
+                                <td className='w-2 px-1 align-top'>:</td>
+                                <td>{event.location}</td>
+                            </tr>
                             {isPesertaFilled && (
                                 <tr>
                                     <td className='w-32 align-top'>Peserta</td>
-                                    <td className='w-2 align-top'>:</td>
+                                    <td className='w-2 px-1 align-top'>:</td>
                                     <td><HtmlContent html={peserta} asList={true} /></td>
                                 </tr>
                             )}
@@ -323,3 +340,4 @@ export default function ReportPreviewPage() {
         </Suspense>
     )
 }
+
