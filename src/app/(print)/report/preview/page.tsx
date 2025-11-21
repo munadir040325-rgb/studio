@@ -8,6 +8,7 @@ import { Loader2 } from 'lucide-react';
 import { parseISO, format, isSameDay, isSameMonth } from 'date-fns';
 import { id as localeId } from 'date-fns/locale';
 import { ReportHeader } from '@/components/report/report-header';
+import zlib from 'zlib';
 
 
 type CalendarAttachment = {
@@ -156,35 +157,35 @@ const ReportSection = ({ number, title, children }: { number: string, title: str
 
 
 function ReportPreviewComponent() {
+    const searchParams = useSearchParams();
     const [reportData, setReportData] = useState<ReportData | null>(null);
     const [isLoading, setIsLoading] = useState(true);
     const [error, setError] = useState<string | null>(null);
 
     useEffect(() => {
-        // Add a short delay to mitigate race conditions with localStorage
-        const timer = setTimeout(() => {
-            try {
-                const dataString = localStorage.getItem('reportPrintData');
-                if (dataString) {
-                    const parsedData: ReportData = JSON.parse(dataString);
-
-                    // Clean up localStorage immediately after reading
-                    localStorage.removeItem('reportPrintData');
-
-                    setReportData(parsedData);
-                } else {
-                    throw new Error("Data laporan tidak ditemukan di penyimpanan lokal.");
-                }
-            } catch (e: any) {
-                console.error("Failed to parse report data from localStorage", e);
-                setError(e.message || "Gagal mem-parsing data laporan dari penyimpanan lokal.");
-            } finally {
-                setIsLoading(false);
+        try {
+            const dataParam = searchParams.get('data');
+            if (dataParam) {
+                const decodedData = decodeURIComponent(dataParam);
+                const compressedBuffer = Buffer.from(decodedData, 'base64');
+                const decompressedBuffer = zlib.gunzipSync(compressedBuffer);
+                const jsonString = decompressedBuffer.toString('utf8');
+                const parsedData: ReportData = JSON.parse(jsonString);
+                setReportData(parsedData);
+            } else {
+                throw new Error("Parameter 'data' tidak ditemukan di URL.");
             }
-        }, 100); // 100ms delay
-
-        return () => clearTimeout(timer);
-    }, []);
+        } catch (e: any) {
+            console.error("Gagal mem-parsing data laporan dari URL:", e);
+            let message = e.message || "Gagal mem-parsing data laporan.";
+            if (e.code === 'Z_DATA_ERROR' || e.message.includes('incorrect header check')) {
+                 message = "Data laporan terkorupsi atau format tidak valid.";
+            }
+            setError(message);
+        } finally {
+            setIsLoading(false);
+        }
+    }, [searchParams]);
 
 
     useEffect(() => {
@@ -279,29 +280,22 @@ function ReportPreviewComponent() {
                     <p>{lokasiTanggal}</p>
                     <p>Yang melaksanakan tugas,</p>
                     <div className="h-20"></div>
-                    {pelaksana.length === 1 ? (
-                        <div>
-                            <div className="font-semibold underline">{pelaksana[0].nama}</div>
-                            <div>{pelaksana[0].jabatan}</div>
-                        </div>
-                    ) : pelaksana.length > 1 ? (
-                         <>
-                            <div className="h-20"></div>
-                            {pelaksana.map((item, index) => (
-                                <div key={item.id}>
-                                    <div className="flex">
-                                        <span className="w-6 align-top">{index + 1}.</span>
-                                        <div className="flex-1">
-                                            <div className="font-semibold underline">{item.nama}</div>
-                                            <div>{item.jabatan}</div>
-                                        </div>
+                     {pelaksana.length > 0 ? (
+                         pelaksana.map((item, index) => (
+                            <div key={item.id} className={index > 0 ? 'mt-4' : ''}>
+                                <div className="flex">
+                                    <span className="w-6 align-top pt-20">{index > 0 ? `${index + 1}.` : ''}</span>
+                                    <div className="flex-1">
+                                        {index === 0 && <div className="h-20"></div>}
+                                        <div className="font-semibold underline">{item.nama}</div>
+                                        <div>{item.jabatan}</div>
                                     </div>
                                 </div>
-                            ))}
-                         </>
-                    ) : (
+                            </div>
+                         ))
+                     ) : (
                         <div className="h-28">-</div>
-                    )}
+                     )}
                 </div>
             </div>
 

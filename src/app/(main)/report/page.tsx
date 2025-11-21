@@ -20,6 +20,7 @@ import type { DateRange } from 'react-day-picker';
 import { Command, CommandEmpty, CommandGroup, CommandInput, CommandItem, CommandList } from '@/components/ui/command';
 import { Badge } from '@/components/ui/badge';
 import { findSppdByEventId } from '@/ai/flows/sheets-flow';
+import zlib from 'zlib';
 
 
 type CalendarAttachment = {
@@ -199,7 +200,7 @@ export default function ReportPage() {
                 
             if (!eventData || !eventData.summary) {
                 toast({ variant: 'destructive', title: 'Belum Lengkap', description: 'Silakan pilih kegiatan atau isi data manual terlebih dahulu.' });
-                setIsPrinting(false); // Reset on validation fail
+                setIsPrinting(false);
                 return;
             }
 
@@ -213,17 +214,19 @@ export default function ReportPage() {
                 photoAttachments,
             };
 
-            // Store data in localStorage instead of URL
-            localStorage.setItem('reportPrintData', JSON.stringify(reportData));
+            const jsonString = JSON.stringify(reportData);
+            const compressed = zlib.gzipSync(Buffer.from(jsonString));
+            const base64Data = compressed.toString('base64');
+            const url = `/report/preview?data=${encodeURIComponent(base64Data)}`;
             
-            const printWindow = window.open(`/report/preview`, '_blank');
+            const printWindow = window.open(url, '_blank');
 
             if (!printWindow) {
                 toast({ variant: 'destructive', title: 'Gagal Membuka Tab', description: 'Browser Anda mungkin memblokir pop-up. Mohon izinkan pop-up untuk situs ini.' });
             }
-        } catch (e) {
+        } catch (e: any) {
             console.error("Error preparing report data", e);
-            toast({ variant: 'destructive', title: 'Gagal', description: 'Terjadi kesalahan saat mempersiapkan data untuk dicetak.' });
+            toast({ variant: 'destructive', title: 'Gagal', description: 'Terjadi kesalahan saat mempersiapkan data untuk dicetak: ' + e.message });
         } finally {
             setIsPrinting(false);
         }
@@ -381,6 +384,10 @@ export default function ReportPage() {
                         <CardTitle>Isi Detail Laporan</CardTitle>
                     </CardHeader>
                     <CardContent className="space-y-4">
+                       <div className="grid gap-2">
+                           <Label htmlFor="dasar-kegiatan">Dasar Kegiatan</Label>
+                           <Input id="dasar-kegiatan" value={dasar} onChange={(e) => setDasar(e.target.value)} placeholder="Diisi otomatis jika SPPD ditemukan..." />
+                       </div>
                        <div>
                             <Label>Hasil Kegiatan</Label>
                             <ReportEditorField
