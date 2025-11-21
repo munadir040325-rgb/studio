@@ -146,7 +146,7 @@ export default function ReportPage() {
     // Fetch SPPD data when event or pelaksana is selected
     useEffect(() => {
         const fetchSppd = async () => {
-            if (selectedEventId && !isManualMode) {
+            if (selectedEventId && selectedEvent && !isManualMode) {
                 try {
                     const sppdData = await findSppdByEventId({ eventId: selectedEventId });
                     
@@ -156,9 +156,10 @@ export default function ReportPage() {
                     }
                     if (sppdData.nomorSurat) {
                          const isCamat = selectedPegawai.some(p => p.jabatan.toLowerCase() === 'camat gandrungmangu');
+                         const tglMulai = format(parseISO(selectedEvent.start), 'dd MMMM yyyy', { locale: localeId });
                          const suratTugasText = isCamat 
-                            ? `Surat Tugas Sekretaris Daerah Kabupaten Cilacap Nomor: ${sppdData.nomorSurat}`
-                            : `Surat Tugas Camat Gandrungmangu Nomor: ${sppdData.nomorSurat}`;
+                            ? `Surat Tugas Sekretaris Daerah Kabupaten Cilacap Nomor: ${sppdData.nomorSurat} Tanggal ${tglMulai}`
+                            : `Surat Tugas Camat Gandrungmangu Nomor: ${sppdData.nomorSurat} Tanggal ${tglMulai}`;
                         
                         dasarItems.push(`<li>${suratTugasText}</li>`);
                     }
@@ -179,7 +180,7 @@ export default function ReportPage() {
             }
         };
         fetchSppd();
-    }, [selectedEventId, selectedPegawai, isManualMode, toast]);
+    }, [selectedEventId, selectedEvent, selectedPegawai, isManualMode, toast]);
 
 
     useEffect(() => {
@@ -392,15 +393,6 @@ export default function ReportPage() {
                     </CardHeader>
                     <CardContent className="space-y-4">
                        <div>
-                            <Label>Dasar Kegiatan</Label>
-                             <ReportEditorField
-                                value={dasar}
-                                onEditorChange={setDasar}
-                                placeholder="Dasar kegiatan seperti Surat Perintah, Undangan, dll."
-                                minHeightClass="min-h-16"
-                            />
-                        </div>
-                       <div>
                             <Label>Hasil Kegiatan</Label>
                             <ReportEditorField
                                 value={reportContent}
@@ -447,3 +439,5 @@ export default function ReportPage() {
         </div>
     );
 }
+
+    
