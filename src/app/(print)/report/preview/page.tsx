@@ -108,27 +108,12 @@ const PelaksanaList = ({ pelaksana }: { pelaksana: PelaksanaData[] }) => {
         return <div>-</div>;
     }
 
-    if (pelaksana.length === 1) {
-        const p = pelaksana[0];
-        return (
-            <div key={p.id}>
-                <table className="w-full border-separate" style={{ borderSpacing: 0 }}>
-                    <tbody>
-                        <tr><td className="w-40 align-top">Nama</td><td className="w-2 px-1 align-top">:</td><td>{p.nama}</td></tr>
-                        <tr><td className="w-40 align-top">NIP</td><td className="w-2 px-1 align-top">:</td><td>{p.nip}</td></tr>
-                        <tr><td className="w-40 align-top">Jabatan</td><td className="w-2 px-1 align-top">:</td><td>{p.jabatan}</td></tr>
-                    </tbody>
-                </table>
-            </div>
-        );
-    }
-
     return (
         <div className="space-y-2">
             {pelaksana.map((p, index) => (
                 <div key={p.id}>
                     <div className="flex">
-                        <span className="w-6 align-top">{index + 1}.</span>
+                        <span className="w-6 align-top">{pelaksana.length > 1 ? `${index + 1}.` : ""}</span>
                         <div className="flex-1">
                             <table className="w-full border-separate" style={{ borderSpacing: 0 }}>
                                 <tbody>
@@ -219,10 +204,8 @@ function ReportPreviewComponent() {
     const { event, dasar, pelaksana, narasumber, peserta, reportContent, photoAttachments } = reportData;
     const isManualEvent = 'waktu' in event && !!event.waktu;
     const isPesertaFilled = peserta && peserta.trim() !== '' && peserta.trim() !== '<p><br></p>' && peserta.trim() !== '-';
-
     
     const lokasiTanggal = `${process.env.NEXT_PUBLIC_KOP_KECAMATAN || 'Gandrungmangu'}, ${format(parseISO(event.start), 'dd MMMM yyyy', { locale: localeId })}`;
-
 
     return (
         <div id="print-area" className="bg-white text-black p-8 max-w-4xl mx-auto" style={{ lineHeight: 1.1 }}>
@@ -233,7 +216,7 @@ function ReportPreviewComponent() {
             
             <div className="space-y-4 text-justify">
                 <ReportSection number="I." title="Dasar">
-                   <HtmlContent html={dasar} />
+                   <HtmlContent html={dasar} asList={true}/>
                 </ReportSection>
 
                 <ReportSection number="II." title="Maksud dan Tujuan">
@@ -276,26 +259,32 @@ function ReportPreviewComponent() {
             </div>
             
             <div className="flex justify-end mt-12">
-                <div className="w-96 text-left">
-                    <p>{lokasiTanggal}</p>
-                    <p>Yang melaksanakan tugas,</p>
-                    <div className="h-16"></div>
-                    {pelaksana.length > 0 ? (
-                        pelaksana.map((item, index) => (
-                            <div key={item.id} className="flex">
-                                <span className="w-6 align-top">
-                                    {pelaksana.length > 1 ? `${index + 1}.` : ""}
-                                </span>
-                                <div className="flex-1 leading-[1.1] ml-1">
-                                    <div className="font-semibold underline leading-[1.1]">{item.nama}</div>
-                                    <div className="leading-[1.1]">{item.jabatan}</div>
-                                </div>
+              <div className="w-96 text-left">
+                <p>{lokasiTanggal}</p>
+                <p>Yang melaksanakan tugas,</p>
+                <div className="h-16"></div>
+                {pelaksana.length > 0 ? (
+                  pelaksana.map((item, index) => (
+                    <div key={item.id} className="leading-tight">
+                        <div className="flex">
+                            <span className="w-6 align-top">
+                              {pelaksana.length > 1 ? `${index + 1}.` : ""}
+                            </span>
+                            <div className="flex-1 leading-[1.1] ml-1">
+                              <div className="font-semibold underline leading-[1.1]">
+                                {item.nama}
+                              </div>
+                              <div className="leading-[1.1]">
+                                {item.jabatan}
+                              </div>
                             </div>
-                        ))
-                    ) : (
-                        <div className="h-28">-</div>
-                    )}
-                </div>
+                        </div>
+                    </div>
+                  ))
+                ) : (
+                  <div className="h-28">-</div>
+                )}
+              </div>
             </div>
 
             {photoAttachments.length > 0 && (
