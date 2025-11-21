@@ -275,30 +275,43 @@ function ReportPreviewComponent() {
                 </ReportSection>
             </div>
             
-             <div className="flex justify-end mt-12">
-                <div className="w-96 text-left">
-                    <p>{lokasiTanggal}</p>
-                    <p>Yang melaksanakan tugas,</p>
-                    <div className="h-20"></div>
-                     {pelaksana.length > 0 ? (
-                         pelaksana.map((item, index) => (
-                            <div key={item.id} className={index > 0 ? 'mt-4' : ''}>
-                                <div className="flex">
-                                    <span className="w-6 align-top pt-20">{index > 0 ? `${index + 1}.` : ''}</span>
-                                    <div className="flex-1">
-                                        {index === 0 && <div className="h-20"></div>}
-                                        <div className="font-semibold underline">{item.nama}</div>
-                                        <div>{item.jabatan}</div>
-                                    </div>
-                                </div>
-                            </div>
-                         ))
-                     ) : (
-                        <div className="h-28">-</div>
-                     )}
-                </div>
+            <div className="flex justify-end mt-12">
+            <div className="flex justify-end mt-12">
+  <div className="w-96 text-left">
+    <p>{lokasiTanggal}</p>
+    <p>Yang melaksanakan tugas,</p>
+
+    {/* 1 baris kosong */}
+    <div className="h-4"></div>
+
+    {pelaksana.length > 0 ? (
+      pelaksana.map((item, index) => (
+        <div key={item.id}>
+          <div className="flex">
+
+            {/* tampilkan nomor hanya jika lebih dari 1 pelaksana */}
+            <span className="w-6 align-top">
+              {pelaksana.length > 1 ? `${index + 1}.` : ""}
+            </span>
+
+            {/* data nama + jabatan */}
+            <div className="flex-1 leading-[1.1] ml-1">
+              <div className="font-semibold underline leading-[1.1]">
+                {item.nama}
+              </div>
+              <div className="leading-[1.1]">
+                {item.jabatan}
+              </div>
             </div>
 
+          </div>
+        </div>
+      ))
+    ) : (
+      <div className="h-28">-</div>
+    )}
+  </div>
+</div>
             {photoAttachments.length > 0 && (
                  <div className="page-break">
                     <div className="p-8 md:p-12">
